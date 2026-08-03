@@ -1754,7 +1754,7 @@ private fun openNotificationSettings(context: Context) {
 
 suspend fun checkForUpdates(): String? = withContext(Dispatchers.IO) {
     try {
-        val url = URL("https://api.github.com/repos/d0x-dev/icebeats/releases/latest")
+        val url = URL("https://api.github.com/repos/B7ByteMe/IceBeats/releases/latest")
         val connection = url.openConnection()
         connection.connect()
         val json = connection.getInputStream().bufferedReader().use { it.readText() }

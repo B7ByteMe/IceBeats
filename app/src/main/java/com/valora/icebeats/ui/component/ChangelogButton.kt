@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.component
+ï»¿package com.valora.icebeats.ui.component
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
@@ -165,14 +165,14 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
     var selectedTab by remember { mutableStateOf(ChangelogTab.RELEASES) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadChangelog("d0x-dev", "icebeats")
+        viewModel.loadChangelog("B7ByteMe", "IceBeats")
     }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header con título principal
+        // Header con tï¿½tulo principal
         Text(
             text = stringResource(R.string.changelogs),
             style = MaterialTheme.typography.headlineMedium,
@@ -194,7 +194,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
                     isLoading = uiState.isLoadingReleases,
                     error = uiState.releasesError,
                     lastUpdated = uiState.lastUpdated,
-                    onRetry = { viewModel.loadChangelog("d0x-dev", "icebeats") }
+                    onRetry = { viewModel.loadChangelog("B7ByteMe", "IceBeats") }
                 )
             }
 
@@ -204,7 +204,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
                     isLoading = uiState.isLoadingCommits,
                     error = uiState.commitsError,
                     lastUpdated = uiState.lastUpdated,
-                    onRetry = { viewModel.loadChangelog("d0x-dev", "icebeats") }
+                    onRetry = { viewModel.loadChangelog("B7ByteMe", "IceBeats") }
                 )
             }
         }
@@ -751,8 +751,8 @@ private fun cleanMarkdown(markdown: String): String {
         "&#39;" to "'",
         "&#x27;" to "'",
         "&hellip;" to "...",
-        "&mdash;" to "—",
-        "&ndash;" to "–"
+        "&mdash;" to "ï¿½",
+        "&ndash;" to "ï¿½"
     )
 
     for ((entity, replacement) in htmlEntities) {
@@ -1193,7 +1193,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener la información después de los reintentos")
+            throw IOException("No se pudo obtener la informaciï¿½n despuï¿½s de los reintentos")
         }
 
     private suspend fun fetchCommits(owner: String, repo: String): List<Commit> =
@@ -1240,7 +1240,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener los commits después de los reintentos")
+            throw IOException("No se pudo obtener los commits despuï¿½s de los reintentos")
         }
 
     private fun getCurrentTimestamp(): String {

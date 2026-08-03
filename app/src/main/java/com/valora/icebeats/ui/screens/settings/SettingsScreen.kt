@@ -464,7 +464,7 @@ fun VersionCard(uriHandler: UriHandler) {
                                 )
                             }
                         },
-                        onClick = { uriHandler.openUri("https://github.com/d0x-dev/icebeats/releases/latest") }
+                        onClick = { uriHandler.openUri("https://icebeats.pages.dev/") }
                     ),
                     isLast = false
                 )
@@ -667,8 +667,7 @@ fun UpdateDownloadDialog(
                             WaterDropButton(
                                 onClick = {
                                     downloadStatus = DownloadStatus.REDIRECTING
-                                    val downloadUrl = "https://github.com/d0x-dev/icebeats/releases/download/$latestVersion/icebeats_v${latestVersion}_signed.apk"
-                                    uriHandler.openUri(downloadUrl)
+                                    uriHandler.openUri("https://icebeats.pages.dev/")
                                     downloadStatus = DownloadStatus.COMPLETED
                                     onDismiss()
                                 },
@@ -739,7 +738,7 @@ enum class DownloadStatus {
 
 suspend fun checkForUpdates(): String? = withContext(Dispatchers.IO) {
     try {
-        val url = URL("https://api.github.com/repos/d0x-dev/icebeats/releases/latest")
+        val url = URL("https://api.github.com/repos/B7ByteMe/IceBeats/releases/latest")
         val connection = url.openConnection()
         connection.connect()
         val json = connection.getInputStream().bufferedReader().use { it.readText() }

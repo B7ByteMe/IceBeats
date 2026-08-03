@@ -300,7 +300,7 @@ fun AboutScreen(
                         SocialLinkButton(
                             label = "GitHub",
                             iconRes = R.drawable.github,
-                            onClick = { uriHandler.openUri("https://github.com/d0x-dev") }
+                            onClick = { uriHandler.openUri("https://icebeats.pages.dev/") }
                         )
                         Box(
                             modifier = Modifier
@@ -312,7 +312,7 @@ fun AboutScreen(
                         SocialLinkButton(
                             label = "Telegram",
                             iconRes = R.drawable.telegram,
-                            onClick = { uriHandler.openUri("https://t.me/songpy") }
+                            onClick = { uriHandler.openUri("https://t.me/Riz_BuyX") }
                         )
                         Box(
                             modifier = Modifier
@@ -324,7 +324,7 @@ fun AboutScreen(
                         SocialLinkButton(
                             label = "Instagram",
                             iconRes = R.drawable.instagram,
-                            onClick = { uriHandler.openUri("https://instagram.com/dark__336") }
+                            onClick = { uriHandler.openUri("https://instagram.com/rizal_fbrian") }
                         )
                     }
                 }
