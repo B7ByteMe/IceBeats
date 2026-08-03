@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes

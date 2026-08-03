@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.constants
+package com.valora.icebeats.constants
 
 
 import androidx.compose.animation.core.Spring

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.library
+package com.valora.icebeats.ui.screens.library
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController

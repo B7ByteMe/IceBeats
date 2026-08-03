@@ -1,4 +1,4 @@
-﻿/*
+/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -46,9 +46,9 @@ import kotlin.math.max
 
 object icebeatsComposeToImage {
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Utilidades internas
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     private tailrec fun Context.findActivity(): Activity? = when (this) {
         is Activity      -> this
@@ -77,9 +77,9 @@ object icebeatsComposeToImage {
         return if (result == PixelCopy.SUCCESS) bitmap else null
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // API pública de captura de View
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // API p�blica de captura de View
+    // -------------------------------------------------------------------------
 
     suspend fun captureViewBitmap(
         view: View,
@@ -147,9 +147,9 @@ object icebeatsComposeToImage {
         return out
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Carga de la carátula (compartida por todos los renderers)
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Carga de la car�tula (compartida por todos los renderers)
+    // -------------------------------------------------------------------------
 
     private suspend fun loadCoverArt(context: Context, url: String?): Bitmap? {
         if (url == null) return null
@@ -160,9 +160,9 @@ object icebeatsComposeToImage {
         }.getOrNull()
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helper: fondo de álbum (desenfocado) + scrim
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Helper: fondo de �lbum (desenfocado) + scrim
+    // -------------------------------------------------------------------------
 
     private fun drawAlbumBackground(
         canvas: Canvas,
@@ -184,7 +184,7 @@ object icebeatsComposeToImage {
                     false  // Cambia a false para mejor calidad
                 )
             )
-            // Reduce la intensidad del blur o usa un blur más suave
+            // Reduce la intensidad del blur o usa un blur m�s suave
             val blurred = if (coverArt.width > cardSize * 2) {
                 // Si la imagen original es grande, no la reduzcas tanto
                 scaleBlurQuality(scaled, 12) // Reduce la intensidad del blur
@@ -208,13 +208,13 @@ object icebeatsComposeToImage {
     private fun scaleBlurQuality(source: Bitmap, strength: Int): Bitmap {
         val safe = ensureSoftwareBitmap(source)
 
-        // Si la imagen ya es pequeña, no la reduzcas
+        // Si la imagen ya es peque�a, no la reduzcas
         if (safe.width <= 400 || safe.height <= 400) {
             return safe
         }
 
-        // Reducción más suave para mantener calidad
-        val targetSize = max(safe.width / 4, 200) // Máximo reducción a 1/4
+        // Reducci�n m�s suave para mantener calidad
+        val targetSize = max(safe.width / 4, 200) // M�ximo reducci�n a 1/4
         val smallW = targetSize
         val smallH = (safe.height * targetSize / safe.width).coerceAtLeast(100)
 
@@ -225,9 +225,9 @@ object icebeatsComposeToImage {
         return result
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Helper: panel frosted sobre el canvas
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     private fun drawFrostedPanel(
         canvas: Canvas,
@@ -266,9 +266,9 @@ object icebeatsComposeToImage {
         })
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Helper: texto de letras con auto-fit vertical
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     private fun buildFittedLyricsLayout(
         lyrics: String,
@@ -294,9 +294,9 @@ object icebeatsComposeToImage {
         return layout
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helper: metadata row (carátula + título + artista)
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // Helper: metadata row (car�tula + t�tulo + artista)
+    // -------------------------------------------------------------------------
 
     private fun drawMetadataRow(
         canvas: Canvas,
@@ -362,9 +362,9 @@ object icebeatsComposeToImage {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Helper: branding icebeats (igual al original)
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     private fun drawBranding(
         context: Context,
@@ -406,9 +406,9 @@ object icebeatsComposeToImage {
         )
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // ▸ API PRINCIPAL NUEVA — despacha al renderer correcto según config
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // ? API PRINCIPAL NUEVA � despacha al renderer correcto seg�n config
+    // -------------------------------------------------------------------------
 
     @RequiresApi(Build.VERSION_CODES.M)
     suspend fun createLyricsImageWithConfig(
@@ -431,9 +431,9 @@ object icebeatsComposeToImage {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // ▸ API LEGADA — sin cambios, backward compatible
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // ? API LEGADA � sin cambios, backward compatible
+    // -------------------------------------------------------------------------
 
     @RequiresApi(Build.VERSION_CODES.M)
     suspend fun createLyricsImage(
@@ -458,9 +458,9 @@ object icebeatsComposeToImage {
         outputSize = minOf(width, height),
     )
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDERER 1 — Glass Card  (fiel al diseño Compose original)
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // RENDERER 1 � Glass Card  (fiel al dise�o Compose original)
+    // -------------------------------------------------------------------------
 
     private fun renderGlassCard(
         context: Context,
@@ -531,9 +531,9 @@ object icebeatsComposeToImage {
         return bitmap
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDERER 2 — Minimal
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // RENDERER 2 � Minimal
+    // -------------------------------------------------------------------------
 
     private fun renderMinimal(
         context: Context,
@@ -560,12 +560,12 @@ object icebeatsComposeToImage {
         val padding = (config.cardPadding.value / 340f) * cardSize
         val size    = cardSize.toFloat()
 
-        // Fondo sólido
+        // Fondo s�lido
         canvas.drawRoundRect(RectF(0f, 0f, size, size), corner, corner, Paint().apply {
             color = bgColor; isAntiAlias = true
         })
 
-        // Línea de acento superior
+        // L�nea de acento superior
         val accentPaint = Paint().apply {
             isAntiAlias = true
             shader = LinearGradient(0f, 0f, size * 0.5f, 0f,
@@ -631,9 +631,9 @@ object icebeatsComposeToImage {
         return bitmap
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDERER 3 — Cover Focused
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // RENDERER 3 � Cover Focused
+    // -------------------------------------------------------------------------
 
     private fun renderCoverFocused(
         context: Context,
@@ -656,7 +656,7 @@ object icebeatsComposeToImage {
         // Fondo desenfocado
         drawAlbumBackground(canvas, cardSize, coverArt, 0.55f, corner)
 
-        // Carátula grande centrada en mitad superior
+        // Car�tula grande centrada en mitad superior
         if (config.showCoverArt && coverArt != null) {
             val artSize   = size * 0.4f
             val artLeft   = (size - artSize) / 2f
@@ -671,7 +671,7 @@ object icebeatsComposeToImage {
             })
         }
 
-        // Título y artista debajo de la carátula
+        // T�tulo y artista debajo de la car�tula
         val artBottom = padding + size * 0.4f + padding * 0.5f
         val titlePaint = TextPaint().apply {
             color = mainColor; textSize = cardSize * 0.042f; typeface = Typeface.DEFAULT_BOLD
@@ -720,9 +720,9 @@ object icebeatsComposeToImage {
         return bitmap
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDERER 4 — Centered
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // RENDERER 4 � Centered
+    // -------------------------------------------------------------------------
 
     private fun renderCentered(
         context: Context,
@@ -802,9 +802,9 @@ object icebeatsComposeToImage {
         return bitmap
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDERER 5 — Blur Wash
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // RENDERER 5 � Blur Wash
+    // -------------------------------------------------------------------------
 
     private fun renderBlurWash(
         context: Context,
@@ -824,7 +824,7 @@ object icebeatsComposeToImage {
         val padding   = (config.cardPadding.value / 340f) * cardSize
         val size      = cardSize.toFloat()
 
-        // Fondo con blur máximo (30)
+        // Fondo con blur m�ximo (30)
         if (coverArt != null) {
             val scaled  = ensureSoftwareBitmap(Bitmap.createScaledBitmap(coverArt, cardSize, cardSize, true))
             val blurred = scaleBlur(scaled, 30)
@@ -886,9 +886,9 @@ object icebeatsComposeToImage {
         return bitmap
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDERER 6 — Streaming Modern
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // RENDERER 6 � Streaming Modern
+    // -------------------------------------------------------------------------
 
     private fun renderStreamingModern(
         context: Context,
@@ -1021,9 +1021,9 @@ object icebeatsComposeToImage {
         return bitmap
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Utilidades internas
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     private fun scaleBlur(source: Bitmap, strength: Int): Bitmap {
         val safe = ensureSoftwareBitmap(source)
@@ -1052,9 +1052,9 @@ object icebeatsComposeToImage {
             (green * 255).toInt(), (blue * 255).toInt(),
         )
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Guardar / persistir bitmap
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     fun saveBitmapAsFile(context: Context, bitmap: Bitmap, fileName: String): Uri {
         val safeBitmap = ensureSoftwareBitmap(bitmap)

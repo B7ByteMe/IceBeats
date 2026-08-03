@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.extensions
+package com.valora.icebeats.extensions
 
 import androidx.sqlite.db.SimpleSQLiteQuery
 import java.net.InetSocketAddress

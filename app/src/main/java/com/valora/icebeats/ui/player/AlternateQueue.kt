@@ -1,4 +1,4 @@
-﻿
+
 /*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors

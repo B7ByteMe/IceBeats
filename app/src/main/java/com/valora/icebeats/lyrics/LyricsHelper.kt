@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.lyrics
+package com.valora.icebeats.lyrics
 
 import android.content.Context
 import android.util.LruCache

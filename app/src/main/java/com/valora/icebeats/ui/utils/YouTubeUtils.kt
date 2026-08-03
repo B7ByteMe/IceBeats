@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.utils
+package com.valora.icebeats.ui.utils
 
 fun String.resize(
     width: Int? = null,

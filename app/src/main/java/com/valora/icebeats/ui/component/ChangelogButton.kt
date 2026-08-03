@@ -1,4 +1,4 @@
-ï»¿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
@@ -172,7 +172,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header con tÃ­tulo principal
+        // Header con título principal
         Text(
             text = stringResource(R.string.changelogs),
             style = MaterialTheme.typography.headlineMedium,
@@ -751,8 +751,8 @@ private fun cleanMarkdown(markdown: String): String {
         "&#39;" to "'",
         "&#x27;" to "'",
         "&hellip;" to "...",
-        "&mdash;" to "â€”",
-        "&ndash;" to "â€“"
+        "&mdash;" to "—",
+        "&ndash;" to "–"
     )
 
     for ((entity, replacement) in htmlEntities) {
@@ -1193,7 +1193,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener la informaciÃ³n despuÃ©s de los reintentos")
+            throw IOException("No se pudo obtener la información después de los reintentos")
         }
 
     private suspend fun fetchCommits(owner: String, repo: String): List<Commit> =
@@ -1240,7 +1240,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener los commits despuÃ©s de los reintentos")
+            throw IOException("No se pudo obtener los commits después de los reintentos")
         }
 
     private fun getCurrentTimestamp(): String {

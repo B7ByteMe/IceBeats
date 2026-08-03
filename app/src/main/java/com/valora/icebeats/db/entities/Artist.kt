@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.db.entities
+package com.valora.icebeats.db.entities
 
 import androidx.compose.runtime.Immutable
 import androidx.room.Embedded

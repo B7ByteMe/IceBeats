@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.di
+package com.valora.icebeats.di
 
 import androidx.annotation.Keep
 import com.valora.icebeats.lyrics.LyricsHelper

@@ -48,6 +48,18 @@ android {
         resConfigs("en")
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true // Also generate a universal one just in case, or false if strictly reducing size. Let's use false as user wants smaller size.
+        }
+    }
+    
+    // Disable universal APK to save space on github releases
+    splits.abi.isUniversalApk = false
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -59,7 +71,7 @@ android {
             )
         }
         debug {
-            applicationIdSuffix = ".debug"
+            // No debug suffix or debug icons, use the release config for testing
         }
     }
 
@@ -126,6 +138,13 @@ ksp {
 }
 
 dependencies {
+    // Firebase & Auth
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
     implementation("dev.chrisbanes.haze:haze:0.7.3")
     implementation(libs.guava)
     implementation(libs.coroutines.guava)

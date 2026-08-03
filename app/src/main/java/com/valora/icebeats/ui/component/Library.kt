@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi

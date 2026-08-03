@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

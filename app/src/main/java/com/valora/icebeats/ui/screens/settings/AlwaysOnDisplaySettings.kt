@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 /*
  * icebeats Project Original (2026)
@@ -116,7 +116,7 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// ── Shapes (mismos que tenías, no cambian) ────────────────────────────────
+// -- Shapes (mismos que ten�as, no cambian) --------------------------------
 
 private val squircleShape: Shape = GenericShape { size, _ ->
     val cx = size.width / 2.0; val cy = size.height / 2.0
@@ -198,9 +198,9 @@ enum class AodAutoTimeout(val seconds: Int, val labelRes: Int) {
     MINUTE_2(120, R.string.aod_auto_2m)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 //  PANTALLA PRINCIPAL DE AJUSTES AOD
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -208,7 +208,7 @@ fun AODSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    // ── Preferencias ─────────────────────────────────────────────────────
+    // -- Preferencias -----------------------------------------------------
     val (rawStyle, setRawStyle) = rememberPreference(AodStyleKey, AodStyle.CLASSIC.name)
     val (rawShape, setRawShape) = rememberPreference(AodArtShapeKey, AodArtShape.ROUNDED.name)
     val (darkness, setDarkness) = rememberPreference(AodDarknessKey, 0.55f)
@@ -261,7 +261,7 @@ fun AODSettings(
 
         Spacer(Modifier.height(8.dp))
 
-        // ── SECCIÓN: Pantalla ─────────────────────────────────────────────
+        // -- SECCI�N: Pantalla ---------------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_fullscreen_title)) {
             AodSwitchRow(
                 icon = R.drawable.fullscreen,
@@ -272,7 +272,7 @@ fun AODSettings(
             )
         }
 
-        // ── SECCIÓN: Auto-activación ──────────────────────────────────────
+        // -- SECCI�N: Auto-activaci�n --------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_auto_activation_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Row(
@@ -320,7 +320,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Estilo visual ────────────────────────────────────────
+        // -- SECCI�N: Estilo visual ----------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_style_title)) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -338,7 +338,7 @@ fun AODSettings(
                 }
             }
 
-            // Opciones extra sólo para SPOTLIGHT
+            // Opciones extra s�lo para SPOTLIGHT
             AnimatedVisibility(
                 visible = currentStyle == AodStyle.SPOTLIGHT,
                 enter = expandVertically() + fadeIn(),
@@ -366,7 +366,7 @@ fun AODSettings(
             }
         }
 
-// ── SECCIÓN: Forma de la portada ──────────────────────────────────
+// -- SECCI�N: Forma de la portada ----------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_shape_title)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
@@ -387,7 +387,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Controles ────────────────────────────────────────────
+        // -- SECCI�N: Controles --------------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_controls_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
@@ -410,7 +410,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Tipografía ───────────────────────────────────────────
+        // -- SECCI�N: Tipograf�a -------------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_typography_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 AodSliderRow(
@@ -437,7 +437,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Fondo y brillo ───────────────────────────────────────
+        // -- SECCI�N: Fondo y brillo ---------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_darkness_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 AodSliderRow(
@@ -453,7 +453,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Transiciones ─────────────────────────────────────────
+        // -- SECCI�N: Transiciones -----------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_transitions_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 AodSliderRow(
@@ -469,7 +469,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Reloj del sistema ────────────────────────────────────
+        // -- SECCI�N: Reloj del sistema ------------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_system_clock_title)) {
             AodSwitchRow(
                 icon = R.drawable.schedule,
@@ -493,7 +493,7 @@ fun AODSettings(
             }
         }
 
-        // ── SECCIÓN: Elementos visibles ───────────────────────────────────
+        // -- SECCI�N: Elementos visibles -----------------------------------
         AodSettingsSection(title = stringResource(R.string.aod_visible_elements_title)) {
             AodSwitchRow(
                 icon = R.drawable.format_align_center,
@@ -546,12 +546,12 @@ fun AODSettings(
     )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 //  COMPONENTES DE UI M3 Expressive
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 
 /**
- * Sección con título y contenido en una tarjeta M3 con bordes suaves.
+ * Secci�n con t�tulo y contenido en una tarjeta M3 con bordes suaves.
  */
 @Composable
 private fun AodSettingsSection(
@@ -685,7 +685,7 @@ private fun AodSliderRow(
 }
 
 /**
- * Pill / chip con color primario — M3 Expressive style.
+ * Pill / chip con color primario � M3 Expressive style.
  */
 @Composable
 private fun ExpressivePill(text: String) {
@@ -750,7 +750,7 @@ private fun ControlStyleChip(
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .width(72.dp)
     ) {
-        // Mini preview del estilo de botón
+        // Mini preview del estilo de bot�n
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -808,9 +808,9 @@ private fun ControlStyleChip(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 //  CARD: Estilo AOD (horizontal scroll)
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 
 @Composable
 private fun AodStyleCard(
@@ -878,7 +878,7 @@ private fun AodStyleCard(
             AodStylePreview(style = style)
         }
 
-        // Nombre + descripción
+        // Nombre + descripci�n
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
@@ -904,7 +904,7 @@ private fun AodStyleCard(
 }
 
 /**
- * Preview visual de cada estilo en miniaturas — extraído para limpieza.
+ * Preview visual de cada estilo en miniaturas � extra�do para limpieza.
  */
 @Composable
 private fun AodStylePreview(style: AodStyle) {
@@ -1276,9 +1276,9 @@ private fun AodStylePreview(style: AodStyle) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 //  CARD: Forma de portada
-// ═══════════════════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------------------
 
 @Composable
 private fun AodShapeCard(

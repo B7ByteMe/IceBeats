@@ -1,4 +1,4 @@
-ï»¿@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 /*
  * icebeats Project Original (2026)
@@ -233,7 +233,7 @@ fun CurrentSongHeader(
 
             Text(
                 text = pluralStringResource(R.plurals.n_song, songCount, songCount)
-                        + "  â€¢  " + makeTimeString(queueDuration * 1000L),
+                        + "  •  " + makeTimeString(queueDuration * 1000L),
                 style = MaterialTheme.typography.labelMedium,
                 color = onBackgroundColor.copy(alpha = 0.55f),
                 modifier = Modifier.padding(end = 14.dp)
@@ -424,11 +424,11 @@ fun CodecInfoRow(
             text = buildString {
                 append(codec)
                 if (bitrate != "Unknown") {
-                    append(" â€¢ ")
+                    append(" • ")
                     append(bitrate)
                 }
                 if (fileSize.isNotEmpty()) {
-                    append(" â€¢ ")
+                    append(" • ")
                     append(fileSize)
                 }
             },
@@ -501,7 +501,7 @@ fun QueueCollapsedContentV2(
 
             val extraText =
                 listOfNotNull(sampleRateText, fileSizeText.takeIf { it.isNotBlank() })
-                    .joinToString(separator = " â€¢ ")
+                    .joinToString(separator = " • ")
 
             CodecInfoRow(
                 codec = codecLabel,

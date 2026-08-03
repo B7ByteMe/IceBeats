@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -304,7 +304,7 @@ fun Thumbnail(
                                     contentAlignment = Alignment.Center
                                 ) {
 
-                                    // 🌊 Waves Behind
+                                    // ?? Waves Behind
                                     ConcentricWaveEffect(
                                         isPlaying = playerConnection.isPlaying.collectAsState().value,
                                         colors = listOf(
@@ -315,7 +315,7 @@ fun Thumbnail(
                                         modifier = Modifier.fillMaxSize()
                                     )
 
-                                    // 🎵 Circular Album Art
+                                    // ?? Circular Album Art
                                     AsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
                                             .data(item.mediaMetadata.artworkUri?.toString()?.highQualityThumbnail())

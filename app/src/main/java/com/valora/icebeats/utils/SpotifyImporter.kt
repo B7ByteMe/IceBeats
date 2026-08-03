@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import com.valora.icebeats.db.DatabaseDao
 import com.valora.icebeats.db.entities.PlaylistEntity

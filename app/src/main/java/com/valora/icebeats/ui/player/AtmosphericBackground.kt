@@ -1,4 +1,4 @@
-ï»¿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -8,13 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 /**
- * AtmosphericBackground â€” white paper theme.
+ * AtmosphericBackground — white paper theme.
  *
  * Previously: animated dark neon glow.
  * Now: clean off-white paper surface that the white player sits on.
  *
  * [dynamicColor] kept in the signature so all existing call sites compile
- * without change â€” it is no longer used in this theme.
+ * without change — it is no longer used in this theme.
  */
 @Composable
 fun AtmosphericBackground(

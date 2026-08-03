@@ -1,4 +1,4 @@
-﻿/*
+/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -45,21 +45,21 @@ import androidx.compose.ui.unit.sp
 import com.valora.icebeats.R
 import com.valora.icebeats.models.MediaMetadata
 
-// ─────────────────────────────────────────────────────────────────────────────
-// API pública
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// API p�blica
+// -----------------------------------------------------------------------------
 
 /**
  * Bottom sheet que permite al usuario:
  *  1. Previsualizar en tiempo real la tarjeta de letras.
  *  2. Seleccionar un layout en el carrusel horizontal.
  *  3. Elegir el estilo de vidrio/color.
- *  4. Ajustar tamaño de texto, alineación, visibilidad y padding.
- *  5. Compartir o guardar la configuración resultante.
+ *  4. Ajustar tama�o de texto, alineaci�n, visibilidad y padding.
+ *  5. Compartir o guardar la configuraci�n resultante.
  *
  * @param onShare  Se llama con el [LyricsCardConfig] final cuando el usuario pulsa "Compartir".
  *                 El caller es responsable de capturar el composable como bitmap y lanzar el Intent.
- * @param onSave   Opcional. Si se provee, aparece el botón "Guardar".
+ * @param onSave   Opcional. Si se provee, aparece el bot�n "Guardar".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +88,7 @@ fun LyricsShareCarouselSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
 
-            // ── Título del sheet ──────────────────────────────────────────
+            // -- T�tulo del sheet ------------------------------------------
             Text(
                 text       = "Compartir letra",
                 style      = MaterialTheme.typography.titleMedium,
@@ -98,7 +98,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(18.dp))
 
-            // ── Preview principal ─────────────────────────────────────────
+            // -- Preview principal -----------------------------------------
             // AnimatedContent hace fade entre cambios de config
             AnimatedContent(
                 targetState  = config,
@@ -115,8 +115,8 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(22.dp))
 
-            // ── Carrusel de layouts ───────────────────────────────────────
-            SheetSectionLabel("Diseño")
+            // -- Carrusel de layouts ---------------------------------------
+            SheetSectionLabel("Dise�o")
 
             Row(
                 modifier = Modifier
@@ -139,7 +139,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(18.dp))
 
-            // ── Selector de estilo de vidrio ──────────────────────────────
+            // -- Selector de estilo de vidrio ------------------------------
             SheetSectionLabel("Estilo")
 
             Row(
@@ -160,7 +160,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(14.dp))
 
-            // ── Panel de personalización (expandible) ─────────────────────
+            // -- Panel de personalizaci�n (expandible) ---------------------
             CustomizationPanel(
                 config        = config,
                 onConfigChange = { config = it },
@@ -171,7 +171,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(26.dp))
 
-            // ── Botones de acción ─────────────────────────────────────────
+            // -- Botones de acci�n -----------------------------------------
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,9 +213,9 @@ fun LyricsShareCarouselSheet(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Preview principal — box con la tarjeta escalada
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Preview principal � box con la tarjeta escalada
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun CardPreviewBox(
@@ -257,9 +257,9 @@ private fun CardPreviewBox(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Thumbnail de layout en el carrusel
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun LayoutStyleThumbnail(
@@ -290,7 +290,7 @@ private fun LayoutStyleThumbnail(
                 .clickable(onClick = onSelect),
             contentAlignment = Alignment.Center,
         ) {
-            // Preview escalada — Coil cachea la imagen, cloudy corre en GPU
+            // Preview escalada � Coil cachea la imagen, cloudy corre en GPU
             Box(
                 modifier = Modifier
                     .requiredSize(340.dp)
@@ -308,7 +308,7 @@ private fun LayoutStyleThumbnail(
                 )
             }
 
-            // Indicador de selección
+            // Indicador de selecci�n
             if (isSelected) {
                 Box(
                     modifier = Modifier
@@ -320,7 +320,7 @@ private fun LayoutStyleThumbnail(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text      = "✓",
+                        text      = "?",
                         color     = MaterialTheme.colorScheme.onPrimary,
                         fontSize  = 8.sp,
                         fontWeight = FontWeight.Bold,
@@ -343,9 +343,9 @@ private fun LayoutStyleThumbnail(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Chip de estilo de vidrio
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun GlassStyleChip(
@@ -389,9 +389,9 @@ private fun GlassStyleChip(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Panel de personalización (expandible)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Panel de personalizaci�n (expandible)
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun CustomizationPanel(
@@ -407,7 +407,7 @@ private fun CustomizationPanel(
 
     Column(modifier = modifier) {
 
-        // Cabecera – toca para abrir/cerrar
+        // Cabecera � toca para abrir/cerrar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -418,7 +418,7 @@ private fun CustomizationPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text       = "Personalización",
+                text       = "Personalizaci�n",
                 style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -444,7 +444,7 @@ private fun CustomizationPanel(
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
 
-                // ── Tamaño de texto ───────────────────────────────────────
+                // -- Tama�o de texto ---------------------------------------
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -452,7 +452,7 @@ private fun CustomizationPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Tamaño de texto",
+                            "Tama�o de texto",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )
@@ -471,10 +471,10 @@ private fun CustomizationPanel(
                     )
                 }
 
-                // ── Alineación del texto ──────────────────────────────────
+                // -- Alineaci�n del texto ----------------------------------
                 Column {
                     Text(
-                        text       = "Alineación",
+                        text       = "Alineaci�n",
                         style      = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         modifier   = Modifier.padding(bottom = 8.dp),
@@ -506,14 +506,14 @@ private fun CustomizationPanel(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
 
-                // ── Visibilidad de elementos ──────────────────────────────
+                // -- Visibilidad de elementos ------------------------------
                 Text(
                     text       = "Visibilidad",
                     style      = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    ToggleRow("Mostrar título",    config.showTitle)   { onConfigChange(config.copy(showTitle   = it)) }
+                    ToggleRow("Mostrar t�tulo",    config.showTitle)   { onConfigChange(config.copy(showTitle   = it)) }
                     ToggleRow("Mostrar artista",   config.showArtist)  { onConfigChange(config.copy(showArtist  = it)) }
                     ToggleRow("Mostrar portada",   config.showCoverArt){ onConfigChange(config.copy(showCoverArt = it)) }
                     ToggleRow("Mostrar icebeats",  config.showBranding){ onConfigChange(config.copy(showBranding = it)) }
@@ -521,7 +521,7 @@ private fun CustomizationPanel(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
 
-                // ── Padding ───────────────────────────────────────────────
+                // -- Padding -----------------------------------------------
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -552,9 +552,9 @@ private fun CustomizationPanel(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Componentes internos auxiliares
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 private fun AlignButton(
     painter: Painter,

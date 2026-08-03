@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

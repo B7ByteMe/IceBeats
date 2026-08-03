@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.artist
+package com.valora.icebeats.ui.screens.artist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable

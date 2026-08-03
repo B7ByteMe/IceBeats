@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.library
+package com.valora.icebeats.ui.screens.library
 
 import android.Manifest
 import android.os.Build
@@ -54,7 +54,7 @@ fun LocalSongsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
-    // ── Permission state ──────────────────────────────────────────────────────
+    // -- Permission state ------------------------------------------------------
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
     } else {
@@ -82,7 +82,7 @@ fun LocalSongsScreen(
 
     val listState = rememberLazyListState()
 
-    // ── Blur background same as other screens ─────────────────────────────────
+    // -- Blur background same as other screens ---------------------------------
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
         ?: remember { mutableStateOf(null) }
 
@@ -114,7 +114,7 @@ fun LocalSongsScreen(
             )
         }
 
-        // ── Main content ──────────────────────────────────────────────────────
+        // -- Main content ------------------------------------------------------
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -154,7 +154,7 @@ fun LocalSongsScreen(
                 }
             }
 
-            // ── Search bar ────────────────────────────────────────────────────
+            // -- Search bar ----------------------------------------------------
             if (hasPermission && songs.isNotEmpty() || searchQuery.isNotEmpty()) {
                 SearchBar(
                     query = searchQuery,
@@ -166,7 +166,7 @@ fun LocalSongsScreen(
                 )
             }
 
-            // ── Permission gate / content ─────────────────────────────────────
+            // -- Permission gate / content -------------------------------------
             when {
                 !hasPermission -> {
                     PermissionRequestCard(
@@ -241,7 +241,7 @@ fun LocalSongsScreen(
     }
 }
 
-// ── Song row item ─────────────────────────────────────────────────────────────
+// -- Song row item -------------------------------------------------------------
 @Composable
 private fun LocalSongItem(
     song: LocalSong,
@@ -303,7 +303,7 @@ private fun LocalSongItem(
     }
 }
 
-// ── Search bar ────────────────────────────────────────────────────────────────
+// -- Search bar ----------------------------------------------------------------
 @Composable
 private fun SearchBar(
     query: String,
@@ -336,7 +336,7 @@ private fun SearchBar(
                 Box {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search songs, artists, albums…",
+                            text = "Search songs, artists, albums�",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
@@ -367,7 +367,7 @@ private fun SearchBar(
     }
 }
 
-// ── Permission request card ───────────────────────────────────────────────────
+// -- Permission request card ---------------------------------------------------
 @Composable
 private fun PermissionRequestCard(
     denied: Boolean,
@@ -432,7 +432,7 @@ private fun PermissionRequestCard(
     }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
+// -- Empty state ---------------------------------------------------------------
 @Composable
 private fun EmptyState(
     icon: Int,
@@ -468,10 +468,10 @@ private fun EmptyState(
     }
 }
 
-// ── Extension: LocalSong → MediaItem ─────────────────────────────────────────
+// -- Extension: LocalSong ? MediaItem -----------------------------------------
 fun LocalSong.toMediaItem(): MediaItem =
     MediaItem.Builder()
-        .setMediaId(uri.toString()) // ✅ FIXED
+        .setMediaId(uri.toString()) // ? FIXED
         .setUri(uri)
         .setTag(
             com.valora.icebeats.models.MediaMetadata(

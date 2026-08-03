@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text

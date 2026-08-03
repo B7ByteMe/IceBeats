@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.db
+package com.valora.icebeats.db
 
 import androidx.room.TypeConverter
 import java.time.Instant

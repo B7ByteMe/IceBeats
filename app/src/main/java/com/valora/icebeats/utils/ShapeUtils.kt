@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes

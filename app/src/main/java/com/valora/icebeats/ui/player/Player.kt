@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import android.content.Context
 import android.content.Intent
@@ -730,8 +730,8 @@ fun BottomSheetPlayer(
         label = "rotation"
     )
 
-    // Forma dinámica: cuando está reproduciendo usa la forma seleccionada
-    // Cuando está en pausa usa Square
+    // Forma din�mica: cuando est� reproduciendo usa la forma seleccionada
+    // Cuando est� en pausa usa Square
     val currentPlayPauseShape = remember(isPlaying, playPauseShape) {
         if (isPlaying) {
             playPauseShape
@@ -3400,7 +3400,7 @@ private fun SpotifyDetailsCard(
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = listOf(mediaMetadata.title, artists).joinToString(" • "),
+                text = listOf(mediaMetadata.title, artists).joinToString(" � "),
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.White.copy(alpha = 0.62f),
             )
@@ -3741,7 +3741,7 @@ fun ConcentricWaveEffect(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 8000,   // ← slow speed
+                durationMillis = 8000,   // ? slow speed
                 easing = LinearEasing
             ),
             repeatMode = RepeatMode.Restart
@@ -3751,12 +3751,12 @@ fun ConcentricWaveEffect(
 
     Canvas(modifier = modifier) {
 
-        val circleCount = 24   // ← increased from 14 to 24
+        val circleCount = 24   // ? increased from 14 to 24
         val maxRadius = size.minDimension / 2f
 
         repeat(circleCount) { index ->
 
-            // 🚫 If paused → freeze animation
+            // ?? If paused ? freeze animation
             val progress = if (isPlaying) {
                 (animatedProgress + index / circleCount.toFloat()) % 1f
             } else {

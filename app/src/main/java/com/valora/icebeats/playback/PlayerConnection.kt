@@ -1,4 +1,4 @@
-锘縫ackage com.valora.icebeats.playback
+package com.valora.icebeats.playback
 
 import android.content.Context
 import android.content.Intent
@@ -63,14 +63,14 @@ class PlayerConnection(
     val service = binder.service
     val player = service.player
 
-    // Estados b谩sicos del reproductor
+    // Estados b醩icos del reproductor
     private val _playbackState = MutableStateFlow(player.playbackState)
     val playbackState: StateFlow<Int> = _playbackState.asStateFlow()
 
     private val _playWhenReady = MutableStateFlow(player.playWhenReady)
     val playWhenReady: StateFlow<Boolean> = _playWhenReady.asStateFlow()
 
-    // Estado combinado de reproducci贸n
+    // Estado combinado de reproducci髇
     val isPlaying = combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
         playWhenReady && (playbackState == STATE_READY || playbackState == Player.STATE_BUFFERING)
     }.stateIn(
@@ -79,14 +79,14 @@ class PlayerConnection(
         player.playWhenReady && player.playbackState == STATE_READY
     )
 
-    // Estados de conexi贸n y salud del reproductor
+    // Estados de conexi髇 y salud del reproductor
     private val _isConnected = MutableStateFlow(true)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
     private val _connectionState = MutableStateFlow(ConnectionState.CONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    // Metadatos y informaci贸n de la canci贸n actual
+    // Metadatos y informaci髇 de la canci髇 actual
     private val _mediaMetadata = MutableStateFlow(player.currentMetadata)
     val mediaMetadata: StateFlow<com.valora.icebeats.models.MediaMetadata?> =
         _mediaMetadata.asStateFlow()
@@ -103,7 +103,7 @@ class PlayerConnection(
         database.format(mediaMetadata?.id)
     }
 
-    // Estados de la cola de reproducci贸n
+    // Estados de la cola de reproducci髇
     private val _queueTitle = MutableStateFlow<String?>(service.queueTitle)
     val queueTitle: StateFlow<String?> = _queueTitle.asStateFlow()
 
@@ -123,14 +123,14 @@ class PlayerConnection(
     private val _repeatMode = MutableStateFlow(REPEAT_MODE_OFF)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
 
-    // Estados de navegaci贸n
+    // Estados de navegaci髇
     private val _canSkipPrevious = MutableStateFlow(true)
     val canSkipPrevious: StateFlow<Boolean> = _canSkipPrevious.asStateFlow()
 
     private val _canSkipNext = MutableStateFlow(true)
     val canSkipNext: StateFlow<Boolean> = _canSkipNext.asStateFlow()
 
-    // Estados de progreso y posici贸n
+    // Estados de progreso y posici髇
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
 
@@ -280,7 +280,7 @@ class PlayerConnection(
                     try {
                         updateProgressStates()
 
-                        // Programar siguiente actualizaci贸n
+                        // Programar siguiente actualizaci髇
                         if (player.playWhenReady && player.playbackState == STATE_READY) {
                             progressUpdateHandler.postDelayed(this, PROGRESS_UPDATE_INTERVAL)
                         } else {
@@ -322,7 +322,7 @@ class PlayerConnection(
 
                 lastPosition = currentPos
 
-                // Enviar broadcast para actualizaci贸n de progreso
+                // Enviar broadcast para actualizaci髇 de progreso
                 sendProgressUpdateBroadcast()
             }
         } catch (e: Exception) {
@@ -331,10 +331,10 @@ class PlayerConnection(
     }
 
     private fun scheduleWidgetUpdate() {
-        // Cancelar actualizaci贸n pendiente
+        // Cancelar actualizaci髇 pendiente
         pendingWidgetUpdate?.let { widgetUpdateHandler.removeCallbacks(it) }
 
-        // Programar nueva actualizaci贸n con debounce
+        // Programar nueva actualizaci髇 con debounce
         pendingWidgetUpdate = Runnable {
             sendStateChangedBroadcast()
         }
@@ -532,7 +532,7 @@ class PlayerConnection(
         _currentMediaItemIndex.value = player.currentMediaItemIndex
         _currentWindowIndex.value = player.getCurrentQueueIndex()
 
-        // Actualizar estado de like cuando cambia la canci贸n
+        // Actualizar estado de like cuando cambia la canci髇
         CoroutineScope(Dispatchers.IO).launch {
             updateLikeStatusForCurrentSong()
         }
@@ -672,7 +672,7 @@ class PlayerConnection(
         Log.d(TAG, "PlayerConnection disposed")
     }
 
-    // Estados de conexi贸n
+    // Estados de conexi髇
     enum class ConnectionState {
         IDLE,
         CONNECTING,

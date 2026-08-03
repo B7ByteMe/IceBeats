@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.viewmodels
+package com.valora.icebeats.viewmodels
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

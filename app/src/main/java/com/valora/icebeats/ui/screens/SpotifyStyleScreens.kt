@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

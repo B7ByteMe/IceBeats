@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement

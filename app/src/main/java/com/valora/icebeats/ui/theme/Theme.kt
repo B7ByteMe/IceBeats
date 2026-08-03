@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.theme
+package com.valora.icebeats.ui.theme
 
 import android.graphics.Bitmap
 import android.os.Build

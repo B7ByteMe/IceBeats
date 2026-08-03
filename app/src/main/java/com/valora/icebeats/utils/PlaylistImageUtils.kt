@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import android.content.Context
 import android.net.Uri
@@ -12,7 +12,7 @@ import java.io.IOException
 /** Guarda una imagen personalizada para una playlist */
 fun saveCustomPlaylistImage(context: Context, playlistId: String, imageUri: Uri) {
     try {
-        // Crear directorio para imágenes de playlist si no existe
+        // Crear directorio para im�genes de playlist si no existe
         val playlistImagesDir = File(context.filesDir, "playlist_images")
         if (!playlistImagesDir.exists()) {
             playlistImagesDir.mkdirs()

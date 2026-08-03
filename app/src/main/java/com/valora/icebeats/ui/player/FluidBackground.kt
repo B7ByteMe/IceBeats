@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.*

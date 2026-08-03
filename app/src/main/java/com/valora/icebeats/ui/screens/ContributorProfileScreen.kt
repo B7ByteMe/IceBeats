@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -125,7 +125,7 @@ fun ContributorProfileScreen(
                                 Text(text = "${profile?.following} Following", style = MaterialTheme.typography.labelSmall)
                             }
                             if (!profile?.location.isNullOrBlank()) {
-                                Text(text = "📍 ${profile?.location}", style = MaterialTheme.typography.labelSmall)
+                                Text(text = "?? ${profile?.location}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -209,9 +209,9 @@ fun ContributorProfileScreen(
                                         Text(repo.description ?: "No description", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("⭐ ${repo.stargazers_count}", style = MaterialTheme.typography.labelSmall)
+                                            Text("? ${repo.stargazers_count}", style = MaterialTheme.typography.labelSmall)
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("🍴 ${repo.forks_count}", style = MaterialTheme.typography.labelSmall)
+                                            Text("?? ${repo.forks_count}", style = MaterialTheme.typography.labelSmall)
                                             if (repo.language != null) {
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(repo.language, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -231,7 +231,7 @@ fun ContributorProfileScreen(
                     }
                     items(events.take(5)) { event ->
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔹", modifier = Modifier.padding(end = 8.dp))
+                            Text("??", modifier = Modifier.padding(end = 8.dp))
                             Column {
                                 Text(event.type.replace("Event", ""), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                 Text(event.repo.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)

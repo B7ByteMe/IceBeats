@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.playlist
+package com.valora.icebeats.ui.screens.playlist
 
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler

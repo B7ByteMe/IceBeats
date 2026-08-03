@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.playlist
+package com.valora.icebeats.ui.screens.playlist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable

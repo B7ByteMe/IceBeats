@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.menu
+package com.valora.icebeats.ui.menu
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

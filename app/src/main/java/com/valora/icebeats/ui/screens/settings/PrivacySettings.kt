@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

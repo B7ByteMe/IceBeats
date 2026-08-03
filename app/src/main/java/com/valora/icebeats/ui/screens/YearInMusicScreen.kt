@@ -1,5 +1,5 @@
-﻿/*
- * icebeats Insight — Year in Music, redesigned (2026)
+/*
+ * icebeats Insight � Year in Music, redesigned (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -80,9 +80,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Design tokens
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 private val Ink      = Color(0xFF040406)
 private val Snow     = Color(0xFFFDFDFD)
@@ -91,7 +91,7 @@ private val SnowDim  = Color(0x55FDFDFD)
 private val GlassHi  = Color(0x28FFFFFF)
 private val GlassBorder = Color(0x18FFFFFF)
 
-// Per-card gradient palettes ─ each card has its own visual identity
+// Per-card gradient palettes - each card has its own visual identity
 private val WelcomeA  = Color(0xFF110024)
 private val WelcomeB  = Color(0xFF8A1FFF)
 private val WelcomeC  = Color(0xFFFB3E7E)
@@ -123,9 +123,9 @@ private val SummaryB  = Color(0xFF6A0DAD)
 private val SummaryC  = Color(0xFF1560FF)
 private val SummaryD  = Color(0xFF1DB954)
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Listening Personality
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 private data class InsightPersonality(
     val emoji: String,
@@ -137,25 +137,25 @@ private data class InsightPersonality(
 )
 
 private val PersonalityDevoted = InsightPersonality(
-    emoji = "🎯",
+    emoji = "??",
     title = "Devoted Fan",
-    description = "When you find a song you love, you play it on repeat. Your loyalty to your favourites is unmatched — and that's your superpower.",
+    description = "When you find a song you love, you play it on repeat. Your loyalty to your favourites is unmatched � and that's your superpower.",
     gradTop = PersonA, gradBot = PersonB, accent = PersonB,
 )
 private val PersonalityExplorer = InsightPersonality(
-    emoji = "🧭",
+    emoji = "??",
     title = "Music Explorer",
     description = "Always discovering, never settling. Your taste spans worlds, and your playlist never sounds the same twice.",
     gradTop = WelcomeA, gradBot = WelcomeB, accent = WelcomeB,
 )
 private val PersonalityAudiophile = InsightPersonality(
-    emoji = "🎧",
+    emoji = "??",
     title = "True Audiophile",
-    description = "Hours melt away when you're in the zone. Music isn't background noise for you — it's everything.",
+    description = "Hours melt away when you're in the zone. Music isn't background noise for you � it's everything.",
     gradTop = MinutesA, gradBot = MinutesB, accent = MinutesC,
 )
 private val PersonalityCasual = InsightPersonality(
-    emoji = "🌊",
+    emoji = "??",
     title = "Laid-Back Listener",
     description = "Music moves effortlessly with your life. It's always there when you need it, easy and perfectly in tune.",
     gradTop = SongsA, gradBot = SongsB, accent = SongsC,
@@ -177,18 +177,18 @@ private fun computePersonality(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Page enum
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 private enum class YearInMusicPage {
     Welcome, Minutes, TopSongsList, SongSpotlight,
     ArtistSpotlight, TopAlbumsList, Personality, Summary,
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Main screen
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -252,7 +252,7 @@ fun YearInMusicScreen(
             .onGloballyPositioned { shareBounds = it.boundsInRoot() }
     ) {
 
-        // ── Story pager ────────────────────────────────────────────────────
+        // -- Story pager ----------------------------------------------------
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
@@ -276,7 +276,7 @@ fun YearInMusicScreen(
             )
         }
 
-        // ── Instagram-style tap zones (left = back, right = forward) ───────
+        // -- Instagram-style tap zones (left = back, right = forward) -------
         if (!isShareCaptureMode) {
             Row(
                 modifier = Modifier
@@ -312,7 +312,7 @@ fun YearInMusicScreen(
             }
         }
 
-        // ── Top chrome: progress bar + nav ─────────────────────────────────
+        // -- Top chrome: progress bar + nav ---------------------------------
         if (!isShareCaptureMode) {
             Column(
                 modifier = Modifier
@@ -349,7 +349,7 @@ fun YearInMusicScreen(
                         Icon(painterResource(R.drawable.arrow_back), null, tint = Snow)
                     }
                     Spacer(Modifier.weight(1f))
-                    // Brand label — centered
+                    // Brand label � centered
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text       = "icebeats",
@@ -375,7 +375,7 @@ fun YearInMusicScreen(
             }
         }
 
-        // ── Share FAB ───────────────────────────────────────────────────────
+        // -- Share FAB -------------------------------------------------------
         if (!isShareCaptureMode && isLastPage && hasData) {
             InsightShareFab(
                 isGenerating = isGeneratingImage,
@@ -420,7 +420,7 @@ fun YearInMusicScreen(
             )
         }
 
-        // ── Year picker dialog ──────────────────────────────────────────────
+        // -- Year picker dialog ----------------------------------------------
         if (!isShareCaptureMode && isYearPickerOpen) {
             InsightYearPickerDialog(
                 availableYears = availableYears,
@@ -432,9 +432,9 @@ fun YearInMusicScreen(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // awaitNextPreDraw
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 private suspend fun awaitNextPreDraw(view: View) = suspendCancellableCoroutine<Unit> { cont ->
     val vto = view.viewTreeObserver
@@ -450,9 +450,9 @@ private suspend fun awaitNextPreDraw(view: View) = suspendCancellableCoroutine<U
     view.invalidate()
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Page content router
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -544,9 +544,9 @@ private fun YearInMusicPageContent(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 1. Welcome page
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
@@ -670,9 +670,9 @@ private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 2. Minutes page  (animated counter)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun MinutesPage(
@@ -770,7 +770,7 @@ private fun MinutesPage(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("🎬", fontSize = 28.sp)
+                        Text("??", fontSize = 28.sp)
                         Text(
                             text = "That's like watching $movieCount full movies back-to-back.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -788,7 +788,7 @@ private fun MinutesPage(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text("🎵", fontSize = 28.sp)
+                    Text("??", fontSize = 28.sp)
                     Text(
                         text  = "Across $totalSongsPlayed plays of your top songs.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -800,9 +800,9 @@ private fun MinutesPage(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 3. Top Songs list page
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Modifier) {
@@ -917,7 +917,7 @@ private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Mo
 
                     // #1 crown badge
                     if (index == 0) {
-                        Text("👑", fontSize = 20.sp)
+                        Text("??", fontSize = 20.sp)
                     }
                 }
 
@@ -932,9 +932,9 @@ private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Mo
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 4. Song spotlight (#1 song full-screen)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1015,12 +1015,12 @@ private fun SongSpotlightPage(
             // Stat chips
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 InsightStatChip(
-                    emoji  = "▶",
+                    emoji  = "?",
                     value  = pluralStringResource(R.plurals.n_time, song.songCountListened, song.songCountListened),
                     accent = SpotB,
                 )
                 InsightStatChip(
-                    emoji  = "⏱",
+                    emoji  = "?",
                     value  = makeTimeString(song.timeListened),
                     accent = MinutesC,
                 )
@@ -1037,9 +1037,9 @@ private fun SongSpotlightPage(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 5. Artist spotlight
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1137,13 +1137,13 @@ private fun ArtistSpotlightPage(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 InsightStatChip(
-                    emoji  = "▶",
+                    emoji  = "?",
                     value  = pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
                     accent = ArtistB,
                 )
                 artist.timeListened?.let { t ->
                     InsightStatChip(
-                        emoji  = "⏱",
+                        emoji  = "?",
                         value  = makeTimeString(t.toLong()),
                         accent = PersonB,
                     )
@@ -1160,9 +1160,9 @@ private fun ArtistSpotlightPage(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 6. Top Albums page
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
@@ -1206,7 +1206,7 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
 
             albums.take(5).forEachIndexed { index, album ->
                 val imageModel = rememberSafeImageRequest(album.thumbnailUrl)
-                val artistNames = album.artists.take(2).joinToString(" · ") { it.name }
+                val artistNames = album.artists.take(2).joinToString(" � ") { it.name }
 
                 Row(
                     modifier = Modifier
@@ -1255,7 +1255,7 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
                             )
                         }
                     }
-                    if (index == 0) Text("🏆", fontSize = 20.sp)
+                    if (index == 0) Text("??", fontSize = 20.sp)
                 }
 
                 if (index < albums.size - 1 && index < 4) {
@@ -1269,9 +1269,9 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 7. Listening Personality page
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun PersonalityPage(
@@ -1355,7 +1355,7 @@ private fun PersonalityPage(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text("🎵", fontSize = 20.sp)
+                        Text("??", fontSize = 20.sp)
                         Text(
                             text  = "Your anthem this year: ${song.title}",
                             style = MaterialTheme.typography.bodyMedium,
@@ -1370,9 +1370,9 @@ private fun PersonalityPage(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // 8. Summary / Share page
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun SummaryPage(
@@ -1484,14 +1484,14 @@ private fun SummaryPage(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     SummaryStatBox(
-                        emoji = "⏱",
+                        emoji = "?",
                         label = "Time listened",
                         value = makeTimeString(totalListeningTime),
                         accent = MinutesC,
                         modifier = Modifier.weight(1f),
                     )
                     SummaryStatBox(
-                        emoji = "▶",
+                        emoji = "?",
                         label = "Total plays",
                         value = totalSongsPlayed.toString(),
                         accent = SongsB,
@@ -1517,7 +1517,7 @@ private fun SummaryPage(
                         )
                         topSong?.let {
                             SummaryHighlight(
-                                emoji  = "🎵",
+                                emoji  = "??",
                                 label  = "Top Song",
                                 value  = it.title,
                                 accent = SpotB,
@@ -1525,7 +1525,7 @@ private fun SummaryPage(
                         }
                         topArtist?.let {
                             SummaryHighlight(
-                                emoji  = "🎤",
+                                emoji  = "??",
                                 label  = "Top Artist",
                                 value  = it.artist.name,
                                 accent = ArtistB,
@@ -1533,7 +1533,7 @@ private fun SummaryPage(
                         }
                         topAlbum?.let {
                             SummaryHighlight(
-                                emoji  = "💿",
+                                emoji  = "??",
                                 label  = "Top Album",
                                 value  = it.album.title,
                                 accent = AlbumB,
@@ -1573,9 +1573,9 @@ private fun SummaryPage(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Reusable small composables
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun InsightProgressBar(
@@ -1877,9 +1877,9 @@ private fun SummaryHighlight(emoji: String, label: String, value: String, accent
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Animated counter
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun rememberAnimatedLong(target: Long, durationMs: Int = 1400): Long {
@@ -1898,9 +1898,9 @@ private fun rememberAnimatedLong(target: Long, durationMs: Int = 1400): Long {
     return current
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Safe image request (no hardware bitmap — required for share capture)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Safe image request (no hardware bitmap � required for share capture)
+// -----------------------------------------------------------------------------
 
 @Composable
 private fun rememberSafeImageRequest(data: Any?): Any? {

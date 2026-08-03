@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,7 +44,7 @@ fun NameSetupDialog(
         onDismissRequest = {},
         title = {
             Text(
-                text = "Welcome! 👋",
+                text = "Welcome! ??",
                 style = MaterialTheme.typography.headlineSmall
             )
         },

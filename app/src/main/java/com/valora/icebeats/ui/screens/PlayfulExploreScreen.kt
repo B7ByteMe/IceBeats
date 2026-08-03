@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 
 import android.content.res.Configuration.ORIENTATION_LANDSCAPE
 import androidx.compose.foundation.background
@@ -67,7 +67,7 @@ fun PlayfulExploreScreen(
                     .fillMaxSize()
                     .background(Color(0xFFFFD54F))
             ) {
-                // 📜 CONTENT
+                // ?? CONTENT
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 250.dp),
                     modifier = Modifier
@@ -76,7 +76,7 @@ fun PlayfulExploreScreen(
                         )
                 ) {
 
-                    // ── Header title ──
+                    // -- Header title --
                     item {
                         Text(
                             text = stringResource(R.string.explore),

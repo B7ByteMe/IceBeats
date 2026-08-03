@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.menu
+package com.valora.icebeats.ui.menu
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.PaddingValues

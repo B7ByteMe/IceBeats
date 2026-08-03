@@ -1,4 +1,4 @@
-锘縫ackage com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -248,7 +248,7 @@ fun DiscordSettings(
             }
         }
 
-        // Secci贸n de cuenta mejorada
+        // Secci髇 de cuenta mejorada
         PreferenceGroupTitle(title = stringResource(R.string.account))
 
         Card(
@@ -391,7 +391,7 @@ fun EnhancedRichPresence(
 ) {
     val context = LocalContext.current
 
-    // Animaci贸n para el gradiente
+    // Animaci髇 para el gradiente
     val gradientAlpha by animateFloatAsState(
         targetValue = if (song != null) 0.15f else 0f,
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
@@ -427,13 +427,13 @@ fun EnhancedRichPresence(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header - Redise帽ado
+                // Header - Redise馻do
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Logo y t铆tulo mejorados
+                    // Logo y t韙ulo mejorados
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Logo con contenedor circular y gradiente
                         Box(
@@ -481,7 +481,7 @@ fun EnhancedRichPresence(
                         }
                     }
 
-                    // Indicador de reproducci贸n mejorado
+                    // Indicador de reproducci髇 mejorado
                     if (song != null && isPlaying) {
                         Surface(
                             shape = RoundedCornerShape(16.dp),
@@ -523,7 +523,7 @@ fun EnhancedRichPresence(
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Thumbnail con dise帽o mejorado
+                    // Thumbnail con dise駉 mejorado
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -624,7 +624,7 @@ fun EnhancedRichPresence(
 
                     Spacer(Modifier.width(16.dp))
 
-                    // Informaci贸n de la canci贸n
+                    // Informaci髇 de la canci髇
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
@@ -674,12 +674,12 @@ fun EnhancedRichPresence(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Botones de acci贸n mejorados
+                // Botones de acci髇 mejorados
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Bot贸n YouTube Music mejorado
+                    // Bot髇 YouTube Music mejorado
                     FilledTonalButton(
                         enabled = song != null,
                         onClick = {
@@ -703,7 +703,7 @@ fun EnhancedRichPresence(
                         Text("YouTube Music", maxLines = 1, fontWeight = FontWeight.Medium)
                     }
 
-                    // Bot贸n icebeats mejorado
+                    // Bot髇 icebeats mejorado
                     OutlinedButton(
                         onClick = {
                             val intent = Intent(

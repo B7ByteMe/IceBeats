@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.library
+package com.valora.icebeats.ui.screens.library
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background

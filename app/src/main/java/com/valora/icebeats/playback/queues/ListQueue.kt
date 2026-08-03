@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback.queues
+package com.valora.icebeats.playback.queues
 
 import androidx.media3.common.MediaItem
 import com.valora.icebeats.models.MediaMetadata

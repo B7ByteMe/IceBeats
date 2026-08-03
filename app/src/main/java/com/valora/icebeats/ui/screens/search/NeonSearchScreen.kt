@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.search
+package com.valora.icebeats.ui.screens.search
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background

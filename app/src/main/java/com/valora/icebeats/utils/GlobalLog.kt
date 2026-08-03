@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

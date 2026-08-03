@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import com.valora.icebeats.utils.rememberEnumPreference
 import com.valora.icebeats.ui.component.PlayerSliderTrack

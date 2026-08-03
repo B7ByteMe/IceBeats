@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.library
+package com.valora.icebeats.ui.screens.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -82,7 +82,7 @@ fun PlayfulLibraryScreen(
                     .fillMaxSize()
                     .background(Color(0xFFFFD54F))
             ) {
-                // 🔝 Top Header
+                // ?? Top Header
                 Text(
                     text = "Library",
                     fontSize = 28.sp,
@@ -95,7 +95,7 @@ fun PlayfulLibraryScreen(
                         .align(Alignment.TopStart)
                 )
 
-                // 📚 Content
+                // ?? Content
                 VerticalFastScroller(
                     listState = lazyListState,
                     topContentPadding = 80.dp,

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -28,88 +28,88 @@ object icebeatsLyricsUtils {
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
 
     private val KANA_ROMAJI_MAP: Map<String, String> = mapOf(
-        // Digraphs (Yōon - combinations like kya, sho)
-        "キャ" to "kya", "キュ" to "kyu", "キョ" to "kyo",
-        "シャ" to "sha", "シュ" to "shu", "ショ" to "sho",
-        "チャ" to "cha", "チュ" to "chu", "チョ" to "cho",
-        "ニャ" to "nya", "ニュ" to "nyu", "ニョ" to "nyo",
-        "ヒャ" to "hya", "ヒュ" to "hyu", "ヒョ" to "hyo",
-        "ミャ" to "mya", "ミュ" to "myu", "ミョ" to "myo",
-        "リャ" to "rya", "リュ" to "ryu", "リョ" to "ryo",
-        "ギャ" to "gya", "ギュ" to "gyu", "ギョ" to "gyo",
-        "ジャ" to "ja", "ジュ" to "ju", "ジョ" to "jo",
-        "ヂャ" to "ja", "ヂュ" to "ju", "ヂョ" to "jo", // ヂ variants, also commonly 'ja', 'ju', 'jo'
-        "ビャ" to "bya", "ビュ" to "byu", "ビョ" to "byo",
-        "ピャ" to "pya", "ピュ" to "pyu", "ピョ" to "pyo",
+        // Digraphs (Yoon - combinations like kya, sho)
+        "??" to "kya", "??" to "kyu", "??" to "kyo",
+        "??" to "sha", "??" to "shu", "??" to "sho",
+        "??" to "cha", "??" to "chu", "??" to "cho",
+        "??" to "nya", "??" to "nyu", "??" to "nyo",
+        "??" to "hya", "??" to "hyu", "??" to "hyo",
+        "??" to "mya", "??" to "myu", "??" to "myo",
+        "??" to "rya", "??" to "ryu", "??" to "ryo",
+        "??" to "gya", "??" to "gyu", "??" to "gyo",
+        "??" to "ja", "??" to "ju", "??" to "jo",
+        "??" to "ja", "??" to "ju", "??" to "jo", // ? variants, also commonly 'ja', 'ju', 'jo'
+        "??" to "bya", "??" to "byu", "??" to "byo",
+        "??" to "pya", "??" to "pyu", "??" to "pyo",
 
         // Basic Katakana Characters
-        "ア" to "a", "イ" to "i", "ウ" to "u", "エ" to "e", "オ" to "o",
-        "カ" to "ka", "キ" to "ki", "ク" to "ku", "ケ" to "ke", "コ" to "ko",
-        "サ" to "sa", "シ" to "shi", "ス" to "su", "セ" to "se", "ソ" to "so",
-        "タ" to "ta", "チ" to "chi", "ツ" to "tsu", "テ" to "te", "ト" to "to",
-        "ナ" to "na", "ニ" to "ni", "ヌ" to "nu", "ネ" to "ne", "ノ" to "no",
-        "ハ" to "ha", "ヒ" to "hi", "フ" to "fu", "ヘ" to "he", "ホ" to "ho",
-        "マ" to "ma", "ミ" to "mi", "ム" to "mu", "メ" to "me", "モ" to "mo",
-        "ヤ" to "ya", "ユ" to "yu", "ヨ" to "yo",
-        "ラ" to "ra", "リ" to "ri", "ル" to "ru", "レ" to "re", "ロ" to "ro",
-        "ワ" to "wa", "ヲ" to "o", // ヲ is pronounced 'o'
-        "ン" to "n",
+        "?" to "a", "?" to "i", "?" to "u", "?" to "e", "?" to "o",
+        "?" to "ka", "?" to "ki", "?" to "ku", "?" to "ke", "?" to "ko",
+        "?" to "sa", "?" to "shi", "?" to "su", "?" to "se", "?" to "so",
+        "?" to "ta", "?" to "chi", "?" to "tsu", "?" to "te", "?" to "to",
+        "?" to "na", "?" to "ni", "?" to "nu", "?" to "ne", "?" to "no",
+        "?" to "ha", "?" to "hi", "?" to "fu", "?" to "he", "?" to "ho",
+        "?" to "ma", "?" to "mi", "?" to "mu", "?" to "me", "?" to "mo",
+        "?" to "ya", "?" to "yu", "?" to "yo",
+        "?" to "ra", "?" to "ri", "?" to "ru", "?" to "re", "?" to "ro",
+        "?" to "wa", "?" to "o", // ? is pronounced 'o'
+        "?" to "n",
 
         // Dakuten (voiced consonants)
-        "ガ" to "ga", "ギ" to "gi", "グ" to "gu", "ゲ" to "ge", "ゴ" to "go",
-        "ザ" to "za", "ジ" to "ji", "ズ" to "zu", "ゼ" to "ze", "ゾ" to "zo",
-        "ダ" to "da", "ヂ" to "ji", "ヅ" to "zu", "デ" to "de", "ド" to "do", // ヂ and ヅ are often 'ji' and 'zu'
+        "?" to "ga", "?" to "gi", "?" to "gu", "?" to "ge", "?" to "go",
+        "?" to "za", "?" to "ji", "?" to "zu", "?" to "ze", "?" to "zo",
+        "?" to "da", "?" to "ji", "?" to "zu", "?" to "de", "?" to "do", // ? and ? are often 'ji' and 'zu'
 
         // Handakuten (p-sounds for 'h' group) / Dakuten for 'h' group
-        "バ" to "ba", "ビ" to "bi", "ブ" to "bu", "ベ" to "be", "ボ" to "bo", // Dakuten for ハ행 (ha-row)
-        "パ" to "pa", "ピ" to "pi", "プ" to "pu", "ペ" to "pe", "ポ" to "po", // Handakuten for ハ행 (ha-row)
+        "?" to "ba", "?" to "bi", "?" to "bu", "?" to "be", "?" to "bo", // Dakuten for ?? (ha-row)
+        "?" to "pa", "?" to "pi", "?" to "pu", "?" to "pe", "?" to "po", // Handakuten for ?? (ha-row)
 
-        // Chōonpu (long vowel mark) - removed as per original logic
-        "ー" to ""
+        // Choonpu (long vowel mark) - removed as per original logic
+        "?" to ""
     )
 
     private val HANGUL_ROMAJA_MAP: Map<String, Map<String, String>> = mapOf(
         "cho" to mapOf(
-            "ᄀ" to "g",  "ᄁ" to "kk", "ᄂ" to "n",  "ᄃ" to "d", 
-            "ᄄ" to "tt", "ᄅ" to "r",  "ᄆ" to "m",  "ᄇ" to "b",
-            "ᄈ" to "pp", "ᄉ" to "s",  "ᄊ" to "ss", "ᄋ" to "",
-            "ᄌ" to "j",  "ᄍ" to "jj", "ᄎ" to "ch", "ᄏ" to "k",
-            "ᄐ" to "t",  "ᄑ" to "p",  "ᄒ" to "h"
+            "?" to "g",  "?" to "kk", "?" to "n",  "?" to "d", 
+            "?" to "tt", "?" to "r",  "?" to "m",  "?" to "b",
+            "?" to "pp", "?" to "s",  "?" to "ss", "?" to "",
+            "?" to "j",  "?" to "jj", "?" to "ch", "?" to "k",
+            "?" to "t",  "?" to "p",  "?" to "h"
         ),
         "jung" to mapOf(
-            "ᅡ" to "a",  "ᅢ" to "ae", "ᅣ" to "ya",  "ᅤ" to "yae", 
-            "ᅥ" to "eo", "ᅦ" to "e",  "ᅧ" to "yeo", "ᅨ" to "ye", 
-            "ᅩ" to "o",  "ᅪ" to "wa", "ᅫ" to "wae", "ᅬ" to "oe",
-            "ᅭ" to "yo", "ᅮ" to "u",  "ᅯ" to "wo",  "ᅰ" to "we",
-            "ᅱ" to "wi", "ᅲ" to "yu", "ᅳ" to "eu",  "ᅴ" to "eui",
-            "ᅵ" to "i"
+            "?" to "a",  "?" to "ae", "?" to "ya",  "?" to "yae", 
+            "?" to "eo", "?" to "e",  "?" to "yeo", "?" to "ye", 
+            "?" to "o",  "?" to "wa", "?" to "wae", "?" to "oe",
+            "?" to "yo", "?" to "u",  "?" to "wo",  "?" to "we",
+            "?" to "wi", "?" to "yu", "?" to "eu",  "?" to "eui",
+            "?" to "i"
         ),
         "jong" to mapOf(
-            "ᆨ" to "k",     "ᆨᄋ" to "g",   "ᆨᄂ" to "ngn", "ᆨᄅ" to "ngn", "ᆨᄆ" to "ngm", "ᆨᄒ" to "kh",
-            "ᆩ" to "kk",    "ᆩᄋ" to "kg",  "ᆩᄂ" to "ngn", "ᆩᄅ" to "ngn", "ᆩᄆ" to "ngm", "ᆩᄒ" to "kh",
-            "ᆪ" to "k",     "ᆪᄋ" to "ks",  "ᆪᄂ" to "ngn", "ᆪᄅ" to "ngn", "ᆪᄆ" to "ngm", "ᆪᄒ" to "kch",
-            "ᆫ" to "n",     "ᆫᄅ" to "ll",  "ᆬ" to "n",     "ᆬᄋ" to "nj",  "ᆬᄂ" to "nn",  "ᆬᄅ" to "nn",
-            "ᆬᄆ" to "nm",  "ᆬㅎ" to "nch", "ᆭ" to "n",     "ᆭᄋ" to "nh",  "ᆭᄅ" to "nn",  "ᆮ" to "t",
-            "ᆮᄋ" to "d",   "ᆮᄂ" to "nn",  "ᆮᄅ" to "nn",  "ᆮᄆ" to "nm",  "ᆮᄒ" to "th",  "ᆯ" to "l",
-            "ᆯᄋ" to "r",   "ᆯᄂ" to "ll",  "ᆯᄅ" to "ll",  "ᆰ" to "k",     "ᆰᄋ" to "lg",  "ᆰᄂ" to "ngn",
-            "ᆰᄅ" to "ngn", "ᆰᄆ" to "ngm", "ᆰᄒ" to "lkh", "ᆱ" to "m",     "ᆱᄋ" to "lm",  "ᆱᄂ" to "mn",
-            "ᆱᄅ" to "mn",  "ᆱᄆ" to "mm",  "ᆱᄒ" to "lmh", "ᆲ" to "p",     "ᆲᄋ" to "lb",  "ᆲᄂ" to "mn",
-            "ᆲᄅ" to "mn",  "ᆲᄆ" to "mm",  "ᆲᄒ" to "lph", "ᆳ" to "t",     "ᆳᄋ" to "ls",  "ᆳᄂ" to "nn",
-            "ᆳᄅ" to "nn",  "ᆳᄆ" to "nm",  "ᆳᄒ" to "lsh", "ᆴ" to "t",     "ᆴᄋ" to "lt",  "ᆴᄂ" to "nn",
-            "ᆴᄅ" to "nn",  "ᆴᄆ" to "nm",  "ᆴᄒ" to "lth", "ᆵ" to "p",     "ᆵᄋ" to "lp",  "ᆵᄂ" to "mn",
-            "ᆵᄅ" to "mn",  "ᆵᄆ" to "mm",  "ᆵᄒ" to "lph", "ᆶ" to "l",     "ᆶᄋ" to "lh",  "ᆶᄂ" to "ll",
-            "ᆶᄅ" to "ll",  "ᆶᄆ" to "lm",  "ᆶᄒ" to "lh",  "ᆷ" to "m",     "ᆷᄅ" to "mn",  "ᆸ" to "p",
-            "ᆸᄋ" to "b",   "ᆸᄂ" to "mn",  "ᆸᄅ" to "mn",  "ᆸᄆ" to "mm",  "ᆸᄒ" to "ph",  "ᆹ" to "p",
-            "ᆹᄋ" to "ps",  "ᆹᄂ" to "mn",  "ᆹᄅ" to "mn",  "ᆹᄆ" to "mm",  "ᆹᄒ" to "psh", "ᆺ" to "t",
-            "ᆺᄋ" to "s",   "ᆺᄂ" to "nn",  "ᆺᄅ" to "nn",  "ᆺᄆ" to "nm",  "ᆺᄒ" to "sh",  "ᆻ" to "t",
-            "ᆻᄋ" to "ss",  "ᆻᄂ" to "tn",  "ᆻᄅ" to "tn",  "ᆻᄆ" to "nm",  "ᆻᄒ" to "th",  "ᆼ" to "ng",
-            "ᆽ" to "t",     "ᆽᄋ" to "j",   "ᆽᄂ" to "nn",  "ᆽᄅ" to "nn",  "ᆽᄆ" to "nm",  "ᆽᄒ" to "ch",
-            "ᆾ" to "t",     "ᆾᄋ" to "ch",  "ᆾᄂ" to "nn",  "ᆾᄅ" to "nn",  "ᆾᄆ" to "nm",  "ᆾᄒ" to "ch",
-            "ᆿ" to "k",     "ᆿᄋ" to "k",   "ᆿᄂ" to "ngn", "ᆿᄅ" to "ngn", "ᆿᄆ" to "ngm", "ᆿᄒ" to "kh",
-            "ᇀ" to "t",     "ᇀᄋ" to "t",   "ᇀᄂ" to "nn",  "ᇀᄅ" to "nn",  "ᇀᄆ" to "nm",  "ᇀᄒ" to "th",
-            "ᇁ" to "p",     "ᇁᄋ" to "p",   "ᇁᄂ" to "mn",  "ᇁᄅ" to "mn",  "ᇁᄆ" to "mm",  "ᇁᄒ" to "ph",
-            "ᇂ" to "t",     "ᇂᄋ" to "h",   "ᇂᄂ" to "nn",  "ᇂᄅ" to "nn",  "ᇂᄆ" to "mm",  "ᇂᄒ" to "t",
-            "ᇂᄀ" to "k",
+            "?" to "k",     "??" to "g",   "??" to "ngn", "??" to "ngn", "??" to "ngm", "??" to "kh",
+            "?" to "kk",    "??" to "kg",  "??" to "ngn", "??" to "ngn", "??" to "ngm", "??" to "kh",
+            "?" to "k",     "??" to "ks",  "??" to "ngn", "??" to "ngn", "??" to "ngm", "??" to "kch",
+            "?" to "n",     "??" to "ll",  "?" to "n",     "??" to "nj",  "??" to "nn",  "??" to "nn",
+            "??" to "nm",  "??" to "nch", "?" to "n",     "??" to "nh",  "??" to "nn",  "?" to "t",
+            "??" to "d",   "??" to "nn",  "??" to "nn",  "??" to "nm",  "??" to "th",  "?" to "l",
+            "??" to "r",   "??" to "ll",  "??" to "ll",  "?" to "k",     "??" to "lg",  "??" to "ngn",
+            "??" to "ngn", "??" to "ngm", "??" to "lkh", "?" to "m",     "??" to "lm",  "??" to "mn",
+            "??" to "mn",  "??" to "mm",  "??" to "lmh", "?" to "p",     "??" to "lb",  "??" to "mn",
+            "??" to "mn",  "??" to "mm",  "??" to "lph", "?" to "t",     "??" to "ls",  "??" to "nn",
+            "??" to "nn",  "??" to "nm",  "??" to "lsh", "?" to "t",     "??" to "lt",  "??" to "nn",
+            "??" to "nn",  "??" to "nm",  "??" to "lth", "?" to "p",     "??" to "lp",  "??" to "mn",
+            "??" to "mn",  "??" to "mm",  "??" to "lph", "?" to "l",     "??" to "lh",  "??" to "ll",
+            "??" to "ll",  "??" to "lm",  "??" to "lh",  "?" to "m",     "??" to "mn",  "?" to "p",
+            "??" to "b",   "??" to "mn",  "??" to "mn",  "??" to "mm",  "??" to "ph",  "?" to "p",
+            "??" to "ps",  "??" to "mn",  "??" to "mn",  "??" to "mm",  "??" to "psh", "?" to "t",
+            "??" to "s",   "??" to "nn",  "??" to "nn",  "??" to "nm",  "??" to "sh",  "?" to "t",
+            "??" to "ss",  "??" to "tn",  "??" to "tn",  "??" to "nm",  "??" to "th",  "?" to "ng",
+            "?" to "t",     "??" to "j",   "??" to "nn",  "??" to "nn",  "??" to "nm",  "??" to "ch",
+            "?" to "t",     "??" to "ch",  "??" to "nn",  "??" to "nn",  "??" to "nm",  "??" to "ch",
+            "?" to "k",     "??" to "k",   "??" to "ngn", "??" to "ngn", "??" to "ngm", "??" to "kh",
+            "?" to "t",     "??" to "t",   "??" to "nn",  "??" to "nn",  "??" to "nm",  "??" to "th",
+            "?" to "p",     "??" to "p",   "??" to "mn",  "??" to "mn",  "??" to "mm",  "??" to "ph",
+            "?" to "t",     "??" to "h",   "??" to "nn",  "??" to "nn",  "??" to "mm",  "??" to "t",
+            "??" to "k",
         )
     )
 
@@ -223,7 +223,7 @@ object icebeatsLyricsUtils {
         val n = katakana.length
         while (i < n) {
             var consumed = false
-            // Prioritize 2-character sequences from the map (e.g., "キャ" before "キ")
+            // Prioritize 2-character sequences from the map (e.g., "??" before "?")
             if (i + 1 < n) {
                 val twoCharCandidate = katakana.substring(i, i + 2)
                 val mappedTwoChar = KANA_ROMAJI_MAP[twoCharCandidate]
@@ -264,7 +264,7 @@ object icebeatsLyricsUtils {
      * compared to chained regex replacements.
      * Expected impact: Significant reduction in object creation (Regex, String) and faster execution.
      * @param katakana The Katakana string to convert.
-     * @param nextKatakana Optional: The next Katakana string (from the next token) to help with sokuon (ッ) gemination.
+     * @param nextKatakana Optional: The next Katakana string (from the next token) to help with sokuon (?) gemination.
      */
     fun katakanaToRomaji(katakana: String?, nextKatakana: String? = null): String {
         if (katakana.isNullOrEmpty()) return ""
@@ -274,7 +274,7 @@ object icebeatsLyricsUtils {
         val n = katakana.length
         while (i < n) {
             var consumed = false
-            // Prioritize 2-character sequences from the map (e.g., "キャ" before "キ")
+            // Prioritize 2-character sequences from the map (e.g., "??" before "?")
             if (i + 1 < n) {
                 val twoCharCandidate = katakana.substring(i, i + 2)
                 val mappedTwoChar = KANA_ROMAJI_MAP[twoCharCandidate]
@@ -285,8 +285,8 @@ object icebeatsLyricsUtils {
                 }
             }
 
-            // Handle sokuon (ッ) - gemination
-            if (!consumed && katakana[i] == 'ッ') {
+            // Handle sokuon (?) - gemination
+            if (!consumed && katakana[i] == '?') {
                 val nextCharToDouble = nextKatakana?.getOrNull(0)
                 if (nextCharToDouble != null) {
                     val nextCharRomaji = KANA_ROMAJI_MAP[nextCharToDouble.toString()]?.getOrNull(0)?.toString()
@@ -294,8 +294,8 @@ object icebeatsLyricsUtils {
                     romajiBuilder.append(nextCharRomaji.lowercase().trim())
                 }
                 // Sokuon itself doesn't have a direct romaji representation other than geminating the next consonant.
-                // We just consume 'ッ' and let the next character (if any within the current token) be processed normally.
-                i += 1 // Consume the 'ッ'
+                // We just consume '?' and let the next character (if any within the current token) be processed normally.
+                i += 1 // Consume the '?'
                 consumed = true
             }
 

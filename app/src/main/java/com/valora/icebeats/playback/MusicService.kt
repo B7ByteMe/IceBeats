@@ -1,4 +1,4 @@
-Ôªø@file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.valora.icebeats.playback
 
@@ -326,7 +326,7 @@ class MusicService :
             connectivityObserver.networkStatus.collect { isConnected ->
                 isNetworkConnected.value = isConnected
                 if (isConnected && waitingForNetworkConnection.value) {
-                    // Reintentar reproducci√≥n cuando vuelve la conexi√≥n
+                    // Reintentar reproducciÛn cuando vuelve la conexiÛn
                     waitingForNetworkConnection.value = false
                     if (player.currentMediaItem != null && player.playWhenReady) {
                         player.prepare()
@@ -475,14 +475,14 @@ class MusicService :
                     }
                 }
             }.onSuccess { playerState ->
-                // Restaurar configuraci√≥n del reproductor despu√©s de cargar la cola
+                // Restaurar configuraciÛn del reproductor despuÈs de cargar la cola
                 scope.launch {
                     delay(1000) // Esperar a que la cola se cargue
                     player.repeatMode = playerState.repeatMode
                     player.shuffleModeEnabled = playerState.shuffleModeEnabled
                     player.volume = playerState.volume
 
-                    // Restaurar posici√≥n si sigue siendo v√°lida
+                    // Restaurar posiciÛn si sigue siendo v·lida
                     if (playerState.currentMediaItemIndex < player.mediaItemCount) {
                         player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
                     }
@@ -490,7 +490,7 @@ class MusicService :
             }
         }
 
-        // Guardar cola peri√≥dicamente para prevenir p√©rdida por crash o force kill
+        // Guardar cola periÛdicamente para prevenir pÈrdida por crash o force kill
         }
 
         scope.launch {
@@ -502,7 +502,7 @@ class MusicService :
             }
         }
 
-        // Guardar cola m√°s frecuentemente cuando est√° reproduciendo
+        // Guardar cola m·s frecuentemente cuando est· reproduciendo
         scope.launch {
             while (isActive) {
                 delay(10.seconds)
@@ -800,7 +800,7 @@ class MusicService :
     fun startRadioSeamlessly() {
         val currentMediaMetadata = player.currentMetadata ?: return
 
-        // Guardar canci√≥n actual
+        // Guardar canciÛn actual
         val currentSong = player.currentMediaItem
 
         // Remover otras canciones de la cola
@@ -821,7 +821,7 @@ class MusicService :
                 queueTitle = initialStatus.title
             }
 
-            // Agregar canciones de radio despu√©s de la canci√≥n actual
+            // Agregar canciones de radio despuÈs de la canciÛn actual
             player.addMediaItems(initialStatus.items.drop(1))
             currentQueue = radioQueue
         }
@@ -884,7 +884,7 @@ class MusicService :
     }
 
     fun playNext(items: List<MediaItem>) {
-        // Si la cola est√° vac√≠a o el reproductor est√° inactivo, reproducir inmediatamente
+        // Si la cola est· vacÌa o el reproductor est· inactivo, reproducir inmediatamente
         if (player.mediaItemCount == 0 || player.playbackState == STATE_IDLE) {
             player.setMediaItems(items)
             player.prepare()
@@ -895,21 +895,21 @@ class MusicService :
         val insertIndex = player.currentMediaItemIndex + 1
         val shuffleEnabled = player.shuffleModeEnabled
 
-        // Insertar items inmediatamente despu√©s del item actual en el espacio de ventana/√≠ndice
+        // Insertar items inmediatamente despuÈs del item actual en el espacio de ventana/Ìndice
         player.addMediaItems(insertIndex, items)
         player.prepare()
 
         if (shuffleEnabled) {
-            // Reconstruir orden aleatorio para que los items reci√©n insertados se reproduzcan a continuaci√≥n
+            // Reconstruir orden aleatorio para que los items reciÈn insertados se reproduzcan a continuaciÛn
             val timeline = player.currentTimeline
             if (!timeline.isEmpty) {
                 val size = timeline.windowCount
                 val currentIndex = player.currentMediaItemIndex
 
-                // Los √≠ndices reci√©n insertados son un rango contiguo [insertIndex, insertIndex + items.size)
+                // Los Ìndices reciÈn insertados son un rango contiguo [insertIndex, insertIndex + items.size)
                 val newIndices = (insertIndex until (insertIndex + items.size)).toSet()
 
-                // Recopilar el orden de recorrido aleatorio existente excluyendo el √≠ndice actual
+                // Recopilar el orden de recorrido aleatorio existente excluyendo el Ìndice actual
                 val orderAfter = mutableListOf<Int>()
                 var idx = currentIndex
                 while (true) {
@@ -929,7 +929,7 @@ class MusicService :
 
                 val existingOrder = (prevList + orderAfter).filter { it != currentIndex && it !in newIndices }
 
-                // Construir nuevo orden aleatorio: actual -> reci√©n insertados (en orden de inserci√≥n) -> resto
+                // Construir nuevo orden aleatorio: actual -> reciÈn insertados (en orden de inserciÛn) -> resto
                 val nextBlock = (insertIndex until (insertIndex + items.size)).toList()
                 val finalOrder = IntArray(size)
                 var pos = 0
@@ -937,7 +937,7 @@ class MusicService :
                 nextBlock.forEach { if (it in 0 until size) finalOrder[pos++] = it }
                 existingOrder.forEach { if (pos < size) finalOrder[pos++] = it }
 
-                // Llenar cualquier √≠ndice faltante (seguridad) para asegurar una permutaci√≥n completa
+                // Llenar cualquier Ìndice faltante (seguridad) para asegurar una permutaciÛn completa
                 if (pos < size) {
                     for (i in 0 until size) {
                         if (!finalOrder.contains(i)) {
@@ -1201,17 +1201,17 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        lastPlaybackSpeed = -1.0f // forzar actualizaci√≥n de canci√≥n
+        lastPlaybackSpeed = -1.0f // forzar actualizaciÛn de canciÛn
 
         setupLoudnessEnhancer()
         setupEqualizer()
 
         discordUpdateJob?.cancel()
 
-        // Resetear errores consecutivos cuando hay transici√≥n exitosa
+        // Resetear errores consecutivos cuando hay transiciÛn exitosa
         consecutivePlaybackErr = 0
 
-        // Auto cargar m√°s canciones
+        // Auto cargar m·s canciones
         if (dataStore.get(AutoLoadMoreKey, true) &&
             reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
             player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
@@ -1230,7 +1230,7 @@ class MusicService :
         // Guardar estado cuando cambia el item de medios
         if (dataStore.get(PersistentQueueKey, true)) {
             scope.launch {
-                delay(500) // Peque√±o delay para asegurar que el estado est√© estable
+                delay(500) // PequeÒo delay para asegurar que el estado estÈ estable
                 saveQueueToDisk()
             }
         }
@@ -1239,7 +1239,7 @@ class MusicService :
     override fun onPlaybackStateChanged(
         @Player.State playbackState: Int,
     ) {
-        // Guardar estado cuando cambia el estado de reproducci√≥n
+        // Guardar estado cuando cambia el estado de reproducciÛn
         if (dataStore.get(PersistentQueueKey, true) && playbackState != Player.STATE_BUFFERING) {
             scope.launch {
                 delay(500)
@@ -1247,12 +1247,12 @@ class MusicService :
             }
         }
 
-        // Cuando termina la reproducci√≥n, ocultar notificaci√≥n si la cola est√° vac√≠a
+        // Cuando termina la reproducciÛn, ocultar notificaciÛn si la cola est· vacÌa
         if (playbackState == Player.STATE_ENDED) {
             scope.launch {
                 delay(1000)
                 if (!player.isPlaying && player.mediaItemCount == 0) {
-                    // Limpiar metadata para forzar actualizaci√≥n de notificaci√≥n
+                    // Limpiar metadata para forzar actualizaciÛn de notificaciÛn
                     currentMediaMetadata.value = null
                 }
             }
@@ -1265,7 +1265,7 @@ class MusicService :
             setupEqualizer()
         }
 
-        // Actualizar notificaci√≥n cuando cambia el estado de reproducci√≥n
+        // Actualizar notificaciÛn cuando cambia el estado de reproducciÛn
         scope.launch {
             delay(300)
             updateNotification()
@@ -1291,7 +1291,7 @@ class MusicService :
                 }
             } else {
                 closeAudioEffectSession()
-                // Abandonar foco de audio cuando no est√° reproduciendo
+                // Abandonar foco de audio cuando no est· reproduciendo
                 if (!player.playWhenReady || player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
                     abandonAudioFocus()
                 }
@@ -1300,14 +1300,14 @@ class MusicService :
 
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
-            // Forzar actualizaci√≥n de notificaci√≥n para asegurar que la imagen se cargue
+            // Forzar actualizaciÛn de notificaciÛn para asegurar que la imagen se cargue
             scope.launch {
                 delay(200)
                 updateNotification()
             }
         }
 
-        // Actualizaci√≥n de Discord RPC
+        // ActualizaciÛn de Discord RPC
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
             if (player.isPlaying) {
                 currentSong.value?.let { song ->
@@ -1328,10 +1328,10 @@ class MusicService :
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
         if (shuffleModeEnabled) {
-            // Si la cola est√° vac√≠a, no mezclar
+            // Si la cola est· vacÌa, no mezclar
             if (player.mediaItemCount == 0) return
 
-            // Siempre poner el item que se est√° reproduciendo primero
+            // Siempre poner el item que se est· reproduciendo primero
             val shuffledIndices = IntArray(player.mediaItemCount) { it }
             shuffledIndices.shuffle()
             shuffledIndices[shuffledIndices.indexOf(player.currentMediaItemIndex)] =
@@ -1357,7 +1357,7 @@ class MusicService :
             }
         }
 
-        // Guardar estado cuando cambia el modo de repetici√≥n
+        // Guardar estado cuando cambia el modo de repeticiÛn
         if (dataStore.get(PersistentQueueKey, true)) {
             scope.launch {
                 delay(300)
@@ -1523,7 +1523,7 @@ class MusicService :
             } catch (e: Exception) {
                 Timber.tag(ytLogTag).e(e, "YouTube playback error, trying JossRed as fallback")
 
-                // Verificar si la fuente alternativa est√° habilitada
+                // Verificar si la fuente alternativa est· habilitada
                 val useAlternativeSource = runBlocking {
                     dataStore.data.map { preferences ->
                         val JossRedMultimedia = booleanPreferencesKey("JossRedMultimedia")
@@ -1531,7 +1531,7 @@ class MusicService :
                     }.first()
                 }
 
-                // Si la fuente alternativa est√° deshabilitada, relanzar la excepci√≥n
+                // Si la fuente alternativa est· deshabilitada, relanzar la excepciÛn
                 if (!useAlternativeSource) {
                     throw e
                 }
@@ -1701,7 +1701,7 @@ class MusicService :
                 volume = player.volume,
                 currentMediaItemIndex = player.currentMediaItemIndex.coerceAtLeast(0),
                 currentPosition = if (player.currentPosition >= 0) player.currentPosition else 0,
-                playWhenReady = player.playWhenReady, // Estado de reproducci√≥n (si est√° listo para reproducir)
+                playWhenReady = player.playWhenReady, // Estado de reproducciÛn (si est· listo para reproducir)
                 playbackState = player.playbackState // Estado actual del reproductor
             )
 

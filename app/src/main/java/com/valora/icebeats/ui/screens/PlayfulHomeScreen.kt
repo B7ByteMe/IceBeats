@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 import android.annotation.SuppressLint
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background

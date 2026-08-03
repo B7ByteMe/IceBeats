@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.constants
+package com.valora.icebeats.constants
 
 import com.valora.icebeats.ui.screens.OptionStats
 import java.time.LocalDateTime

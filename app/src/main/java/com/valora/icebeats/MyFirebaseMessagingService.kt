@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats
+package com.valora.icebeats
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -34,7 +34,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // 🔔 Create channel (Android 8+)
+        // ?? Create channel (Android 8+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
@@ -44,7 +44,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // 🔥 Open app when clicked
+        // ?? Open app when clicked
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
@@ -55,7 +55,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // 🔔 Build notification
+        // ?? Build notification
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
             .setContentText(message)
@@ -65,7 +65,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        // 🔥 Show notification
+        // ?? Show notification
         notificationManager.notify(Random.nextInt(), notification)
     }
 }

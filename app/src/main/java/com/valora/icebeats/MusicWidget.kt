@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats
+package com.valora.icebeats
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -25,7 +25,7 @@ class MusicWidget : AppWidgetProvider() {
 
     private val handler = Handler(Looper.getMainLooper())
 
-    // ✅ FIXED: nullable instead of lateinit
+    // ? FIXED: nullable instead of lateinit
     private var runnable: Runnable? = null
     private var isUpdating = false
 

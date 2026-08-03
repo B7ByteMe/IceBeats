@@ -47,6 +47,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,9 +140,13 @@ fun AccountSettings(
             .ifBlank { "Friend" }
     }
 
-    fun linkGoogleAccount(name: String, email: String, photoUrl: String?) {
+    fun linkGoogleAccount(name: String, email: String, photoUrl: String?, idToken: String?) {
         scope.launch {
             try {
+                if (idToken != null) {
+                    val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(credential).await()
+                }
                 if (!nameManager.canUseGoogleEmail(email)) {
                     val lockedEmail = nameManager.previousGoogleEmail.first().ifBlank { "your previous email" }
                     Toast.makeText(context, nameManager.lockedEmailMessage(lockedEmail), Toast.LENGTH_LONG).show()
@@ -223,7 +228,7 @@ fun AccountSettings(
                 ?: displayNameFromEmail(email)
 
             isGoogleSignInOpen = false
-            linkGoogleAccount(name, email, account.photoUrl?.toString())
+            linkGoogleAccount(name, email, account.photoUrl?.toString(), account.idToken)
         } catch (e: ApiException) {
             e.printStackTrace()
             val message = when (e.statusCode) {

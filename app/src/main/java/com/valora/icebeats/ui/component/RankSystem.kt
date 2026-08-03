@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -49,7 +49,7 @@ import com.valora.icebeats.viewmodels.StatsViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Exquisite custom‑drawn Compose RankBadge.
+ * Exquisite custom-drawn Compose RankBadge.
  * Each badge is unique, styled with a harmonious gradient, custom Canvas-drawn emblem, and glowing borders.
  * Requires NO local drawable resource files, preventing compilation errors!
  */
@@ -318,7 +318,7 @@ fun RankBadge(
 }
 
 /**
- * Animated popup that celebrates a rank‑up with state‑of‑the‑art entrance springs, rotating celestial borders, and glowing backgrounds.
+ * Animated popup that celebrates a rank-up with state-of-the-art entrance springs, rotating celestial borders, and glowing backgrounds.
  */
 @Composable
 fun RankUpPopup(
@@ -566,7 +566,7 @@ fun RankBadgeSelector(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Auto‑Show Highest Rank",
+                    text = "Auto-Show Highest Rank",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

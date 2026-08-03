@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.db
+package com.valora.icebeats.db
 
 import android.annotation.SuppressLint
 import android.content.Context

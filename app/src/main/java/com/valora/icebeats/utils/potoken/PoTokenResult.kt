@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils.potoken
+package com.valora.icebeats.utils.potoken
 
 class PoTokenResult(
     val playerRequestPoToken: String,

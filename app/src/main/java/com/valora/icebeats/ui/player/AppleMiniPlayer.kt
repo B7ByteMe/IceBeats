@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import android.content.res.Configuration
 import com.valora.icebeats.ui.component.bottomSheetDraggable

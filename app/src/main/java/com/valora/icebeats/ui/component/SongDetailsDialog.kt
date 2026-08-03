@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Column

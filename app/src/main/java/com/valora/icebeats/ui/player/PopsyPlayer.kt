@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import com.valora.icebeats.ui.component.BottomSheetState
 import com.valora.icebeats.ui.component.bottomSheetDraggable

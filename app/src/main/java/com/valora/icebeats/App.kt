@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats
+package com.valora.icebeats
 
 import android.app.Application
 import android.content.Context

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils.potoken
+package com.valora.icebeats.utils.potoken
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull

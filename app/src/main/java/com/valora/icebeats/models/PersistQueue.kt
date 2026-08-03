@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.models
+package com.valora.icebeats.models
 
 import java.io.Serializable
 

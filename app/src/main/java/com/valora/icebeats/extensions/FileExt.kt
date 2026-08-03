@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.extensions
+package com.valora.icebeats.extensions
 
 import java.io.File
 import java.io.InputStream

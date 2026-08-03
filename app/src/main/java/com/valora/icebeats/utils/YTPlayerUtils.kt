@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import android.net.ConnectivityManager
 import androidx.media3.common.PlaybackException

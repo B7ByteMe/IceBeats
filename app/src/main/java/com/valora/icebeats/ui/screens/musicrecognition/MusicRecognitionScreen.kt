@@ -1,4 +1,4 @@
-Ôªø/*
+/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -544,7 +544,7 @@ private fun buildMetadata(result: RecognitionResult): String {
             result.genre?.takeIf { it.isNotBlank() },
             result.releaseDate?.takeIf { it.isNotBlank() },
         )
-    return pieces.joinToString(" ‚Ä¢ ")
+    return pieces.joinToString(" ï ")
 }
 
 private suspend fun recordMicPcm16Mono(
@@ -566,7 +566,7 @@ private suspend fun recordMicPcm16Mono(
             minBuffer,
         )
 
-        // Verificar si AudioRecord est√° inicializado correctamente
+        // Verificar si AudioRecord est· inicializado correctamente
         if (record.state != AudioRecord.STATE_INITIALIZED) {
             return@withContext ShortArray(0) to sampleRateHz
         }
@@ -578,7 +578,7 @@ private suspend fun recordMicPcm16Mono(
         try {
             record.startRecording()
 
-            // Verificar que est√° grabando
+            // Verificar que est· grabando
             if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                 return@withContext ShortArray(0) to sampleRateHz
             }
@@ -610,7 +610,7 @@ private suspend fun recordMicPcm16Mono(
             runCatching { record.release() }
         }
     } catch (e: SecurityException) {
-        // Permiso denegado en tiempo de ejecuci√≥n
+        // Permiso denegado en tiempo de ejecuciÛn
         e.printStackTrace()
         ShortArray(0) to sampleRateHz
     }

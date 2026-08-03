@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.extensions
+package com.valora.icebeats.extensions
 
 import com.valora.icebeats.models.MediaMetadata
 import com.valora.icebeats.models.PersistQueue

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.db
+package com.valora.icebeats.db
 
 import androidx.room.Dao
 import androidx.room.Delete

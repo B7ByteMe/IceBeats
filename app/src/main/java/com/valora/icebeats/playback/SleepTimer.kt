@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback
+package com.valora.icebeats.playback
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.viewmodels
+package com.valora.icebeats.viewmodels
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel

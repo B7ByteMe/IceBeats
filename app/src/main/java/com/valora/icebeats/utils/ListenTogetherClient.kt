@@ -1,179 +1,173 @@
 package com.valora.icebeats.utils
 
+import com.google.firebase.database.database
+import com.google.firebase.Firebase
 import com.valora.icebeats.models.MediaMetadata
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 object ListenTogetherClient {
-    const val BACKEND_URL = "https://icebeats.pages.dev/listentogether"
+    private val database = Firebase.database.reference.child("sessions")
 
-    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-    private val httpClient =
-        OkHttpClient
-            .Builder()
-            .callTimeout(4, TimeUnit.SECONDS)
-            .build()
+    private fun generateCode(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return (1..6).map { chars.random() }.joinToString("")
+    }
 
     suspend fun createSession(
         displayName: String,
         state: ListenTogetherPlaybackState,
-    ): ListenTogetherSession =
-        post(
-            "$BACKEND_URL/sessions",
-            JSONObject()
-                .put("name", displayName)
-                .put("state", state.toJson())
-        ) { body ->
-            ListenTogetherSession.fromJson(body)
-        }
+    ): ListenTogetherSession {
+        val code = generateCode()
+        val participantId = UUID.randomUUID().toString()
+        
+        val hostParticipant = ListenTogetherParticipant(
+            id = participantId,
+            name = displayName,
+            isHost = true
+        )
+        
+        val session = ListenTogetherSession(
+            code = code,
+            participantId = participantId,
+            joinUrl = "https://icebeats.pages.dev/join?code=$code",
+            participants = 1,
+            participantList = listOf(hostParticipant),
+            hostName = displayName,
+            controllerId = participantId,
+            controllerName = displayName,
+            stateVersion = 1L,
+            serverNow = System.currentTimeMillis(),
+            state = state.copy(updatedAt = System.currentTimeMillis())
+        )
+        
+        database.child(code).setValue(session).await()
+        return session
+    }
 
     suspend fun joinSession(
         code: String,
         displayName: String,
-    ): ListenTogetherSession =
-        post(
-            "$BACKEND_URL/sessions/${code.trim().uppercase()}/join",
-            JSONObject().put("name", displayName)
-        ) { body ->
-            ListenTogetherSession.fromJson(body)
-        }
+    ): ListenTogetherSession {
+        val upperCode = code.trim().uppercase()
+        val snapshot = database.child(upperCode).get().await()
+        if (!snapshot.exists()) throw IllegalStateException("Session not found")
+        
+        val session = snapshot.getValue(ListenTogetherSession::class.java) 
+            ?: throw IllegalStateException("Invalid session data")
+            
+        val participantId = UUID.randomUUID().toString()
+        val newParticipant = ListenTogetherParticipant(
+            id = participantId,
+            name = displayName,
+            isHost = false
+        )
+        
+        val updatedList = session.participantList.toMutableList()
+        updatedList.add(newParticipant)
+        
+        val updatedSession = session.copy(
+            participantId = participantId, // local participant ID
+            participants = updatedList.size,
+            participantList = updatedList
+        )
+        
+        // Save the updated participants to the server
+        database.child(upperCode).child("participants").setValue(updatedSession.participants).await()
+        database.child(upperCode).child("participantList").setValue(updatedSession.participantList).await()
+        
+        return updatedSession
+    }
 
-    suspend fun getSession(code: String): ListenTogetherSession =
-        get("$BACKEND_URL/sessions/${code.trim().uppercase()}") { body ->
-            ListenTogetherSession.fromJson(body)
-        }
+    suspend fun getSession(code: String): ListenTogetherSession {
+        val snapshot = database.child(code.trim().uppercase()).get().await()
+        if (!snapshot.exists()) throw IllegalStateException("Session not found")
+        val session = snapshot.getValue(ListenTogetherSession::class.java) 
+            ?: throw IllegalStateException("Invalid session data")
+        return session.copy(serverNow = System.currentTimeMillis())
+    }
 
     suspend fun updateState(
         code: String,
         participantId: String,
         state: ListenTogetherPlaybackState,
-    ): ListenTogetherSession =
-        post(
-            "$BACKEND_URL/sessions/${code.trim().uppercase()}/state",
-            JSONObject()
-                .put("participantId", participantId)
-                .put("state", state.toJson())
-        ) { body ->
-            ListenTogetherSession.fromJson(body)
+    ): ListenTogetherSession {
+        val upperCode = code.trim().uppercase()
+        val snapshot = database.child(upperCode).get().await()
+        if (!snapshot.exists()) throw IllegalStateException("Session not found")
+        
+        val session = snapshot.getValue(ListenTogetherSession::class.java) 
+            ?: throw IllegalStateException("Invalid session data")
+            
+        // Check if user is controller
+        if (session.controllerId != participantId) {
+            return session
         }
+        
+        val updatedSession = session.copy(
+            stateVersion = session.stateVersion + 1,
+            state = state.copy(updatedAt = System.currentTimeMillis())
+        )
+        
+        // Update state on firebase
+        database.child(upperCode).child("stateVersion").setValue(updatedSession.stateVersion).await()
+        database.child(upperCode).child("state").setValue(updatedSession.state).await()
+        
+        return updatedSession
+    }
 
     suspend fun leaveSession(
         code: String,
         participantId: String,
     ) {
-        post(
-            "$BACKEND_URL/sessions/${code.trim().uppercase()}/leave",
-            JSONObject().put("participantId", participantId)
-        ) {}
+        val upperCode = code.trim().uppercase()
+        val snapshot = database.child(upperCode).get().await()
+        if (!snapshot.exists()) return
+        
+        val session = snapshot.getValue(ListenTogetherSession::class.java) ?: return
+        
+        val updatedList = session.participantList.filter { it.id != participantId }
+        
+        if (updatedList.isEmpty()) {
+            // Delete session if empty
+            database.child(upperCode).removeValue().await()
+        } else {
+            // Update list and participants count
+            database.child(upperCode).child("participants").setValue(updatedList.size).await()
+            database.child(upperCode).child("participantList").setValue(updatedList).await()
+        }
     }
-
-    private suspend fun <T> get(
-        url: String,
-        parser: (JSONObject) -> T,
-    ): T =
-        withContext(Dispatchers.IO) {
-            val request = Request.Builder().url(url).get().build()
-            httpClient.newCall(request).execute().use { response ->
-                val text = response.body?.string().orEmpty()
-                if (!response.isSuccessful) throw IllegalStateException(errorMessage(text, response.code))
-                parser(JSONObject(text))
-            }
-        }
-
-    private suspend fun <T> post(
-        url: String,
-        body: JSONObject,
-        parser: (JSONObject) -> T,
-    ): T =
-        withContext(Dispatchers.IO) {
-            val request =
-                Request
-                    .Builder()
-                    .url(url)
-                    .post(body.toString().toRequestBody(jsonMediaType))
-                    .build()
-            httpClient.newCall(request).execute().use { response ->
-                val text = response.body?.string().orEmpty()
-                if (!response.isSuccessful) throw IllegalStateException(errorMessage(text, response.code))
-                parser(JSONObject(text))
-            }
-        }
-
-    private fun errorMessage(
-        text: String,
-        code: Int,
-    ): String =
-        runCatching {
-            JSONObject(text).optString("error")
-        }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Listen Together request failed ($code)"
 }
 
+// Ensure data classes have default values so Firebase can deserialize them
 data class ListenTogetherSession(
-    val code: String,
-    val participantId: String,
-    val joinUrl: String,
-    val participants: Int,
-    val participantList: List<ListenTogetherParticipant>,
-    val hostName: String,
-    val controllerId: String,
-    val controllerName: String,
-    val stateVersion: Long,
-    val serverNow: Long,
-    val state: ListenTogetherPlaybackState?,
-) {
-    companion object {
-        fun fromJson(json: JSONObject): ListenTogetherSession =
-            ListenTogetherSession(
-                code = json.optString("code"),
-                participantId = json.optString("participantId"),
-                joinUrl = json.optString("joinUrl"),
-                participants = json.optInt("participants", 1),
-                participantList =
-                    json.optJSONArray("participantList")?.let { array ->
-                        (0 until array.length()).mapNotNull { index ->
-                            array.optJSONObject(index)?.let(ListenTogetherParticipant::fromJson)
-                        }
-                    }.orEmpty(),
-                hostName = json.optString("hostName").ifBlank { "icebeats listener" },
-                controllerId = json.optString("controllerId"),
-                controllerName = json.optString("controllerName").ifBlank { "icebeats listener" },
-                stateVersion = json.optLong("stateVersion", 0L),
-                serverNow = json.optLong("serverNow", System.currentTimeMillis()),
-                state = json.optJSONObject("state")?.let(ListenTogetherPlaybackState::fromJson),
-            )
-    }
-}
+    val code: String = "",
+    val participantId: String = "",
+    val joinUrl: String = "",
+    val participants: Int = 1,
+    val participantList: List<ListenTogetherParticipant> = emptyList(),
+    val hostName: String = "",
+    val controllerId: String = "",
+    val controllerName: String = "",
+    val stateVersion: Long = 0L,
+    val serverNow: Long = 0L,
+    val state: ListenTogetherPlaybackState? = null,
+)
 
 data class ListenTogetherParticipant(
-    val id: String,
-    val name: String,
-    val isHost: Boolean,
-) {
-    companion object {
-        fun fromJson(json: JSONObject) =
-            ListenTogetherParticipant(
-                id = json.optString("id"),
-                name = json.optString("name").ifBlank { "icebeats listener" },
-                isHost = json.optBoolean("isHost"),
-            )
-    }
-}
+    val id: String = "",
+    val name: String = "",
+    val isHost: Boolean = false,
+)
 
 data class ListenTogetherPlaybackState(
-    val songId: String,
-    val title: String,
-    val artists: List<String>,
-    val thumbnailUrl: String?,
-    val positionMs: Long,
-    val isPlaying: Boolean,
-    val updatedAt: Long = System.currentTimeMillis(),
+    val songId: String = "",
+    val title: String = "",
+    val artists: List<String> = emptyList(),
+    val thumbnailUrl: String? = null,
+    val positionMs: Long = 0L,
+    val isPlaying: Boolean = false,
+    val updatedAt: Long = 0L,
 ) {
     fun toMediaMetadata() =
         MediaMetadata(
@@ -183,30 +177,4 @@ data class ListenTogetherPlaybackState(
             duration = -1,
             thumbnailUrl = thumbnailUrl,
         )
-
-    fun toJson() =
-        JSONObject()
-            .put("songId", songId)
-            .put("title", title)
-            .put("artists", JSONArray(artists))
-            .put("thumbnailUrl", thumbnailUrl)
-            .put("positionMs", positionMs)
-            .put("isPlaying", isPlaying)
-            .put("updatedAt", updatedAt)
-
-    companion object {
-        fun fromJson(json: JSONObject): ListenTogetherPlaybackState =
-            ListenTogetherPlaybackState(
-                songId = json.optString("songId"),
-                title = json.optString("title"),
-                artists =
-                    json.optJSONArray("artists")?.let { array ->
-                        (0 until array.length()).mapNotNull { array.optString(it).takeIf(String::isNotBlank) }
-                    }.orEmpty(),
-                thumbnailUrl = json.optString("thumbnailUrl").takeIf { it.isNotBlank() },
-                positionMs = json.optLong("positionMs"),
-                isPlaying = json.optBoolean("isPlaying"),
-                updatedAt = json.optLong("updatedAt"),
-            )
-    }
 }

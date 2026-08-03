@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.lyrics
+package com.valora.icebeats.lyrics
 
 import android.text.format.DateUtils
 import com.valora.icebeats.ui.component.ANIMATE_SCROLL_DURATION

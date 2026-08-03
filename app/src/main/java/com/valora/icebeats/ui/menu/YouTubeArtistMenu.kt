@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.menu
+package com.valora.icebeats.ui.menu
 
 import android.content.Intent
 import androidx.compose.foundation.background

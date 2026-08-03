@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import android.content.Intent
 import android.util.Log

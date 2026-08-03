@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.utils
+package com.valora.icebeats.ui.utils
 
 import androidx.compose.runtime.mutableStateOf
 

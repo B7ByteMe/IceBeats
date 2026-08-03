@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.extensions
+package com.valora.icebeats.extensions
 
 fun <T> List<T>.reversed(reversed: Boolean) = if (reversed) asReversed() else this
 

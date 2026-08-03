@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback
+package com.valora.icebeats.playback
 import android.animation.ValueAnimator
 import com.valora.icebeats.constants.DynamicIslandOffsetXKey
 import com.valora.icebeats.constants.DynamicIslandOffsetYKey

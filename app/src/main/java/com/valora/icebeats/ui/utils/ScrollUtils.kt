@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.utils
+package com.valora.icebeats.ui.utils
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState

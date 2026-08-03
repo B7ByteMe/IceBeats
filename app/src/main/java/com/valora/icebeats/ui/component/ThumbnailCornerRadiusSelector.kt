@@ -1,4 +1,4 @@
-Ôªøpackage com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import android.content.Context
 import androidx.compose.foundation.Image
@@ -72,7 +72,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 
-// Extensi√≥n de contexto para DataStore
+// ExtensiÛn de contexto para DataStore
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_settings")
 
 object AppConfig {
@@ -85,7 +85,7 @@ object AppConfig {
         }
     }
 
-    // Obtener el valor de thumbnail corner radius, o un valor por defecto si no est√° presente
+    // Obtener el valor de thumbnail corner radius, o un valor por defecto si no est· presente
     suspend fun getThumbnailCornerRadius(context: Context, defaultValue: Float = 16f): Float {
         return context.dataStore.data
             .map { preferences ->
@@ -227,7 +227,7 @@ fun ThumbnailCornerRadiusModal(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Previsualizaci√≥n con imagen de fondo
+                    // PrevisualizaciÛn con imagen de fondo
                     Box(
                         modifier = Modifier
                             .size(160.dp)
@@ -288,7 +288,7 @@ fun ThumbnailCornerRadiusModal(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Campo personalizado con mejor disposici√≥n
+                    // Campo personalizado con mejor disposiciÛn
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -318,7 +318,7 @@ fun ThumbnailCornerRadiusModal(
                         OutlinedTextField(
                             value = customValue,
                             onValueChange = { newValue ->
-                                // Solo aceptar n√∫meros
+                                // Solo aceptar n˙meros
                                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
                                     customValue = newValue
                                     newValue.toIntOrNull()?.let { intValue ->
@@ -356,7 +356,7 @@ fun ThumbnailCornerRadiusModal(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Secci√≥n del slider mejorada para m√°s feedback
+                    // SecciÛn del slider mejorada para m·s feedback
                     Column(
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -419,7 +419,7 @@ fun ThumbnailCornerRadiusModal(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Divisor para separar visualmente los botones de acci√≥n
+                    // Divisor para separar visualmente los botones de acciÛn
                     HorizontalDivider(
                         modifier = Modifier.fillMaxWidth(),
                         thickness = 1.dp,
@@ -428,7 +428,7 @@ fun ThumbnailCornerRadiusModal(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botones de acci√≥n con mejor UX
+                    // Botones de acciÛn con mejor UX
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),

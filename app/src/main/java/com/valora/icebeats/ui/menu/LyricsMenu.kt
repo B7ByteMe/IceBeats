@@ -1,4 +1,4 @@
-ï»¿package com.valora.icebeats.ui.menu
+package com.valora.icebeats.ui.menu
 
 import android.app.SearchManager
 import android.content.Intent
@@ -62,7 +62,7 @@ fun LyricsMenu(
     lyricsProvider: () -> LyricsEntity?,
     mediaMetadataProvider: () -> MediaMetadata,
     onDismiss: () -> Unit,
-    onLyricsUpdated: () -> Unit = {}, // NUEVO: Callback para notificar actualizaciÃ³n
+    onLyricsUpdated: () -> Unit = {}, // NUEVO: Callback para notificar actualización
     viewModel: LyricsMenuViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -224,7 +224,7 @@ fun LyricsMenu(
                                         ),
                                     )
                                 }
-                                // NUEVO: Notificar actualizaciÃ³n antes de cerrar
+                                // NUEVO: Notificar actualización antes de cerrar
                                 onLyricsUpdated()
                                 showSearchResultDialog = false
                                 onDismiss()
@@ -324,7 +324,7 @@ fun LyricsMenu(
             title = R.string.refetch,
         ) {
             viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
-            // NUEVO: Notificar actualizaciÃ³n cuando se recargan las letras
+            // NUEVO: Notificar actualización cuando se recargan las letras
             onLyricsUpdated()
             onDismiss()
         }

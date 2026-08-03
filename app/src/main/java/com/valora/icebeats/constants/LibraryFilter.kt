@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.constants
+package com.valora.icebeats.constants
 
 enum class LibraryFilter {
     SONGS,

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.extensions
+package com.valora.icebeats.extensions
 
 import android.content.Context
 import android.net.ConnectivityManager

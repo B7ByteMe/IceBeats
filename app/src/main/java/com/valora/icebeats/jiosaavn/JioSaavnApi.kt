@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.jiosaavn
+package com.valora.icebeats.jiosaavn
 
 import com.valora.icebeats.innertube.models.Artist
 import com.valora.icebeats.innertube.models.Album

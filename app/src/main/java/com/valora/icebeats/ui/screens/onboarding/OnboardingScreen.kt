@@ -47,6 +47,10 @@ import com.valora.icebeats.utils.AuthResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.auth
+import com.google.firebase.Firebase
+import kotlinx.coroutines.tasks.await
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import android.net.Uri
@@ -65,7 +69,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -259,27 +262,36 @@ fun OnboardingScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        try {
-            val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                .getResult(ApiException::class.java)
-            val email = account.email.orEmpty()
-            if (email.isBlank()) {
-                showSignInError("Google did not return an email for this account.")
-                return@rememberLauncherForActivityResult
-            }
-            val name = account.displayName
-                ?.takeIf { it.isNotBlank() }
-                ?: account.givenName
-                ?: displayNameFromEmail(email)
+        coroutineScope.launch {
+            try {
+                val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    .getResult(ApiException::class.java)
+                val email = account.email.orEmpty()
+                if (email.isBlank()) {
+                    showSignInError("Google did not return an email for this account.")
+                    return@launch
+                }
+                val name = account.displayName
+                    ?.takeIf { it.isNotBlank() }
+                    ?: account.givenName
+                    ?: displayNameFromEmail(email)
 
-            isGoogleSignInOpen = false
-            saveProfileAndSync(name, email, account.photoUrl?.toString(), isNewSignup = false)
-        } catch (e: ApiException) {
-            e.printStackTrace()
-            showSignInError(googleSignInErrorMessage(e))
-        } catch (e: Exception) {
-            e.printStackTrace()
-            showSignInError("Google sign in failed: ${e.message}")
+                // Sign in to Firebase Auth with Google credential
+                val idToken = account.idToken
+                if (idToken != null) {
+                    val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+                    Firebase.auth.signInWithCredential(firebaseCredential).await()
+                }
+
+                isGoogleSignInOpen = false
+                saveProfileAndSync(name, email, account.photoUrl?.toString(), isNewSignup = false)
+            } catch (e: ApiException) {
+                e.printStackTrace()
+                showSignInError(googleSignInErrorMessage(e))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showSignInError("Google sign in failed: ${e.message}")
+            }
         }
     }
 
@@ -576,10 +588,14 @@ fun OnboardingScreen(
                                 Box(modifier = socialModifier.clickable { onGoogleSignInClick() }, contentAlignment = Alignment.Center) {
                                     Icon(painterResource(R.drawable.google), contentDescription = "Google", tint = Color.Unspecified)
                                 }
-                                Box(modifier = socialModifier.clickable { }, contentAlignment = Alignment.Center) {
+                                Box(modifier = socialModifier.clickable {
+                                    Toast.makeText(context, "🚧 Facebook login coming soon!", Toast.LENGTH_SHORT).show()
+                                }, contentAlignment = Alignment.Center) {
                                     Icon(painterResource(R.drawable.facebook), contentDescription = "Facebook", tint = Color(0xFF1877F2))
                                 }
-                                Box(modifier = socialModifier.clickable { }, contentAlignment = Alignment.Center) {
+                                Box(modifier = socialModifier.clickable {
+                                    Toast.makeText(context, "🚧 GitHub login coming soon!", Toast.LENGTH_SHORT).show()
+                                }, contentAlignment = Alignment.Center) {
                                     Icon(painterResource(R.drawable.github), contentDescription = "Github", tint = Color.White)
                                 }
                             }

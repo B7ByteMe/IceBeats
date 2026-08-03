@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import com.valora.icebeats.ui.component.BottomSheetState
 import com.valora.icebeats.ui.component.bottomSheetDraggable
@@ -64,9 +64,9 @@ import com.valora.icebeats.utils.rememberEnumPreference
 import com.valora.icebeats.utils.rememberPreference
 import kotlin.math.*
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  FROST PLAYER SCREEN (Premium Neumorphic with Curved Upward Arc Slider)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 private val AccentBlue = Color(0xFF2F69FF)
 private val HeartOrange = Color(0xFFFF7A00)
@@ -173,7 +173,7 @@ fun FrostPlayerScreen(
 
     Box(modifier = Modifier.fillMaxSize().bottomSheetDraggable(state)
     ) {
-        // ── BACKGROUND LAYER (DEFAULT / GRADIENT / BLUR) ──
+        // -- BACKGROUND LAYER (DEFAULT / GRADIENT / BLUR) --
         if (!isDark) {
             when (playerBackground) {
                 PlayerBackgroundStyle.BLUR -> {
@@ -234,7 +234,7 @@ fun FrostPlayerScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── 1. HEADER ROW ──
+            // -- 1. HEADER ROW --
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -270,7 +270,7 @@ fun FrostPlayerScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── 2. ARTWORK & VERTICAL COLUMN ROW ──
+            // -- 2. ARTWORK & VERTICAL COLUMN ROW --
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -357,7 +357,7 @@ fun FrostPlayerScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── 3. SONG INFO ──
+            // -- 3. SONG INFO --
             Text(
                 text = mediaMetadata?.artists?.joinToString { it.name }?.uppercase() ?: "UNKNOWN ARTIST",
                 color = if (isDark) Color(0xFFAAAAAA) else Color(0xFF7A8A9E),
@@ -381,7 +381,7 @@ fun FrostPlayerScreen(
 
             Spacer(Modifier.height(48.dp))
 
-            // ── 4. CURVED UPWARD PROGRESS SLIDER ──
+            // -- 4. CURVED UPWARD PROGRESS SLIDER --
             FrostCurvedSlider(
                 position = position,
                 duration = duration,
@@ -393,7 +393,7 @@ fun FrostPlayerScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── 5. TIMESTAMPS & OUTPUT DEVICE ROW ──
+            // -- 5. TIMESTAMPS & OUTPUT DEVICE ROW --
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -441,7 +441,7 @@ fun FrostPlayerScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── 6. MAIN PLAYBACK CONTROLS (Prev, Play, Next) ──
+            // -- 6. MAIN PLAYBACK CONTROLS (Prev, Play, Next) --
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -477,7 +477,7 @@ fun FrostPlayerScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // ── 7. FOOTER NEXT SONG ROW ──
+            // -- 7. FOOTER NEXT SONG ROW --
             val currentMediaItemIndex by playerConnection.currentMediaItemIndex.collectAsState()
             val nextSongTitle = remember(currentMediaItemIndex) {
                 val nextIndex = currentMediaItemIndex + 1
@@ -517,9 +517,9 @@ fun FrostPlayerScreen(
 }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  GEOMETRIC UPWARD-BENDING PROGRESS SLIDER
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 fun FrostCurvedSlider(
     position: Long,
@@ -653,9 +653,9 @@ fun FrostCurvedSlider(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  FROST NEUMORPHIC SHADOW BUTTON
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 fun FrostNeumorphicButton(
     onClick: () -> Unit,
@@ -723,9 +723,9 @@ fun FrostNeumorphicButton(
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  GLOWING PLAY/PAUSE BUTTON (FROST ACCENT)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 fun FrostPlayPauseButton(
     onClick: () -> Unit,
@@ -773,9 +773,9 @@ fun FrostPlayPauseButton(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  CUSTOM CANVAS DRAWN CHEVRON
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 private fun FrostChevronLeftIcon(tint: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.size(24.dp)) {

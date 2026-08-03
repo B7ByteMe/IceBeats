@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback
+package com.valora.icebeats.playback
 
 import android.app.Notification
 import android.app.PendingIntent

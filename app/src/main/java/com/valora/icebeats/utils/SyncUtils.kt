@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.innertube.models.AlbumItem

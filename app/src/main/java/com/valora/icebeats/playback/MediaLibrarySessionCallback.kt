@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback
+package com.valora.icebeats.playback
 
 import android.content.ContentResolver
 import android.content.Context

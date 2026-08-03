@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.apple
+package com.valora.icebeats.ui.screens.apple
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility

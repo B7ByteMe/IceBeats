@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import com.valora.icebeats.ui.component.BottomSheetState
 import com.valora.icebeats.ui.component.bottomSheetDraggable
@@ -56,9 +56,9 @@ import com.valora.icebeats.ui.component.PlayerSliderTrack
 import me.saket.squiggles.SquigglySlider
 import kotlin.math.*
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  CLOUDGLOW PLAYER (Neumorphic Aesthetic)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 private val ActiveRed   = Color(0xFFE53935)
 private val ActiveBlue  = Color(0xFF007AFF)
@@ -110,7 +110,7 @@ fun CloudGlowPlayerScreen(
 
     Box(modifier = Modifier.fillMaxSize().bottomSheetDraggable(state)
     ) {
-        // ── BACKGROUND LAYER (DEFAULT / GRADIENT / BLUR) ─────────────────────
+        // -- BACKGROUND LAYER (DEFAULT / GRADIENT / BLUR) ---------------------
         if (!isDark) {
             when (playerBackground) {
                 PlayerBackgroundStyle.BLUR -> {
@@ -167,7 +167,7 @@ fun CloudGlowPlayerScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── 1. HEADER ROW ────────────────────────────────────────────────
+            // -- 1. HEADER ROW ------------------------------------------------
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -200,7 +200,7 @@ fun CloudGlowPlayerScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── 2. NEUMORPHIC CIRCULAR ARTWORK ──────────────────────────────
+            // -- 2. NEUMORPHIC CIRCULAR ARTWORK ------------------------------
             NeumorphicArtworkFrame(isDark = isDark) {
                 if (artworkUrl != null) {
                     AsyncImage(
@@ -225,7 +225,7 @@ fun CloudGlowPlayerScreen(
 
             Spacer(Modifier.height(36.dp))
 
-            // ── 3. SONG INFO ────────────────────────────────────────────────
+            // -- 3. SONG INFO ------------------------------------------------
             Text(
                 text = mediaMetadata?.title ?: "Unknown",
                 color = if (isDark) Color.White else Color(0xFF2E3D52),
@@ -248,7 +248,7 @@ fun CloudGlowPlayerScreen(
 
             Spacer(Modifier.height(36.dp))
 
-            // ── 4. SLIDER PROGRESS & TIMESTAMPS ──────────────────────────────
+            // -- 4. SLIDER PROGRESS & TIMESTAMPS ------------------------------
             val sliderProgress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
             
             // Timestamps
@@ -325,7 +325,7 @@ fun CloudGlowPlayerScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // ── 5. MAIN CONTROLS ROW (Prev, Play, Next) ─────────────────────
+            // -- 5. MAIN CONTROLS ROW (Prev, Play, Next) ---------------------
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -354,7 +354,7 @@ fun CloudGlowPlayerScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            // ── 6. BOTTOM ROW (Shuffle, Lyrics, Like, Repeat, Queue) ───────
+            // -- 6. BOTTOM ROW (Shuffle, Lyrics, Like, Repeat, Queue) -------
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -421,9 +421,9 @@ fun CloudGlowPlayerScreen(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  DEFAULT BACKGROUND COMPOSABLE (CloudGlow / Pure Black)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 private fun DefaultBackground(isDark: Boolean, artworkUrl: String?) {
     if (isDark) {
@@ -476,9 +476,9 @@ private fun DefaultBackground(isDark: Boolean, artworkUrl: String?) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  NEUMORPHIC SHADOW BUTTON
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 fun NeumorphicButton(
     onClick: () -> Unit,
@@ -546,9 +546,9 @@ fun NeumorphicButton(
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  NEUMORPHIC ARTWORK FRAME
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 fun NeumorphicArtworkFrame(
     modifier: Modifier = Modifier,
@@ -613,9 +613,9 @@ fun NeumorphicArtworkFrame(
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  GLOWING PLAY/PAUSE BUTTON
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 fun PlayPauseButton(
     onClick: () -> Unit,
@@ -663,9 +663,9 @@ fun PlayPauseButton(
       }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  CUSTOM CANVAS DRAWN CHEVRON
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 @Composable
 private fun ChevronLeftIcon(tint: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.size(24.dp)) {

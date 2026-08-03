@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import android.annotation.SuppressLint
 import android.view.ViewGroup
@@ -90,7 +90,7 @@ fun DiscordLoginScreen(navController: NavController) {
                                         if (token) {
                                             Android.onRetrieveToken(token.slice(1, -1));
                                         } else {
-                                            // fallback إلى alert (منطق kizzy)
+                                            // fallback ??? alert (???? kizzy)
                                             var i = document.createElement('iframe');
                                             document.body.appendChild(i);
                                             setTimeout(function() {

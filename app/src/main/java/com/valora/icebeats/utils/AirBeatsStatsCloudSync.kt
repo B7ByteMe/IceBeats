@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import android.content.Context
 import com.valora.icebeats.db.MusicDatabase

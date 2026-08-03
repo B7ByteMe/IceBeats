@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import android.accounts.Account
 import android.content.Context
@@ -29,8 +29,9 @@ class GoogleAuthManager(private val context: Context) {
     }
 
     fun getSignInClient(): com.google.android.gms.auth.api.signin.GoogleSignInClient {
+        val clientId = context.getString(com.valora.icebeats.R.string.default_web_client_id)
         val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(WEB_CLIENT_ID)
+            .requestIdToken(clientId)
             .requestEmail()
             .requestProfile()
             .build()

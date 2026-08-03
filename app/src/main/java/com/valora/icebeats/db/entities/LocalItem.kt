@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.db.entities
+package com.valora.icebeats.db.entities
 
 sealed class LocalItem {
     abstract val id: String

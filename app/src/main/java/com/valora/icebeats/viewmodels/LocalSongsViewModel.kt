@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.viewmodels
+package com.valora.icebeats.viewmodels
 
 import android.app.Application
 import android.content.ContentUris

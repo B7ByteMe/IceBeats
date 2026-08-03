@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.db.entities
+package com.valora.icebeats.db.entities
 
 import androidx.room.Embedded
 import androidx.room.Relation

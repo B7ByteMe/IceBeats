@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.models
+package com.valora.icebeats.models
 
 import androidx.compose.runtime.Immutable
 import com.valora.icebeats.innertube.models.SongItem

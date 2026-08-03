@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.constants
+package com.valora.icebeats.constants
 
 import android.os.Bundle
 import androidx.media3.session.SessionCommand

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.di
+package com.valora.icebeats.di
 
 import android.content.Context
 import com.valora.icebeats.ui.component.NamePreferenceManager

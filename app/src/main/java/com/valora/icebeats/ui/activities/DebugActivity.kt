@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.activities
+package com.valora.icebeats.ui.activities
 
 import android.content.Intent
 import android.os.Build

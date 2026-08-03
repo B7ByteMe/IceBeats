@@ -1,4 +1,4 @@
-﻿/*
+/*
  * icebeats History Screen
  * Redesigned & Updated
  */

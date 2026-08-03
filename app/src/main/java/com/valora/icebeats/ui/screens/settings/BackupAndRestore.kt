@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import android.annotation.SuppressLint
 import android.content.ClipData

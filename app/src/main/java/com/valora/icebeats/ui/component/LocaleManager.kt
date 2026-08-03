@@ -1,4 +1,4 @@
-锘緻file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.valora.icebeats.ui.component
 
@@ -116,7 +116,7 @@ enum class CompletionStatus(val label: String, val color: @Composable () -> Colo
     EXPERIMENTAL("Exp", { MaterialTheme.colorScheme.secondary })
 }
 
-/** Estados de la operaci贸n de cambio de idioma */
+/** Estados de la operaci髇 de cambio de idioma */
 sealed class LanguageChangeState {
     object Idle : LanguageChangeState()
     object Changing : LanguageChangeState()
@@ -142,30 +142,30 @@ class LocaleManager private constructor(private val context: Context) {
             }
         }
 
-        // Mapeo de banderas y estados de traducci贸n
+        // Mapeo de banderas y estados de traducci髇
         private val LANGUAGE_METADATA = mapOf(
-            "en" to LanguageMetadata("馃嚭馃嚫", CompletionStatus.COMPLETE),
-            "es" to LanguageMetadata("馃嚜馃嚫", CompletionStatus.COMPLETE),
-            "fr" to LanguageMetadata("馃嚝馃嚪", CompletionStatus.COMPLETE),
-            "de" to LanguageMetadata("馃嚛馃嚜", CompletionStatus.COMPLETE),
-            "it" to LanguageMetadata("馃嚠馃嚬", CompletionStatus.COMPLETE),
-            "pt-rBR" to LanguageMetadata("馃嚙馃嚪", CompletionStatus.COMPLETE),
-            "pt" to LanguageMetadata("馃嚨馃嚬", CompletionStatus.COMPLETE),
-            "ru" to LanguageMetadata("馃嚪馃嚭", CompletionStatus.COMPLETE),
-            "zh-rCN" to LanguageMetadata("馃嚚馃嚦", CompletionStatus.COMPLETE),
-            "zh-rTW" to LanguageMetadata("馃嚬馃嚰", CompletionStatus.COMPLETE),
-            "ja" to LanguageMetadata("馃嚡馃嚨", CompletionStatus.COMPLETE),
-            "ko" to LanguageMetadata("馃嚢馃嚪", CompletionStatus.COMPLETE),
-            "ar" to LanguageMetadata("馃嚫馃嚘", CompletionStatus.BETA),
-            "hi" to LanguageMetadata("馃嚠馃嚦", CompletionStatus.BETA),
-            "th" to LanguageMetadata("馃嚬馃嚟", CompletionStatus.INCOMPLETE),
-            "vi" to LanguageMetadata("馃嚮馃嚦", CompletionStatus.INCOMPLETE),
-            "tr" to LanguageMetadata("馃嚬馃嚪", CompletionStatus.BETA),
-            "pl" to LanguageMetadata("馃嚨馃嚤", CompletionStatus.INCOMPLETE),
-            "nl" to LanguageMetadata("馃嚦馃嚤", CompletionStatus.INCOMPLETE),
-            "id" to LanguageMetadata("馃嚠馃嚛", CompletionStatus.BETA),
-            "uk" to LanguageMetadata("馃嚭馃嚘", CompletionStatus.BETA),
-            "he" to LanguageMetadata("馃嚠馃嚤", CompletionStatus.BETA)
+            "en" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "es" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "fr" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "de" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "it" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "pt-rBR" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "pt" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "ru" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "zh-rCN" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "zh-rTW" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "ja" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "ko" to LanguageMetadata("????", CompletionStatus.COMPLETE),
+            "ar" to LanguageMetadata("????", CompletionStatus.BETA),
+            "hi" to LanguageMetadata("????", CompletionStatus.BETA),
+            "th" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
+            "vi" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
+            "tr" to LanguageMetadata("????", CompletionStatus.BETA),
+            "pl" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
+            "nl" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
+            "id" to LanguageMetadata("????", CompletionStatus.BETA),
+            "uk" to LanguageMetadata("????", CompletionStatus.BETA),
+            "he" to LanguageMetadata("????", CompletionStatus.BETA)
         )
 
         private data class LanguageMetadata(
@@ -265,7 +265,7 @@ class LocaleManager private constructor(private val context: Context) {
     }
 
     /**
-     * Verifica si existen traducciones para un locale espec铆fico
+     * Verifica si existen traducciones para un locale espec韋ico
      */
     private fun hasTranslationsForLocale(localeCode: String): Boolean {
         return try {
@@ -281,7 +281,7 @@ class LocaleManager private constructor(private val context: Context) {
             val localizedContext = context.createConfigurationContext(config)
             val localizedResources = localizedContext.resources
 
-            // Intentar obtener un string b谩sico para verificar
+            // Intentar obtener un string b醩ico para verificar
             try {
                 val appName = localizedResources.getString(R.string.app_name)
                 true
@@ -313,7 +313,7 @@ class LocaleManager private constructor(private val context: Context) {
     }
 
     /**
-     * Convierte c贸digo de locale a Locale
+     * Convierte c骴igo de locale a Locale
      */
     private fun parseLocaleCode(code: String): Locale {
         return when {
@@ -338,7 +338,7 @@ class LocaleManager private constructor(private val context: Context) {
 
             val languages = mutableListOf<LanguageItem>()
 
-            // Agregar opci贸n de sistema
+            // Agregar opci髇 de sistema
             val systemDisplayName = try {
                 val locale = parseLocaleCode(systemLanguageCode)
                 locale.displayLanguage.replaceFirstChar { it.uppercase() }
@@ -353,7 +353,7 @@ class LocaleManager private constructor(private val context: Context) {
                     nativeName = systemDisplayName,
                     completionStatus = CompletionStatus.COMPLETE,
                     isSystemDefault = true,
-                    flag = "馃寪"
+                    flag = "??"
                 )
             )
 
@@ -368,7 +368,7 @@ class LocaleManager private constructor(private val context: Context) {
 
                     // Obtener metadata (bandera y estado)
                     val metadata = LANGUAGE_METADATA[localeCode]
-                        ?: LanguageMetadata("馃實", CompletionStatus.COMPLETE)
+                        ?: LanguageMetadata("??", CompletionStatus.COMPLETE)
 
                     languages.add(
                         LanguageItem(
@@ -385,7 +385,7 @@ class LocaleManager private constructor(private val context: Context) {
                 }
             }
 
-            // Ordenar por: sistema primero, luego completos, luego alfab茅ticamente
+            // Ordenar por: sistema primero, luego completos, luego alfab閠icamente
             val sorted = languages.sortedWith(
                 compareBy<LanguageItem> { !it.isSystemDefault }
                     .thenBy { it.completionStatus.ordinal }
@@ -477,7 +477,7 @@ class LocaleManager private constructor(private val context: Context) {
             @Suppress("DEPRECATION")
             context.resources.updateConfiguration(config, context.resources.displayMetrics)
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error aplicando configuraci贸n de idioma")
+            Timber.tag(TAG).e(e, "Error aplicando configuraci髇 de idioma")
         }
     }
 
@@ -530,7 +530,7 @@ class LocaleManager private constructor(private val context: Context) {
                 }
             }, RESTART_DELAY)
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error reiniciando aplicaci贸n")
+            Timber.tag(TAG).e(e, "Error reiniciando aplicaci髇")
         }
     }
 
@@ -767,7 +767,7 @@ private fun SearchBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Limpiar b煤squeda",
+                        contentDescription = "Limpiar b鷖queda",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -831,7 +831,7 @@ private fun EmptySearchResult(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Prueba con otro t茅rmino",
+            text = "Prueba con otro t閞mino",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 4.dp)
@@ -888,7 +888,7 @@ private fun LanguageItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Informaci贸n
+            // Informaci髇
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = language.displayName,

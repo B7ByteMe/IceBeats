@@ -1,4 +1,4 @@
-ï»¿package com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -167,7 +167,7 @@ fun StorageSettings(
                 onManageClick = null
             )
 
-            // CachÃ© de canciones
+            // Caché de canciones
             StorageCard(
                 title = stringResource(R.string.song_cache),
                 icon = R.drawable.music_note,
@@ -200,7 +200,7 @@ fun StorageSettings(
                 }
             )
 
-            // CachÃ© de imÃ¡genes
+            // Caché de imágenes
             StorageCard(
                 title = stringResource(R.string.image_cache),
                 icon = R.drawable.image,
@@ -248,7 +248,7 @@ fun StorageSettings(
         )
     }
 
-    // Bottom Sheet para gestionar canciones en cachÃ©
+    // Bottom Sheet para gestionar canciones en caché
     if (showCachedSongsSheet) {
         CachedSongsBottomSheet(
             playerCache = playerCache,
@@ -281,7 +281,7 @@ private fun StorageCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header con icono y tÃ­tulo
+            // Header con icono y título
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -351,7 +351,7 @@ private fun StorageCard(
             // Contenido extra (ListPreference)
             extraContent?.invoke()
 
-            // Botones de acciÃ³n
+            // Botones de acción
             if (usedSize > 0) {
                 HorizontalDivider(
                     thickness = 0.5.dp,
@@ -444,7 +444,7 @@ private fun CachedSongsBottomSheet(
     val coroutineScope = rememberCoroutineScope()
     val events by viewModel.events.collectAsState()
 
-    // Obtener IDs de canciones en cachÃ©
+    // Obtener IDs de canciones en caché
     val cachedSongIds = remember(playerCache) {
         playerCache.keys.map { it.toString() }.toSet()
     }
@@ -457,7 +457,7 @@ private fun CachedSongsBottomSheet(
             .filter { it.id in cachedSongIds }
     }
 
-    // Obtener tamaÃ±os de cachÃ© - MEJORA: Filtrar canciones con tamaÃ±o 0
+    // Obtener tamaños de caché - MEJORA: Filtrar canciones con tamaño 0
     val cachedSongsWithSize = remember(cachedSongs, playerCache) {
         cachedSongs.mapNotNull { song ->
             val size = tryOrNull {
@@ -531,11 +531,11 @@ private fun CachedSongsBottomSheet(
                         onClick = {
                             coroutineScope.launch(Dispatchers.IO) {
                                 try {
-                                    // MEJORA: ConversiÃ³n a lista antes de iterar
+                                    // MEJORA: Conversión a lista antes de iterar
                                     playerCache.keys.toList().forEach { key ->
                                         tryOrNull { playerCache.removeResource(key) }
                                     }
-                                    // MEJORA: ActualizaciÃ³n del UI con withContext
+                                    // MEJORA: Actualización del UI con withContext
                                     withContext(Dispatchers.Main) {
                                         displayedSongs = emptyList()
                                     }
@@ -566,7 +566,7 @@ private fun CachedSongsBottomSheet(
                         onDeleteClick = {
                             coroutineScope.launch(Dispatchers.IO) {
                                 try {
-                                    // MEJORA: BÃºsqueda correcta de keys por canciÃ³n
+                                    // MEJORA: Búsqueda correcta de keys por canción
                                     val keysToRemove = playerCache.keys.filter { key ->
                                         key.contains(songInfo.song.id)
                                     }
@@ -575,7 +575,7 @@ private fun CachedSongsBottomSheet(
                                         tryOrNull { playerCache.removeResource(key) }
                                     }
 
-                                    // MEJORA: ActualizaciÃ³n del UI con withContext
+                                    // MEJORA: Actualización del UI con withContext
                                     withContext(Dispatchers.Main) {
                                         displayedSongs = displayedSongs.filter {
                                             it.song.id != songInfo.song.id

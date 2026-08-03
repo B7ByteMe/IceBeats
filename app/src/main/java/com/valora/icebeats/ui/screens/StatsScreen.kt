@@ -1,4 +1,4 @@
-ï»¿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -670,7 +670,7 @@ private fun GlobalStatsBoardCard(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = topUser?.let { "Most listened: ${it.name} â€¢ Total Users: ${users.size}" } ?: "Waiting for daily cloud stats",
+                        text = topUser?.let { "Most listened: ${it.name} • Total Users: ${users.size}" } ?: "Waiting for daily cloud stats",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -832,7 +832,7 @@ private fun WeeklyGlobalStatsSheet(
                     fontWeight = FontWeight.Black,
                 )
                 Text(
-                    text = "Total Users: ${users.size} â€¢ Only names and listened hours are shown.",
+                    text = "Total Users: ${users.size} • Only names and listened hours are shown.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
@@ -1038,7 +1038,7 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // CaracterÃ­sticas
+        // Características
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -1063,7 +1063,7 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // BotÃ³n para ver completo
+        // Botón para ver completo
         Button(
             onClick = onNavigateToFullInsight,
             modifier = Modifier.fillMaxWidth(),
@@ -1209,7 +1209,7 @@ fun StatsHighlightsSection(
             StatsHighlightCard(
                 title = "Your Favourite Artist",
                 mainText = topArtist.artist.name,
-                subText = "${topArtist.songCount} songs played â€¢ ${makeTimeString(topArtist.timeListened?.toLong())}",
+                subText = "${topArtist.songCount} songs played • ${makeTimeString(topArtist.timeListened?.toLong())}",
                 imageUrl = topArtist.artist.thumbnailUrl,
                 onClick = { navController.navigate("artist/${topArtist.id}") }
             )
@@ -1219,7 +1219,7 @@ fun StatsHighlightsSection(
             StatsHighlightCard(
                 title = "Your Favourite Song",
                 mainText = topSong.title,
-                subText = "${topSong.songCountListened} plays â€¢ ${makeTimeString(topSong.timeListened)}",
+                subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
                 imageUrl = topSong.thumbnailUrl,
                 onClick = { }
             )

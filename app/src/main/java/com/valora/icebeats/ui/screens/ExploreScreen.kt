@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens
+package com.valora.icebeats.ui.screens
 
 import android.content.res.Configuration.ORIENTATION_LANDSCAPE
 import androidx.compose.foundation.background
@@ -74,7 +74,7 @@ fun ExploreScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 🎵 SAME BLUR BACKGROUND AS HOME
+        // ?? SAME BLUR BACKGROUND AS HOME
         val artworkUrl = mediaMetadata?.thumbnailUrl
 
         artworkUrl?.let { imageUrl ->
@@ -112,7 +112,7 @@ fun ExploreScreen(
 
         }
 
-        // 📜 CONTENT
+        // ?? CONTENT
         LazyColumn(
             contentPadding = LocalPlayerAwareWindowInsets.current
                 .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
@@ -123,7 +123,7 @@ fun ExploreScreen(
                 )
         ) {
 
-            // ── Header title ──
+            // -- Header title --
             item {
                 Text(
                     text = stringResource(R.string.explore),

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.worker
+package com.valora.icebeats.worker
 
 import android.content.Context
 import androidx.work.CoroutineWorker

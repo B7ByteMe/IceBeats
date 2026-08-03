@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.menu
+package com.valora.icebeats.ui.menu
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text

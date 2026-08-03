@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils.potoken
+package com.valora.icebeats.utils.potoken
 
 import android.util.Log
 import android.webkit.CookieManager
