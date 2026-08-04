@@ -61,7 +61,7 @@
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 
 ## Rules for NewPipeExtractor
--keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+-keep class org.schabi.newpipe.extractor.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 -keep class org.mozilla.javascript.engine.** { *; }
 -dontwarn org.mozilla.javascript.JavaToJSONConverters
@@ -70,6 +70,15 @@
 -dontwarn javax.script.**
 -keep class jdk.dynalink.** { *; }
 -dontwarn jdk.dynalink.**
+
+## Rules for Local Submodules (Serialization & Parsers)
+-keep class com.valora.icebeats.innertube.** { *; }
+-keep class com.valora.icebeats.kugou.** { *; }
+-keep class com.valora.icebeats.lrclib.** { *; }
+-keep class com.valora.icebeats.betterlyrics.** { *; }
+-keep class com.valora.icebeats.jossredconnect.** { *; }
+-keep class com.valora.icebeats.shazamkit.** { *; }
+-keep class com.valora.icebeats.kizzy.** { *; }
 
 ## Logging (does not affect Timber)
 -assumenosideeffects class android.util.Log {
