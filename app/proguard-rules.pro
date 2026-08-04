@@ -80,6 +80,14 @@
 -keep class com.valora.icebeats.shazamkit.** { *; }
 -keep class com.valora.icebeats.kizzy.** { *; }
 
+## Rules for WebView JavaScript Interface
+## CRITICAL: WebView calls @JavascriptInterface methods by exact name at runtime.
+## If these are obfuscated or removed, PoToken generation fails and music cannot play.
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keep class com.valora.icebeats.utils.potoken.** { *; }
+
 ## Logging (does not affect Timber)
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
