@@ -36,8 +36,8 @@ android {
         applicationId = "com.valora.icebeats"
         minSdk = 24
         targetSdk = 35
-        versionCode = 171
-        versionName = "6.0.1"
+        versionCode = 172
+        versionName = "6.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_API_KEY", googleApiKey.asBuildConfigString())
         buildConfigField("String", "STATS_API_KEY", statsApiKey.asBuildConfigString())
@@ -50,7 +50,7 @@ android {
 
     splits {
         abi {
-            isEnable = true
+            isEnable = false
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             isUniversalApk = true // Also generate a universal one just in case, or false if strictly reducing size. Let's use false as user wants smaller size.
@@ -69,6 +69,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
         debug {
             // No debug suffix or debug icons, use the release config for testing
