@@ -102,7 +102,7 @@ fun isAppInDarkTheme(): Boolean {
     val isSystemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     return androidx.compose.runtime.remember(darkTheme, isSystemInDarkTheme) {
-        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+        true
     }
 }
 

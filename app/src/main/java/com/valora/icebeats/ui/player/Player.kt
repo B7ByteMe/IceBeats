@@ -261,7 +261,7 @@ fun BottomSheetPlayer(
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val enableNewQueueScreen by rememberPreference(EnableNewQueueScreenKey, defaultValue = true)
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
-        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+        true
     }
     val onBackgroundColor = when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.secondary
@@ -274,7 +274,7 @@ fun BottomSheetPlayer(
     val useBlackBackground =
         remember(isSystemInDarkTheme, darkTheme, pureBlack) {
             val useDarkTheme =
-                if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+                true
             useDarkTheme && pureBlack
         }
     val backgroundColor = if (useBlackBackground && state.value > state.collapsedBound) {

@@ -165,7 +165,7 @@ fun MiniPlayer(
     )
 
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
-        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+        true
     }
 
     val miniPlayerThumbnailShapeState = rememberPreference(
@@ -646,7 +646,7 @@ fun ModernMiniPlayer(
     )
 
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
-        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+        true
     }
     val backgroundColor = if (enableLiquidGlass && backdrop != null) {
         Color.Transparent

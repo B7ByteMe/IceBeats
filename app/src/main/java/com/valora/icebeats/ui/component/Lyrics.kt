@@ -265,7 +265,7 @@ fun Lyrics(
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
-        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+        true
     }
 
     var position by rememberSaveable(playbackState) { mutableLongStateOf(playerConnection.player.currentPosition) }

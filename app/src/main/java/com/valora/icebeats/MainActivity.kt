@@ -475,16 +475,7 @@ class MainActivity : ComponentActivity() {
             val appFont = remember(appFontKey) { AppFont.fromKey(appFontKey) }
             val isPlayful = homeScreenStyle == HomeScreenStyle.PLAYFUL
             val isSystemInDarkTheme = isSystemInDarkTheme()
-            val useDarkTheme =
-                remember(darkTheme, isSystemInDarkTheme, enableLiquidGlass, isPlayful) {
-                    if (isPlayful) {
-                        false
-                    } else if (enableLiquidGlass) {
-                        true
-                    } else {
-                        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
-                    }
-                }
+            val useDarkTheme = true
             LaunchedEffect(useDarkTheme) {
                 setSystemBarAppearance(useDarkTheme)
             }

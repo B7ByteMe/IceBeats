@@ -90,7 +90,7 @@ fun PaperPlayer(
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkMode by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
-    val dark = if (darkMode == DarkMode.AUTO) systemDark else darkMode == DarkMode.ON
+    val dark = true
     
     // Neumorphic colors for full screen
     val paper = if (dark) Color(0xFF20201D) else Color(0xFFFFFFFF)

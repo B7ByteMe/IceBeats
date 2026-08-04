@@ -176,16 +176,7 @@ fun AppearanceSettings(
     var showFontDialog by remember { mutableStateOf(false) }
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    val useDarkTheme =
-        remember(darkMode, isSystemInDarkTheme, enableLiquidGlass, isPlayful) {
-            if (isPlayful) {
-                false
-            } else if (enableLiquidGlass) {
-                true
-            } else {
-                if (darkMode == DarkMode.AUTO) isSystemInDarkTheme else darkMode == DarkMode.ON
-            }
-        }
+    val useDarkTheme = true
 
     // Automatically disable pureBlack when switching to light mode
     LaunchedEffect(useDarkTheme) {
