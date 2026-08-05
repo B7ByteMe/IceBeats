@@ -13,7 +13,7 @@ object Updater {
     suspend fun getLatestVersionName(): Result<String> =
         runCatching {
             val response =
-                client.get("https://api.github.com/repos/B7ByteMe/IceBeats/releases/latest")
+                client.get("https://icebeats.pages.dev/version.json")
                     .bodyAsText()
             val json = JSONObject(response)
             val versionName = json.getString("name")

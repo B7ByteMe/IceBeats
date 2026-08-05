@@ -810,6 +810,11 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
 
+                                            "album" ->
+                                                uri.getQueryParameter("id")?.let { albumId ->
+                                                    navController.navigate("album/$albumId")
+                                                }
+
                                             "browse" ->
                                                 uri.lastPathSegment?.let { browseId ->
                                                     navController.navigate("album/$browseId")
@@ -1594,12 +1599,10 @@ class MainActivity : ComponentActivity() {
             uri.pathSegments.firstOrNull() == "watch" -> uri.getQueryParameter("v")
             uri.host == "youtu.be" -> uri.pathSegments.firstOrNull()
             uri.host == "icebeats.pages.dev" -> {
-                if (uri.pathSegments.firstOrNull() == "song") {
-                    uri.getQueryParameter("id")
-                } else if (uri.pathSegments.firstOrNull() == "artist") {
-                    null
-                } else {
-                    uri.pathSegments.firstOrNull()
+                when (uri.pathSegments.firstOrNull()) {
+                    "song" -> uri.getQueryParameter("id")
+                    "album", "artist", "playlist", "browse" -> null
+                    else -> uri.pathSegments.firstOrNull()
                 }
             }
             else -> null

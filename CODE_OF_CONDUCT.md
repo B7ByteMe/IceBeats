@@ -37,7 +37,7 @@ Examples of unacceptable behavior include:
 
 ## Enforcement Responsibilities
 
-Community leaders (Darkboy and Venom) are responsible for clarifying and enforcing our standards of
+Community leaders (Valora and Zyxone) are responsible for clarifying and enforcing our standards of
 acceptable behavior and will take appropriate and fair corrective action in
 response to any behavior that they deem inappropriate, threatening, offensive,
 or harmful.
@@ -58,7 +58,7 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders at [cervantesdarkxvenom@gmail.com](mailto:darkxvenom44@gmail.com).
+reported to the community leaders via GitHub Issues.
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the

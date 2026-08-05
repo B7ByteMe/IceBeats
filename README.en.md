@@ -1,16 +1,15 @@
-# AirBeats
+# IceBeats
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/drkvenom786/Airbeats/refs/heads/main/sc.png" alt="AirBeats Preview" width="100%"/>
+  <img src="https://raw.githubusercontent.com/B7ByteMe/IceBeats/refs/heads/main/icon2.png" alt="IceBeats Preview" width="200"/>
   
-  ### Advanced YouTube Music Client with Material Design 3 for Android
+  <h3>Advanced YouTube Music Client with Material Design 3 for Android</h3>
   
-  [![Latest Release](https://img.shields.io/github/v/release/darkxvenom/airbeats?style=flat-square&logo=github&color=0D1117&labelColor=161B22)](https://github.com/darkxvenom/airbeats/releases)
-  [![License](https://img.shields.io/github/license/darkxvenom/airbeats?style=flat-square&logo=gnu&color=2B3137&labelColor=161B22)](https://github.com/darkxvenom/airbeats/blob/main/LICENSE)
-  [![Translation Status](https://badges.crowdin.net/AirBeats/localized.svg)](https://crowdin.com/project/AirBeats)
+  [![Latest Release](https://img.shields.io/github/v/release/B7ByteMe/IceBeats?style=flat-square&logo=github&color=0D1117&labelColor=161B22)](https://github.com/B7ByteMe/IceBeats/releases)
+  [![License](https://img.shields.io/github/license/B7ByteMe/IceBeats?style=flat-square&logo=gnu&color=2B3137&labelColor=161B22)](https://github.com/B7ByteMe/IceBeats/blob/main/LICENSE)
   [![Android](https://img.shields.io/badge/Platform-Android%206.0+-3DDC84.svg?style=flat-square&logo=android&logoColor=white&labelColor=161B22)](https://www.android.com)
-  [![Stars](https://img.shields.io/github/stars/darkxvenom/airbeats?style=flat-square&logo=github&color=yellow&labelColor=161B22)](https://github.com/darkxvenom/airbeats/stargazers)
-  [![Forks](https://img.shields.io/github/forks/darkxvenom/airbeats?style=flat-square&logo=github&color=blue&labelColor=161B22)](https://github.com/darkxvenom/airbeats/network/members)
+  [![Stars](https://img.shields.io/github/stars/B7ByteMe/IceBeats?style=flat-square&logo=github&color=yellow&labelColor=161B22)](https://github.com/B7ByteMe/IceBeats/stargazers)
+  [![Forks](https://img.shields.io/github/forks/B7ByteMe/IceBeats?style=flat-square&logo=github&color=blue&labelColor=161B22)](https://github.com/B7ByteMe/IceBeats/network/members)
 </div>
 
 ---
@@ -24,7 +23,6 @@
 - [Installation](#installation)
 - [Building from Source](#building-from-source)
 - [Contributing](#contributing)
-- [Support the Project](#support-the-project)
 - [Acknowledgments](#acknowledgments)
 - [License](#license)
 
@@ -32,7 +30,7 @@
 
 ## Overview
 
-**AirBeats** is an open-source YouTube Music client specifically designed for Android devices. It delivers a superior user experience with a modern interface implementing Material Design 3, offering advanced functionalities to explore, play, and manage musical content without the limitations of the official application.
+**IceBeats** is an open-source YouTube Music client specifically designed for Android devices. It delivers a superior user experience with a modern interface implementing Material Design 3, offering advanced functionalities to explore, play, and manage musical content without the limitations of the official application.
 
 ### Key Benefits
 
@@ -42,109 +40,40 @@
 - **Customizable Interface**: Personalize your music experience
 - **Offline Capabilities**: Download and play music without internet connection
 
-> **Note**: AirBeats is an independent project and is not affiliated, sponsored, or endorsed by YouTube or Google.
+> **Note**: IceBeats is an independent project and is not affiliated, sponsored, or endorsed by YouTube or Google.
 
 ---
 
 ## Technology Stack
 
-<div align="center">
-  
-| Frontend | Backend | Development Tools |
-|:--------:|:-------:|:----------------:|
-| ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white) | ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) | ![Android Studio](https://img.shields.io/badge/Android%20Studio-3DDC84?style=for-the-badge&logo=androidstudio&logoColor=white) |
-| ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white) | ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white) | ![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white) |
-| ![Material Design 3](https://img.shields.io/badge/Material%20Design%203-757575?style=for-the-badge&logo=materialdesign&logoColor=white) | | ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white) |
+The application is built using a modern Android development stack:
 
-</div>
+- **Programming Language**: [Kotlin](https://kotlinlang.org/)
+- **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose)
+- **Dependency Injection**: [Hilt](https://developer.android.com/training/dependency-injection/hilt-android)
+- **Local Database**: [Room SQLite](https://developer.android.com/training/data-storage/room)
+- **Network Client**: [Ktor](https://ktor.io/) & OkHttp
+- **Media Playback**: [Jetpack Media3 (ExoPlayer)](https://developer.android.com/guide/topics/media/media3)
 
 ---
 
 ## Key Features
 
-### Core Functionality
-<table>
-<tr>
-<th width="30%">Feature</th>
-<th width="70%">Description</th>
-</tr>
-<tr>
-<td><strong>🎵 Ad-free Playback</strong></td>
-<td>Enjoy music without any advertising interruptions</td>
-</tr>
-<tr>
-<td><strong>🔄 Background Playback</strong></td>
-<td>Continue listening while using other applications</td>
-</tr>
-<tr>
-<td><strong>🔍 Advanced Search</strong></td>
-<td>Quickly find songs, videos, albums, and playlists</td>
-</tr>
-<tr>
-<td><strong>👤 Account Integration</strong></td>
-<td>Sign in to sync preferences and collections</td>
-</tr>
-<tr>
-<td><strong>📚 Library Management</strong></td>
-<td>Organize and fully manage your music collection</td>
-</tr>
-<tr>
-<td><strong>📱 Offline Mode</strong></td>
-<td>Download content for offline listening</td>
-</tr>
-</table>
+### Playback & Streaming
+- Full playback of YouTube Music catalog
+- Audio streaming at up to 256kbps AAC
+- Background playback and cache support
+- Gapless playback and audio normalization
 
-### Audio Enhancement
-<table>
-<tr>
-<th width="30%">Feature</th>
-<th width="70%">Description</th>
-</tr>
-<tr>
-<td><strong>🎤 Synchronized Lyrics</strong></td>
-<td>View perfectly synchronized song lyrics</td>
-</tr>
-<tr>
-<td><strong>⚡ Smart Silence Skip</strong></td>
-<td>Automatically skip segments without audio</td>
-</tr>
-<tr>
-<td><strong>🔊 Volume Normalization</strong></td>
-<td>Balance sound levels between different tracks</td>
-</tr>
-<tr>
-<td><strong>🎛️ Tempo & Pitch Control</strong></td>
-<td>Adjust playback speed and pitch to preferences</td>
-</tr>
-</table>
+### Customization
+- Dynamic coloring based on album art (Material You)
+- Multiple theme configurations (Light, Dark, OLED Black)
+- Customizable home screen tabs and layout options
 
-### Personalization & Integration
-<table>
-<tr>
-<th width="30%">Feature</th>
-<th width="70%">Description</th>
-</tr>
-<tr>
-<td><strong>🎨 Dynamic Theming</strong></td>
-<td>Interface adapts to album artwork colors</td>
-</tr>
-<tr>
-<td><strong>🌐 Multi-language Support</strong></td>
-<td>Available in numerous languages for global users</td>
-</tr>
-<tr>
-<td><strong>🚗 Android Auto Compatible</strong></td>
-<td>Integration with vehicle infotainment systems</td>
-</tr>
-<tr>
-<td><strong>🎯 Material Design 3</strong></td>
-<td>Design aligned with Google's latest design guidelines</td>
-</tr>
-<tr>
-<td><strong>🖼️ Artwork Export</strong></td>
-<td>Save high-resolution album images</td>
-</tr>
-</table>
+### Management
+- Local database for playlists, library, and favorites
+- Auto-sync options and custom backup creation
+- Listening history tracking and statistics
 
 ---
 
@@ -154,7 +83,7 @@ For detailed information about configuration, advanced features, and usage guide
 
 <div align="center">
   
-[![Documentation](https://img.shields.io/badge/Documentation-GitBook-4285F4?style=for-the-badge&logo=gitbook&logoColor=white)](https://AirBeats.gitbook.io/)
+📄 **[Official Website](https://icebeats.pages.dev/)**
 
 </div>
 
@@ -175,34 +104,16 @@ For detailed information about configuration, advanced features, and usage guide
 
 #### Option 1: GitHub Releases (Recommended)
 
-1. Navigate to the [Releases](https://github.com/darkxvenom/airbeats/releases) section on GitHub
+1. Navigate to the [Releases](https://github.com/B7ByteMe/IceBeats/releases) section on GitHub
 2. Download the APK file from the latest stable version
 3. Enable "Install from unknown sources" in your device's security settings
 4. Open the downloaded APK file to complete installation
 
 #### Option 2: Official Website
 
-1. Visit the official [AirBeats website](https://AirBeats.netlify.app/)
+1. Visit the official [IceBeats website](https://icebeats.pages.dev/)
 2. Select the download option for Android
 3. Follow the installation instructions provided
-
-#### Option 3: F-Droid
-
-<div align="center">
-  
-[![F-Droid](https://img.shields.io/badge/F--Droid-1976D2?style=for-the-badge&logo=f-droid&logoColor=white)](https://f-droid.org/es/packages/com.darkxvenom.airbeats/)
-
-</div>
-
-#### Option 4: OpenApk
-
-<div align="center">
-  
-[![OpenApk](https://img.shields.io/badge/OpenApk-FF6B35?style=for-the-badge&logo=android&logoColor=white)](https://www.openapk.net/AirBeats/com.darkxvenom.airbeats/)
-
-</div>
-
-> **Security Notice**: For security reasons, it is recommended to obtain the application exclusively through the official channels mentioned above. Avoid downloading APKs from unverified sources.
 
 ---
 
@@ -218,27 +129,27 @@ For detailed information about configuration, advanced features, and usage guide
 </tr>
 <tr>
 <td>Gradle</td>
-<td>7.5 or higher</td>
+<td>8.0 or higher</td>
 <td>Build automation</td>
 </tr>
 <tr>
 <td>Kotlin</td>
-<td>1.7 or higher</td>
+<td>1.9 or higher</td>
 <td>Programming language</td>
 </tr>
 <tr>
 <td>Android Studio</td>
-<td>2022.1 or higher</td>
+<td>Ladybug or newer</td>
 <td>IDE and development environment</td>
 </tr>
 <tr>
 <td>JDK</td>
-<td>11 or higher</td>
+<td>21</td>
 <td>Java runtime environment</td>
 </tr>
 <tr>
 <td>Android SDK</td>
-<td>API level 33 (Android 13)</td>
+<td>API level 35/36</td>
 <td>Android development tools</td>
 </tr>
 </table>
@@ -251,12 +162,11 @@ For detailed information about configuration, advanced features, and usage guide
 #### A. Firebase Configuration (google-services.json)
 1. Open the [Firebase Console](https://console.firebase.google.com/).
 2. Create a new Firebase project (or use an existing one) and click **Add app** (Android).
-3. Register your app using the package name **`com.darkxvenom.airbeats`**.
+3. Register your app using the package name **`com.valora.icebeats`**.
 4. Download the generated **`google-services.json`** file.
-5. Place the **`google-services.json`** file directly in the **`app/`** folder of this project (i.e., `AirBeats/app/google-services.json`).
+5. Place the **`google-services.json`** file directly in the **`app/`** folder of this project (i.e., `app/google-services.json`).
 
 #### B. Google API Key Configuration (local.properties)
-To enable YouTube PoToken generation (WebView-based BotGuard client):
 1. Open the **`local.properties`** file in the root directory of this project.
 2. Add your Google API Key under the property name `google.api.key`:
    ```properties
@@ -267,10 +177,10 @@ To enable YouTube PoToken generation (WebView-based BotGuard client):
 
 ```bash
 # Clone the repository
-git clone https://github.com/darkxvenom/airbeats.git
+git clone https://github.com/B7ByteMe/IceBeats.git
 
 # Navigate to project directory
-cd AirBeats
+cd IceBeats
 
 # Update submodules (if any)
 git submodule update --init --recursive
@@ -282,7 +192,7 @@ git submodule update --init --recursive
 
 1. Open Android Studio
 2. Select "Open an existing Android Studio project"
-3. Navigate and select the AirBeats directory
+3. Navigate and select the IceBeats directory
 4. Wait for project synchronization and indexing
 5. Select Build → Build Bundle(s) / APK(s) → Build APK(s)
 
@@ -313,31 +223,15 @@ git submodule update --init --recursive
 
 ### Code of Conduct
 
-All participants in this project must adhere to our code of conduct that promotes an inclusive, respectful, and constructive environment. Please review the [complete Code of Conduct](https://github.com/darkxvenom/airbeats/blob/master/CODE_OF_CONDUCT.md) before contributing.
+All participants in this project must adhere to our code of conduct that promotes an inclusive, respectful, and constructive environment. Please review the [complete Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
 ### Translation
 
-Help translate AirBeats into your language or improve existing translations:
-
-<div align="center">
-  
-[![POEditor](https://img.shields.io/badge/POEditor-2196F3?style=for-the-badge&logo=translate&logoColor=white)](https://poeditor.com/join/project/208BwCVazA)
-[![Crowdin](https://img.shields.io/badge/Crowdin-2E3440?style=for-the-badge&logo=crowdin&logoColor=white)](https://crowdin.com/project/AirBeats)
-
-</div>
-
-### Community Channels
-
-<div align="center">
-  
-[![Telegram Chat](https://img.shields.io/badge/Telegram-Chat-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/AirBeats_chat)
-[![Telegram Updates](https://img.shields.io/badge/Telegram-Updates-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/AirBeats_updates)
-
-</div>
+Help translate IceBeats into your language or improve existing translations on GitHub or by translating raw locale resource XMLs.
 
 ### Development Workflow
 
-1. **Issue Review**: Check [open issues](https://github.com/darkxvenom/airbeats/issues) or create a new one describing the problem or feature
+1. **Issue Review**: Check [open issues](https://github.com/B7ByteMe/IceBeats/issues) or create a new one describing the problem or feature
 2. **Fork Repository**: Create a personal fork of the repository
 3. **Feature Branch**: Create a branch for your feature (`git checkout -b feature/new-feature`)
 4. **Implementation**: Implement changes following project coding conventions
@@ -346,50 +240,29 @@ Help translate AirBeats into your language or improve existing translations:
 7. **Push Changes**: Upload changes to your fork (`git push origin feature/new-feature`)
 8. **Pull Request**: Open a PR detailing changes and referencing corresponding issue
 
-> **Development Guidelines**: Review our [contribution guidelines](https://github.com/darkxvenom/airbeats/blob/master/CONTRIBUTING.md) for detailed information about development process, code standards, and workflow.
-
----
-
-## Support the Project
-
-If you find value in **AirBeats** and want to contribute to its continued development, consider making a donation. Your financial support allows us to:
-
-- Implement new features and improvements
-- Fix bugs and optimize performance
-- Maintain project infrastructure
-- Dedicate more time to development and maintenance
-
-<div align="center">
-  
-[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/darkxvenom)
-[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](mailto:cervantesdarkxvenom@gmail.com)
-
-</div>
-
-> **Note**: Donations are completely optional. AirBeats will always be free and open-source, regardless of financial support received.
+> **Development Guidelines**: Review our [contribution guidelines](CONTRIBUTING.md) for detailed information about development process, code standards, and workflow.
 
 ---
 
 ## Acknowledgments
 
-Special thanks to the following contributors and supporters:
+Special thanks to the following contributors, projects, and supporters:
 
-- **drkvenom786** - UI/UX Specialist and developer
-- **[shnwazdeveloper](https://github.com/shnwazdeveloper)** - Contributor & Developer
-- **mostafaalagamy** - MetroList implementation
-- **Fabito02** - Unconditional support from the beginning
-- **Community translators** - Making AirBeats accessible worldwide
+- **z-huang (InnerTune)** - The foundational project of this music player
+- **d0x-dev (AirBeats)** - The original fork and source of redesign components
+- **drkvenom786** - UI/UX design references
+- **Community translators** - Making IceBeats accessible worldwide
 - **Beta testers** - Helping improve stability and usability
 
 ---
 
 ## License
 
-**Copyright © 2025-2026 Darkboy & Venom**
+**Copyright © 2025-2026 Valora · Zyxone**
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU General Public License](https://github.com/darkxvenom/airbeats/blob/main/LICENSE) for more details.
+This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU General Public License](https://github.com/B7ByteMe/IceBeats/blob/main/LICENSE) for more details.
 
 <div align="center">
   
@@ -402,12 +275,11 @@ This program is distributed in the hope that it will be useful, but **WITHOUT AN
 ---
 
 <div align="center">
-  <p><strong>© 2023-2024 Open Source Projects</strong></p>
-  <p>Developed with passion by <a href="https://github.com/d0x-dev">Darkboy</a> & <a href="https://github.com/drkvenom786">Venom</a></p>
+  <p><strong>© 2025-2026 Open Source Projects</strong></p>
+  <p>Developed and maintained with passion by <a href="https://github.com/B7ByteMe">Valora · Zyxone</a></p>
   
   <br>
   
-  [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/darkxvenom/airbeats)
-  [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:cervantesdarkxvenom@gmail.com)
+  [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/B7ByteMe/IceBeats)
   
 </div>
