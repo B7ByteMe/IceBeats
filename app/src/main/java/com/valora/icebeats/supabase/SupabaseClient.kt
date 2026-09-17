@@ -895,10 +895,8 @@ class SupabaseClient(private val context: Context) {
                                         bookmarkedAt = java.time.LocalDateTime.now(),
                                         isEditable = true,
                                     )
-                                    val pRow = insert(plEntity)
-                                    if (pRow == -1L) {
-                                        update(plEntity)
-                                    }
+                                    insert(plEntity)
+                                    update(plEntity)
                                 }
                                 restoredCount++
                             }
@@ -956,10 +954,8 @@ class SupabaseClient(private val context: Context) {
                                         songId = songId,
                                         position = position
                                     )
-                                    val mRow = insert(mapEntity)
-                                    if (mRow == -1L) {
-                                        update(mapEntity)
-                                    }
+                                    insert(mapEntity)
+                                    update(mapEntity)
                                 }
                             }
                         }
