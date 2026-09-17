@@ -293,3 +293,33 @@ WITH CHECK (
 -- CATATAN: Operasi DELETE sengaja TIDAK diizinkan untuk publik/anonim
 -- guna mencegah penghapusan massal papan peringkat oleh penyerang.
 
+
+-- ==============================================================================
+-- 5. SKRIP PEMBERSIHAN DATA DUPLIKAT & PENCEGAHAN (RUN SECARA BERKALA / SEKALI)
+-- ==============================================================================
+
+-- A. Bersihkan duplikat di user_stats:
+-- Hapus entri lama jika ada nama atau email yang sama, sisakan hanya yang total_listen_ms terbesar
+DELETE FROM public.user_stats a
+USING public.user_stats b
+WHERE a.id <> b.id
+  AND (
+    (a.email IS NOT NULL AND a.email <> '' AND a.email = b.email AND a.total_listen_ms <= b.total_listen_ms)
+    OR (a.name = b.name AND a.total_listen_ms < b.total_listen_ms)
+  );
+
+-- Buat Unique Index untuk Email di user_stats (1 email hanya punya 1 baris rank)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_stats_unique_email 
+ON public.user_stats (email) 
+WHERE email IS NOT NULL AND email <> '';
+
+-- B. Bersihkan duplikat di user_events:
+-- Jika lagu yang sama tercatat berulang kali dalam interval waktu 1 menit untuk user yang sama
+DELETE FROM public.user_events a
+USING public.user_events b
+WHERE a.id > b.id
+  AND a.user_id = b.user_id
+  AND a.song_id = b.song_id
+  AND DATE_TRUNC('minute', a.timestamp) = DATE_TRUNC('minute', b.timestamp);
+
+

@@ -754,7 +754,10 @@ class SupabaseClient(private val context: Context) {
                     put("album_name", item.song.song.albumName.orEmpty())
                     put("thumbnail_url", item.song.thumbnailUrl.orEmpty())
                     put("play_time", item.event.playTime)
-                    put("timestamp", item.event.timestamp.toString())
+                    val tsStr = runCatching {
+                        item.event.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toString()
+                    }.getOrDefault(item.event.timestamp.toString())
+                    put("timestamp", tsStr)
                 })
             }
             if (eventsArray.length() > 0) {
@@ -977,6 +980,9 @@ class SupabaseClient(private val context: Context) {
                     val bodyStr = evResp.body?.string().orEmpty()
                     val evArr = runCatching { JSONArray(bodyStr) }.getOrNull()
                     if (evArr != null && evArr.length() > 0) {
+                        val existingEvents = runCatching { database.events().first() }.getOrDefault(emptyList())
+                        val existingKeys = existingEvents.map { "${it.event.songId}_${it.event.timestamp.toEpochSecond(java.time.ZoneOffset.UTC) / 60}" }.toMutableSet()
+
                         for (i in 0 until evArr.length()) {
                             val item = evArr.optJSONObject(i) ?: continue
                             val songId = item.optString("song_id")
@@ -987,12 +993,20 @@ class SupabaseClient(private val context: Context) {
                             val playTime = item.optLong("play_time", 0L)
                             val tsStr = item.optString("timestamp")
                             val ts = runCatching {
-                                java.time.LocalDateTime.parse(tsStr)
+                                java.time.Instant.parse(tsStr).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
                             }.getOrElse {
                                 runCatching {
-                                    java.time.OffsetDateTime.parse(tsStr).toLocalDateTime()
-                                }.getOrDefault(java.time.LocalDateTime.now())
+                                    java.time.OffsetDateTime.parse(tsStr).atZoneSameInstant(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                                }.getOrElse {
+                                    runCatching { java.time.LocalDateTime.parse(tsStr) }.getOrDefault(java.time.LocalDateTime.now())
+                                }
                             }
+
+                            val eventKey = "${songId}_${ts.toEpochSecond(java.time.ZoneOffset.UTC) / 60}"
+                            if (eventKey in existingKeys) {
+                                continue
+                            }
+                            existingKeys.add(eventKey)
 
                             if (songId.isNotBlank()) {
                                 database.transaction {

@@ -102,10 +102,10 @@ object icebeatsStatsCloudSync {
     }
 
     private fun stableUserId(preferences: android.content.SharedPreferences): String {
-        val existing = preferences.getString(KEY_USER_ID, null)
+        val existing = preferences.getString(KEY_DEVICE_ID, null)
         if (!existing.isNullOrBlank()) return existing
-        val generated = UUID.randomUUID().toString()
-        preferences.edit().putString(KEY_USER_ID, generated).apply()
+        val generated = "device-" + UUID.randomUUID().toString()
+        preferences.edit().putString(KEY_DEVICE_ID, generated).apply()
         return generated
     }
 
@@ -122,6 +122,7 @@ object icebeatsStatsCloudSync {
 
     const val PREFERENCES_NAME = "icebeats_global_stats"
     const val KEY_USER_ID = "global_stats_user_id"
+    const val KEY_DEVICE_ID = "global_stats_device_id"
     const val KEY_LAST_UPLOAD_DAY = "last_global_stats_upload_day"
     const val KEY_LAST_WEEKLY_POPUP = "last_weekly_global_popup"
 }

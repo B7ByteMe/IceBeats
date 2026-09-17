@@ -117,7 +117,7 @@ class icebeatsStatsCloudClient {
                     put("fcm_token", upload.fcmToken ?: JSONObject.NULL)
                 }
 
-                val supabaseUrl = "${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL}/rest/v1/user_stats"
+                val supabaseUrl = "${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL}/rest/v1/user_stats?on_conflict=id"
                 val request =
                     Request
                         .Builder()
