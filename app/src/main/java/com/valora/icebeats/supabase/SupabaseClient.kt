@@ -922,6 +922,8 @@ class SupabaseClient(private val context: Context) {
                     val bodyStr = plSongsResp.body?.string().orEmpty()
                     val plSongsArr = runCatching { JSONArray(bodyStr) }.getOrNull()
                     if (plSongsArr != null && plSongsArr.length() > 0) {
+                        val existingSongIdsByPlaylist = mutableMapOf<String, MutableSet<String>>()
+
                         for (i in 0 until plSongsArr.length()) {
                             val item = plSongsArr.optJSONObject(i) ?: continue
                             val playlistId = item.optString("playlist_id")
@@ -934,6 +936,16 @@ class SupabaseClient(private val context: Context) {
                             val position = item.optInt("position", i)
 
                             if (playlistId.isNotBlank() && songId.isNotBlank()) {
+                                val plSongsSet = existingSongIdsByPlaylist.getOrPut(playlistId) {
+                                    runCatching { database.playlistSongs(playlistId).first() }
+                                        .getOrDefault(emptyList())
+                                        .map { it.song.song.id }
+                                        .toMutableSet()
+                                }
+                                if (songId in plSongsSet) {
+                                    continue
+                                }
+                                plSongsSet.add(songId)
                                 database.transaction {
                                     insert(
                                         SongEntity(
