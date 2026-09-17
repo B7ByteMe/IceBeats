@@ -1,6 +1,13 @@
-﻿package com.valora.icebeats.innertube.models.response
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models.response
 
 import com.valora.icebeats.innertube.models.Continuation
+import com.valora.icebeats.innertube.models.ContinuationItemRenderer
 import com.valora.icebeats.innertube.models.MusicResponsiveListItemRenderer
 import com.valora.icebeats.innertube.models.Tabs
 import kotlinx.serialization.Serializable
@@ -26,7 +33,8 @@ data class SearchResponse(
         ) {
             @Serializable
             data class Content(
-                val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer,
+                val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer? = null,
+                val continuationItemRenderer: ContinuationItemRenderer? = null,
             )
         }
     }

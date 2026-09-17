@@ -78,13 +78,13 @@ fun NeonHomeScreen(
     val totalHours by (statsViewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
     
     val userName = LocalUserName.current
-    val displayName = if (userName.isNotEmpty()) userName else "Friend"
+    val displayName = if (userName.isNotEmpty()) userName else "Hai, selamat datang di IceBeats"
     
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val greetingText = when {
-        hour in 0..11 -> "Good Morning \uD83D\uDC4B"
-        hour in 12..16 -> "Good Afternoon \uD83C\uDF1E"
-        else -> "Good Evening \uD83C\uDF19"
+        hour in 0..11 -> "Good Morning"
+        hour in 12..16 -> "Good Afternoon"
+        else -> "Good Evening"
     }
 
     val isDarkTheme = MaterialTheme.colorScheme.background.red < 0.5f 
@@ -152,9 +152,16 @@ fun NeonHomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             // Greeting & Badge
+            val isDefaultGreeting = displayName.isBlank() ||
+                displayName.startsWith("Hai,", ignoreCase = true) ||
+                displayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true) ||
+                displayName.equals("Friend", ignoreCase = true) ||
+                displayName.equals("Guest", ignoreCase = true)
+            val greetingDisplay = if (isDefaultGreeting) "Hai, selamat datang di IceBeats" else "$greetingText, $displayName"
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "$greetingText $displayName",
+                    text = greetingDisplay,
                     fontSize = 16.sp,
                     color = if (isDarkTheme) Color.LightGray else Color.DarkGray
                 )

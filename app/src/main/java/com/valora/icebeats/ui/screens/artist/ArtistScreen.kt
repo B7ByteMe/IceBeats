@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.screens.artist
+﻿package com.valora.icebeats.ui.screens.artist
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -487,7 +487,7 @@ fun ArtistScreen(
                             ) {
                                 Text(
                                     text = if (!isExpanded && description.length > 100) {
-                                        description.take(100).trimEnd() + "�"
+                                        description.take(100).trimEnd() + "•"
                                     } else {
                                         description
                                     },

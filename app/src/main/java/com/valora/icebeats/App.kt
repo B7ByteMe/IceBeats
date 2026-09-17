@@ -266,8 +266,8 @@ class App : LocaleAwareApplication(), ImageLoaderFactory {
         lateinit var instance: App
             private set
 
-        fun forgetAccount(context: Context) {
-            runBlocking {
+        suspend fun forgetAccount(context: Context) {
+            withContext(Dispatchers.IO) {
                 context.dataStore.edit { settings ->
                     settings.remove(InnerTubeCookieKey)
                     settings.remove(VisitorDataKey)

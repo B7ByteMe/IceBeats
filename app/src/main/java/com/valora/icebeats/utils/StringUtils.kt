@@ -1,4 +1,4 @@
-package com.valora.icebeats.utils
+ï»¿package com.valora.icebeats.utils
 
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -28,4 +28,4 @@ fun joinByBullet(vararg str: String?) =
     str
         .filterNot {
             it.isNullOrEmpty()
-        }.joinToString(separator = " • ")
+        }.joinToString(separator = " \u2022 ")

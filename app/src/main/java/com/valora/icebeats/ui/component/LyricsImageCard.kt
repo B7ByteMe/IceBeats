@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -18,9 +18,9 @@ import com.valora.icebeats.models.MediaMetadata
 // -----------------------------------------------------------------------------
 // rememberAdjustedFontSize
 //
-// Utilidad compartida — package-internal, accesible desde LyricsCardLayouts.
-// Calcula el tamaño de fuente óptimo mediante búsqueda binaria para que
-// el texto quepa dentro de maxWidth × maxHeight sin desbordarse.
+// Utilidad compartida â€¢ package-internal, accesible desde LyricsCardLayouts.
+// Calcula el tamaâ€¢o de fuente â€¢ptimo mediante bâ€¢squeda binaria para que
+// el texto quepa dentro de maxWidth â€¢ maxHeight sin desbordarse.
 // -----------------------------------------------------------------------------
 
 @Composable
@@ -55,7 +55,7 @@ private fun remembericebeatsAdjustedFontSize(
             return@LaunchedEffect
         }
 
-        // Intenta un tamaño mayor para textos muy cortos
+        // Intenta un tamaâ€¢o mayor para textos muy cortos
         when {
             text.length < 20 -> {
                 val largerSize = (initialFontSize.value * 1.1f).sp
@@ -81,7 +81,7 @@ private fun remembericebeatsAdjustedFontSize(
             }
         }
 
-        // Búsqueda binaria
+        // Bâ€¢squeda binaria
         var minSize  = minFontSize.value
         var maxSize  = initialFontSize.value
         var bestFit  = minSize
@@ -110,11 +110,11 @@ private fun remembericebeatsAdjustedFontSize(
 }
 
 // -----------------------------------------------------------------------------
-// LyricsImageCard — thin wrapper (backward-compatible)
+// LyricsImageCard â€¢ thin wrapper (backward-compatible)
 //
 // Todos los callers existentes siguen funcionando sin cambios.
 // Internamente delega a GlassCardLayout con un LyricsCardConfig derivado.
-// Para usar el nuevo sistema con múltiples layouts, usa LyricsShareCarouselSheet
+// Para usar el nuevo sistema con mâ€¢ltiples layouts, usa LyricsShareCarouselSheet
 // o LyricsCardByLayout directamente.
 // -----------------------------------------------------------------------------
 

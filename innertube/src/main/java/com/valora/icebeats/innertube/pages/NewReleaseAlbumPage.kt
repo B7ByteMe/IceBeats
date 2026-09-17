@@ -1,6 +1,13 @@
-﻿package com.valora.icebeats.innertube.pages
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.pages
 
 import com.valora.icebeats.innertube.models.AlbumItem
+import com.valora.icebeats.innertube.models.AlbumReleaseType
 import com.valora.icebeats.innertube.models.Artist
 import com.valora.icebeats.innertube.models.MusicTwoRowItemRenderer
 import com.valora.icebeats.innertube.models.oddElements
@@ -8,6 +15,9 @@ import com.valora.icebeats.innertube.models.splitBySeparator
 
 object NewReleaseAlbumPage {
     fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): AlbumItem? {
+        val subtitleRuns = renderer.subtitle?.runs ?: return null
+        val subtitleGroups = subtitleRuns.splitBySeparator()
+
         return AlbumItem(
             browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
             playlistId =
@@ -23,17 +33,20 @@ object NewReleaseAlbumPage {
                     ?.firstOrNull()
                     ?.text ?: return null,
             artists =
-                renderer.subtitle?.runs?.splitBySeparator()?.getOrNull(1)?.oddElements()?.map {
+                subtitleGroups.getOrNull(1)?.oddElements()?.map {
                     Artist(
                         name = it.text,
                         id = it.navigationEndpoint?.browseEndpoint?.browseId,
                     )
                 } ?: return null,
             year =
-                renderer.subtitle.runs
+                subtitleRuns
                     .lastOrNull()
                     ?.text
                     ?.toIntOrNull(),
+            releaseType = AlbumReleaseType.fromLabel(
+                subtitleGroups.firstOrNull()?.joinToString(separator = "") { it.text }
+            ),
             thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
             explicit =
                 renderer.subtitleBadges?.find {

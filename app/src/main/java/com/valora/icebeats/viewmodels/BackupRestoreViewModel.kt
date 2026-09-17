@@ -1,4 +1,4 @@
-package com.valora.icebeats.viewmodels
+ï»¿package com.valora.icebeats.viewmodels
 
 import android.content.Context
 import android.content.Intent
@@ -381,7 +381,7 @@ class BackupRestoreViewModel @Inject constructor(
 
     fun resetVisitorData(context: Context) {
         runCatching {
-            // Implementa aquí cómo borras VISITOR_DATA, por ejemplo, desde DataStore
+            // Implementa aquâ€¢ câ€¢mo borras VISITOR_DATA, por ejemplo, desde DataStore
             val visitorDataFile = context.filesDir / "datastore" / SETTINGS_FILENAME
             if (visitorDataFile.exists()) {
                 // Borra solo la parte de VISITOR_DATA si es posible, o reinicia el archivo
@@ -390,7 +390,7 @@ class BackupRestoreViewModel @Inject constructor(
 
             Toast.makeText(
                 context,
-                "VISITOR_DATA reseteado. La aplicación se reiniciará.",
+                "VISITOR_DATA reseteado. La aplicaciâ€¢n se reiniciarâ€¢.",
                 Toast.LENGTH_SHORT
             ).show()
 

@@ -1,8 +1,15 @@
-﻿package com.valora.icebeats.innertube.models.response
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models.response
 
 import com.valora.icebeats.innertube.models.NavigationEndpoint
 import com.valora.icebeats.innertube.models.PlaylistPanelRenderer
 import com.valora.icebeats.innertube.models.Tabs
+import com.valora.icebeats.innertube.models.YouTubeDataPage
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -13,15 +20,16 @@ data class NextResponse(
 ) {
     @Serializable
     data class Contents(
-        val singleColumnMusicWatchNextResultsRenderer: SingleColumnMusicWatchNextResultsRenderer,
+        val singleColumnMusicWatchNextResultsRenderer: SingleColumnMusicWatchNextResultsRenderer?,
+        val twoColumnWatchNextResults: YouTubeDataPage.Contents.TwoColumnWatchNextResults?,
     ) {
         @Serializable
         data class SingleColumnMusicWatchNextResultsRenderer(
-            val tabbedRenderer: TabbedRenderer,
+            val tabbedRenderer: TabbedRenderer?,
         ) {
             @Serializable
             data class TabbedRenderer(
-                val watchNextTabbedResultsRenderer: WatchNextTabbedResultsRenderer,
+                val watchNextTabbedResultsRenderer: WatchNextTabbedResultsRenderer?,
             ) {
                 @Serializable
                 data class WatchNextTabbedResultsRenderer(

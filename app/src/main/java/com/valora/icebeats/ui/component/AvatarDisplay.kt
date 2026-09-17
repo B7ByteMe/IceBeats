@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.component
+ï»¿package com.valora.icebeats.ui.component
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -95,7 +95,7 @@ fun AvatarDisplay(
     }
 }
 
-/** Variante pequeña para usar en listas o elementos compactos */
+/** Variante pequeâ€¢a para usar en listas o elementos compactos */
 @Composable
 fun SmallAvatarDisplay(
     modifier: Modifier = Modifier,
@@ -183,12 +183,12 @@ private fun DefaultAvatarIcon(contentDescription: String? = null) {
 }
 
 /**
- * Utilidad para obtener el avatar actual de manera síncrona (para casos
+ * Utilidad para obtener el avatar actual de manera sâ€¢ncrona (para casos
  * especiales)
  */
 class AvatarUtils {
     companion object {
-        /** Obtiene la URI del avatar personalizado si está seleccionado */
+        /** Obtiene la URI del avatar personalizado si estâ€¢ seleccionado */
         fun getCustomAvatarUri(selection: AvatarSelection): String? {
             return when (selection) {
                 is AvatarSelection.Custom -> selection.uri
@@ -196,7 +196,7 @@ class AvatarUtils {
             }
         }
 
-        /** Obtiene la URL del avatar DiceBear si está seleccionado */
+        /** Obtiene la URL del avatar DiceBear si estâ€¢ seleccionado */
         fun getDiceBearAvatarUrl(selection: AvatarSelection): String? {
             return when (selection) {
                 is AvatarSelection.DiceBear -> selection.url

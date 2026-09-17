@@ -27,7 +27,7 @@ class NamePreferenceManager @Inject constructor(
 
     val userName: Flow<String> = context.nameDataStore.data
         .map { preferences ->
-            preferences[USER_NAME_KEY] ?: ""
+            preferences[USER_NAME_KEY]?.takeIf { it.isNotBlank() } ?: "Hai, selamat datang di IceBeats"
         }
 
     val accountEmail: Flow<String> = context.nameDataStore.data
@@ -65,34 +65,26 @@ class NamePreferenceManager @Inject constructor(
         }
     }
 
-    suspend fun canUseGoogleEmail(email: String): Boolean {
-        val normalizedEmail = email.normalizedEmail()
-        var allowed = true
+    suspend fun canUseGoogleEmail(email: String): Boolean = true
+
+    suspend fun clearGoogleLoginLock() {
         context.nameDataStore.edit { preferences ->
-            val previousEmail =
-                preferences[PREVIOUS_GOOGLE_EMAIL_KEY].normalizedEmail()
-                    ?: preferences[ACCOUNT_EMAIL_KEY].normalizedEmail()
-            val hasPreviousLogin = preferences[PREVIOUS_GOOGLE_LOGIN_KEY] ?: !previousEmail.isNullOrBlank()
-            if (hasPreviousLogin && !previousEmail.isNullOrBlank() && previousEmail != normalizedEmail) {
-                allowed = false
-            }
+            preferences.remove(PREVIOUS_GOOGLE_LOGIN_KEY)
+            preferences.remove(PREVIOUS_GOOGLE_EMAIL_KEY)
+            preferences.remove(ACCOUNT_EMAIL_KEY)
         }
-        return allowed
     }
 
     suspend fun rememberGoogleLoginEmail(email: String) {
         val normalizedEmail = email.normalizedEmail() ?: return
         context.nameDataStore.edit { preferences ->
             preferences[ACCOUNT_EMAIL_KEY] = normalizedEmail
-            if (preferences[PREVIOUS_GOOGLE_EMAIL_KEY].isNullOrBlank()) {
-                preferences[PREVIOUS_GOOGLE_EMAIL_KEY] = normalizedEmail
-            }
+            preferences[PREVIOUS_GOOGLE_EMAIL_KEY] = normalizedEmail
             preferences[PREVIOUS_GOOGLE_LOGIN_KEY] = true
         }
     }
 
-    fun lockedEmailMessage(email: String): String =
-        "You have previously used $email to sign in. Use the same email again. To sign in with a different email, reinstall the app or clear app data."
+    fun lockedEmailMessage(email: String): String = ""
 
     private fun String?.normalizedEmail(): String? =
         this

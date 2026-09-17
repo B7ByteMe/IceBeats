@@ -22,19 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class AlbumReleaseType {
-    ALBUM, SINGLE, EP
-}
-
-val AlbumItem.releaseType: AlbumReleaseType
-    get() {
-        val titleLower = title.lowercase()
-        return when {
-            titleLower.contains("single") -> AlbumReleaseType.SINGLE
-            titleLower.contains("ep") -> AlbumReleaseType.EP
-            else -> AlbumReleaseType.ALBUM
-        }
-    }
+typealias AlbumReleaseType = com.valora.icebeats.innertube.models.AlbumReleaseType
 
 sealed interface NewReleaseUiState {
     data object Loading : NewReleaseUiState

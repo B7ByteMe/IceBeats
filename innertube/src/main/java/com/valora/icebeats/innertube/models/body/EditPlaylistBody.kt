@@ -1,4 +1,10 @@
-﻿package com.valora.icebeats.innertube.models.body
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models.body
 
 import com.valora.icebeats.innertube.models.Context
 import kotlinx.serialization.Serializable
@@ -28,7 +34,7 @@ sealed class Action {
     data class MoveVideoAction(
         val action: String = "ACTION_MOVE_VIDEO_BEFORE",
         val setVideoId: String,
-        val movedSetVideoIdSuccessor: String
+        val movedSetVideoIdSuccessor: String?
     ) : Action()
 
     @Serializable

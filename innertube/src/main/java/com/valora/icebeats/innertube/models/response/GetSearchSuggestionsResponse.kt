@@ -1,14 +1,20 @@
-﻿package com.valora.icebeats.innertube.models.response
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models.response
 
 import com.valora.icebeats.innertube.models.SearchSuggestionsSectionRenderer
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class GetSearchSuggestionsResponse(
-    val contents: List<Content>? = null,
+    val contents: List<Content>?,
 ) {
     @Serializable
     data class Content(
-        val searchSuggestionsSectionRenderer: SearchSuggestionsSectionRenderer? = null,
+        val searchSuggestionsSectionRenderer: SearchSuggestionsSectionRenderer,
     )
 }

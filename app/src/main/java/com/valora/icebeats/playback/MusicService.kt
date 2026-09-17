@@ -1,4 +1,4 @@
-﻿@file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.valora.icebeats.playback
 
@@ -23,6 +23,9 @@ import androidx.core.net.toUri
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.valora.icebeats.constants.InnerTubeCookieKey
+import com.valora.icebeats.constants.AccountEmailKey
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -37,6 +40,7 @@ import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
@@ -117,6 +121,7 @@ import com.valora.icebeats.playback.queues.filterExplicit
 import com.valora.icebeats.utils.CoilBitmapLoader
 import com.valora.icebeats.utils.DiscordRPC
 import com.valora.icebeats.utils.NetworkConnectivityObserver
+import com.valora.icebeats.utils.StreamClientUtils
 import com.valora.icebeats.utils.YTPlayerUtils
 import com.valora.icebeats.utils.dataStore
 import com.valora.icebeats.utils.enumPreference
@@ -193,6 +198,37 @@ class MusicService :
     private var scope = CoroutineScope(Dispatchers.Main) + Job()
     private val binder = MusicBinder()
 
+    private val mediaOkHttpClient: okhttp3.OkHttpClient by lazy {
+        okhttp3.OkHttpClient
+            .Builder()
+            .proxy(YouTube.proxy)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val host = request.url.host
+                val isYouTubeMediaHost =
+                    host.endsWith("googlevideo.com") ||
+                        host.endsWith("googleusercontent.com") ||
+                        host.endsWith("youtube.com") ||
+                        host.endsWith("youtube-nocookie.com") ||
+                        host.endsWith("ytimg.com")
+
+                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
+
+                val userAgent = StreamClientUtils.resolveUserAgent(clientParam)
+                val originReferer = StreamClientUtils.resolveOriginReferer(clientParam)
+
+                val builder = request.newBuilder().header("User-Agent", userAgent)
+                originReferer.origin?.let { builder.header("Origin", it) }
+                originReferer.referer?.let { builder.header("Referer", it) }
+
+                chain.proceed(builder.build())
+            }.build()
+    }
+
     private lateinit var connectivityManager: ConnectivityManager
     lateinit var connectivityObserver: NetworkConnectivityObserver
     val waitingForNetworkConnection = MutableStateFlow(false)
@@ -251,6 +287,7 @@ class MusicService :
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
+        instance = this
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
                 this,
@@ -1398,10 +1435,7 @@ class MusicService :
                         DefaultDataSource.Factory(
                             this,
                             OkHttpDataSource.Factory(
-                                OkHttpClient
-                                    .Builder()
-                                    .proxy(YouTube.proxy)
-                                    .build(),
+                                mediaOkHttpClient,
                             ),
                         ),
                     ),
@@ -1409,7 +1443,32 @@ class MusicService :
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        val songUrlCache = HashMap<String, Pair<String, Long>>()
+        data class CachedSongUrl(
+            val url: String,
+            val expiresAt: Long,
+            val contentLength: Long?,
+        )
+
+        fun DataSpec.withStreamUrl(url: String, contentLength: Long?): DataSpec {
+            val resolved = withUri(url.toUri())
+            if (resolved.length != C.LENGTH_UNSET.toLong()) return resolved
+
+            val remainingLength =
+                contentLength
+                    ?.takeIf { it > resolved.position }
+                    ?.let { it - resolved.position }
+                    ?: C.LENGTH_UNSET.toLong()
+
+            return if (remainingLength != C.LENGTH_UNSET.toLong()) {
+                resolved.buildUpon()
+                    .setLength(remainingLength)
+                    .build()
+            } else {
+                resolved
+            }
+        }
+
+        val songUrlCache = HashMap<String, CachedSongUrl>()
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             if (dataSpec.uri.scheme == "content" || dataSpec.uri.scheme == "file") {
                 return@Factory dataSpec
@@ -1428,9 +1487,9 @@ class MusicService :
                 return@Factory dataSpec
             }
 
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+            songUrlCache[mediaId]?.takeIf { it.expiresAt > System.currentTimeMillis() }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                return@Factory dataSpec.withUri(it.first.toUri())
+                return@Factory dataSpec.withStreamUrl(it.url, it.contentLength)
             }
 
             if (mediaId.startsWith("JS:")) {
@@ -1439,7 +1498,11 @@ class MusicService :
                         com.valora.icebeats.jiosaavn.JioSaavnApi.getStreamUrl(mediaId)
                     }
                     if (streamUrl != null) {
-                        songUrlCache[mediaId] = streamUrl to (System.currentTimeMillis() + 3600000L)
+                        songUrlCache[mediaId] = CachedSongUrl(
+                            url = streamUrl,
+                            expiresAt = System.currentTimeMillis() + 3600000L,
+                            contentLength = null,
+                        )
                         scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                         return@Factory dataSpec.withUri(streamUrl.toUri())
                     } else {
@@ -1516,10 +1579,16 @@ class MusicService :
 
                 val streamUrl = playbackData.streamUrl
 
-                songUrlCache[mediaId] =
-                    streamUrl to System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
-                return@Factory dataSpec.withUri(streamUrl.toUri())
-                    .subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
+                songUrlCache[mediaId] = CachedSongUrl(
+                    url = streamUrl,
+                    expiresAt = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L),
+                    contentLength = format.contentLength,
+                )
+                return@Factory dataSpec.withStreamUrl(streamUrl, format.contentLength)
+            } catch (e: InterruptedException) {
+                throw e
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.tag(ytLogTag).e(e, "YouTube playback error, trying JossRed as fallback")
 
@@ -1634,7 +1703,15 @@ class MusicService :
         val mediaItem =
             eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
 
-        if (playbackStats.totalPlayTimeMs >= (
+        val supabaseAuth = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(this)
+        val isSupabaseLoggedIn = supabaseAuth.isLoggedIn.value || 
+                                !supabaseAuth.accessToken.isNullOrBlank() || 
+                                supabaseAuth.userEmail.value.isNotBlank()
+        val innerTubeCookie = dataStore[InnerTubeCookieKey] ?: ""
+        val accountEmail = dataStore[AccountEmailKey] ?: ""
+        val isUserLoggedIn = isSupabaseLoggedIn || (innerTubeCookie.isNotBlank() && "SAPISID" in innerTubeCookie) || accountEmail.isNotBlank()
+
+        if (isUserLoggedIn && playbackStats.totalPlayTimeMs >= (
                     dataStore[HistoryDuration]?.times(1000f)
                         ?: 30000f
                     ) &&
@@ -1761,6 +1838,9 @@ class MusicService :
         player.removeListener(this)
         player.removeListener(sleepTimer)
         player.release()
+        if (instance == this) {
+            instance = null
+        }
         super.onDestroy()
     }
 
@@ -1781,6 +1861,10 @@ class MusicService :
     }
 
     companion object {
+        @Volatile
+        var instance: MusicService? = null
+            private set
+
         const val ROOT = "root"
         const val SONG = "song"
         const val ARTIST = "artist"

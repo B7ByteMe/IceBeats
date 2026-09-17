@@ -129,8 +129,11 @@ class SyncUtils @Inject constructor(
                     .reversed()
                 val dbPlaylists = database.playlistsByNameAsc().first()
 
-                dbPlaylists.filterNot { it.playlist.browseId in playlistList.map(PlaylistItem::id) }
-                    .filterNot { it.playlist.browseId == null }
+                val validOnlineIds = playlistList.map(PlaylistItem::id).toSet()
+                dbPlaylists
+                    .filterNot { it.playlist.isEditable }
+                    .filterNot { it.playlist.browseId.isNullOrBlank() || it.playlist.browseId == "null" || it.playlist.browseId!!.startsWith("Success(") }
+                    .filterNot { it.playlist.browseId in validOnlineIds }
                     .forEach { database.update(it.playlist.localToggleLike()) }
 
                 playlistList.onEach { playlist ->
@@ -158,6 +161,7 @@ class SyncUtils @Inject constructor(
     }
 
     suspend fun syncPlaylist(browseId: String, playlistId: String) {
+        if (browseId.isBlank() || browseId == "null" || browseId.startsWith("Success(")) return
         val playlistPage = YouTube.playlist(browseId).completed().getOrNull() ?: return
         database.transaction {
             clearPlaylist(playlistId)

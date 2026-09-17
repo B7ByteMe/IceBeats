@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -53,7 +53,7 @@ internal val LyricsCardSize       = 340.dp
 internal val LyricsCardCorner     = 24.dp
 
 // -----------------------------------------------------------------------------
-// Helpers internos — reutilizados por todos los layouts
+// Helpers internos â€¢ reutilizados por todos los layouts
 // -----------------------------------------------------------------------------
 
 /** Fuente de letras respetando la preferencia del usuario */
@@ -65,7 +65,7 @@ internal fun rememberLyricsFontFamily(): FontFamily? {
     }
 }
 
-/** Painter de la carátula con crossfade */
+/** Painter de la carâ€¢tula con crossfade */
 @Composable
 internal fun rememberArtworkPainter(thumbnailUrl: String?): Painter =
     rememberAsyncImagePainter(
@@ -75,7 +75,7 @@ internal fun rememberArtworkPainter(thumbnailUrl: String?): Painter =
             .build()
     )
 
-/** Fila de marca icebeats — aparece en el pie de todos los layouts si showBranding=true */
+/** Fila de marca icebeats â€¢ aparece en el pie de todos los layouts si showBranding=true */
 @Composable
 internal fun LyricsBrandingRow(
     secondaryColor: Color,
@@ -116,7 +116,7 @@ internal fun LyricsBrandingRow(
 }
 
 /**
- * Fila de metadatos (carátula + título + artista).
+ * Fila de metadatos (carâ€¢tula + tâ€¢tulo + artista).
  * Respeta los flags showCoverArt / showTitle / showArtist del config.
  */
 @Composable
@@ -177,8 +177,8 @@ internal fun LyricsMetadataRow(
 }
 
 // -----------------------------------------------------------------------------
-// Dispatcher — punto de entrada único para cualquier caller
-// Añadir un nuevo layout = agregar entry al when + crear el composable abajo
+// Dispatcher â€¢ punto de entrada â€¢nico para cualquier caller
+// Aâ€¢adir un nuevo layout = agregar entry al when + crear el composable abajo
 // -----------------------------------------------------------------------------
 
 @Composable
@@ -199,8 +199,8 @@ fun LyricsCardByLayout(
 }
 
 // -----------------------------------------------------------------------------
-// Layout 1 — Glass Card
-// Extrae la lógica del LyricsImageCard original. LyricsImageCard delega aquí.
+// Layout 1 â€¢ Glass Card
+// Extrae la lâ€¢gica del LyricsImageCard original. LyricsImageCard delega aquâ€¢.
 // -----------------------------------------------------------------------------
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -256,7 +256,7 @@ fun GlassCardLayout(
                 )
             )
 
-            // Panel de vidrio líquido
+            // Panel de vidrio lâ€¢quido
             Box(
                 modifier = Modifier
                     .padding(14.dp)
@@ -336,8 +336,8 @@ fun GlassCardLayout(
 }
 
 // -----------------------------------------------------------------------------
-// Layout 2 — Minimal
-// Fondo sólido, tipografía grande, cita decorativa, sin efectos de vidrio.
+// Layout 2 â€¢ Minimal
+// Fondo sâ€¢lido, tipografâ€¢a grande, cita decorativa, sin efectos de vidrio.
 // -----------------------------------------------------------------------------
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -370,7 +370,7 @@ fun MinimalLayout(
                 .clip(RoundedCornerShape(LyricsCardCorner))
                 .background(bgColor),
         ) {
-            // Línea de acento superior
+            // Lâ€¢nea de acento superior
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -478,8 +478,8 @@ fun MinimalLayout(
 }
 
 // -----------------------------------------------------------------------------
-// Layout 3 — Cover Focused
-// La carátula ocupa la parte superior; la letra en la parte inferior sobre blur.
+// Layout 3 â€¢ Cover Focused
+// La carâ€¢tula ocupa la parte superior; la letra en la parte inferior sobre blur.
 // -----------------------------------------------------------------------------
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -521,7 +521,7 @@ fun CoverFocusedLayout(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Carátula grande
+                // Carâ€¢tula grande
                 if (config.showCoverArt) {
                     Image(
                         painter      = artworkPainter,
@@ -613,9 +613,9 @@ fun CoverFocusedLayout(
 }
 
 // -----------------------------------------------------------------------------
-// Layout 4 — Centered
+// Layout 4 â€¢ Centered
 // Letra protagonista en el centro exacto; metadatos arriba y branding abajo.
-// Sin panel de vidrio — solo scrim sobre la imagen desenfocada.
+// Sin panel de vidrio â€¢ solo scrim sobre la imagen desenfocada.
 // -----------------------------------------------------------------------------
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -648,7 +648,7 @@ fun CenteredLayout(
                 contentScale = ContentScale.Crop,
                 modifier     = Modifier.fillMaxSize().cloudy(radius = config.glassStyle.cloudyRadius),
             )
-            // Scrim vertical con más opacidad en bordes
+            // Scrim vertical con mâ€¢s opacidad en bordes
             Box(
                 modifier = Modifier.fillMaxSize().background(
                     Brush.verticalGradient(
@@ -697,7 +697,7 @@ fun CenteredLayout(
                     }
                 }
 
-                // Letra centrada — toma todo el espacio disponible
+                // Letra centrada â€¢ toma todo el espacio disponible
                 BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
@@ -750,7 +750,7 @@ fun CenteredLayout(
 }
 
 // -----------------------------------------------------------------------------
-// Layout 5 — Blur Wash
+// Layout 5 â€¢ Blur Wash
 // Blur ultra intenso de fondo; letra sobre un panel frosted contenido.
 // -----------------------------------------------------------------------------
 
@@ -778,7 +778,7 @@ fun BlurWashLayout(
                 .size(LyricsCardSize)
                 .clip(RoundedCornerShape(LyricsCardCorner)),
         ) {
-            // Fondo con blur máximo
+            // Fondo con blur mâ€¢ximo
             Image(
                 painter      = artworkPainter,
                 contentDescription = null,
@@ -881,7 +881,7 @@ fun BlurWashLayout(
 }
 
 // -----------------------------------------------------------------------------
-// Layout 6 — Streaming Modern
+// Layout 6 â€¢ Streaming Modern
 // Fondo oscuro con gradiente, acento de color, comillas, estilo Spotify/Apple.
 // -----------------------------------------------------------------------------
 
@@ -897,7 +897,7 @@ fun StreamingModernLayout(
     val fontFamily     = rememberLyricsFontFamily()
     val artworkPainter = rememberArtworkPainter(mediaMetadata.thumbnailUrl)
 
-    // Acento: usa surfaceTint del glassStyle, fallback índigo si es negro/blanco
+    // Acento: usa surfaceTint del glassStyle, fallback â€¢ndigo si es negro/blanco
     val accent = config.glassStyle.surfaceTint.let {
         if (it == Color.Black || it == Color.White) Color(0xFF6366F1) else it.copy(alpha = 1f)
     }
@@ -932,7 +932,7 @@ fun StreamingModernLayout(
                     .padding(config.cardPadding),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Header: carátula pequeña + título + artista + ícono play
+                // Header: carâ€¢tula pequeâ€¢a + tâ€¢tulo + artista + â€¢cono play
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (config.showCoverArt) {
                         Image(
@@ -969,7 +969,7 @@ fun StreamingModernLayout(
                             )
                         }
                     }
-                    // Botón play decorativo
+                    // Botâ€¢n play decorativo
                     Box(
                         modifier = Modifier
                             .size(30.dp)

@@ -19,6 +19,7 @@ import com.valora.icebeats.db.MusicDatabase
 import com.valora.icebeats.db.entities.FormatEntity
 import com.valora.icebeats.di.DownloadCache
 import com.valora.icebeats.di.PlayerCache
+import com.valora.icebeats.utils.StreamClientUtils
 import com.valora.icebeats.utils.YTPlayerUtils
 import com.valora.icebeats.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -57,6 +58,30 @@ constructor(
                         OkHttpClient
                             .Builder()
                             .proxy(YouTube.proxy)
+                            .followRedirects(true)
+                            .followSslRedirects(true)
+                            .addInterceptor { chain ->
+                                val request = chain.request()
+                                val host = request.url.host
+                                val isYouTubeMediaHost =
+                                    host.endsWith("googlevideo.com") ||
+                                        host.endsWith("googleusercontent.com") ||
+                                        host.endsWith("youtube.com") ||
+                                        host.endsWith("youtube-nocookie.com") ||
+                                        host.endsWith("ytimg.com")
+
+                                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
+                                val userAgent = StreamClientUtils.resolveUserAgent(clientParam)
+                                val originReferer = StreamClientUtils.resolveOriginReferer(clientParam)
+
+                                val builder = request.newBuilder().header("User-Agent", userAgent)
+                                originReferer.origin?.let { builder.header("Origin", it) }
+                                originReferer.referer?.let { builder.header("Referer", it) }
+
+                                chain.proceed(builder.build())
+                            }
                             .build(),
                     ),
                 ),

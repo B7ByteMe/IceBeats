@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.player
+ï»¿package com.valora.icebeats.ui.player
 
 import android.annotation.SuppressLint
 import android.text.format.Formatter
@@ -258,7 +258,7 @@ fun Queue(
                         to.index - headerItems,
                     )
 
-                    // Mover la lógica de onDragEnd aquí
+                    // Mover la lâ€¢gica de onDragEnd aquâ€¢
                     val safeFrom = (from.index - headerItems).coerceIn(0, mutableQueueWindows.lastIndex)
                     val safeTo = (to.index - headerItems).coerceIn(0, mutableQueueWindows.lastIndex)
                     val toAdjusted = if (safeTo == 0) 1 else safeTo

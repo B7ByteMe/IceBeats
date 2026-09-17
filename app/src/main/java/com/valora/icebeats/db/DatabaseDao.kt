@@ -887,6 +887,12 @@ interface DatabaseDao {
                 )
             )
         }
+        update(
+            playlist.playlist.copy(
+                lastUpdateTime = java.time.LocalDateTime.now(),
+                bookmarkedAt = playlist.playlist.bookmarkedAt ?: java.time.LocalDateTime.now()
+            )
+        )
     }
 
     @Transaction
@@ -1187,7 +1193,7 @@ interface DatabaseDao {
         update(
             artist.copy(
                 name = artistPage.artist.title,
-                thumbnailUrl = artistPage.artist.thumbnail.resize(544, 544),
+                thumbnailUrl = artistPage.artist.thumbnail?.resize(544, 544),
                 lastUpdateTime = LocalDateTime.now(),
             ),
         )
@@ -1324,4 +1330,52 @@ interface DatabaseDao {
     fun checkpoint() {
         raw("PRAGMA wal_checkpoint(FULL)".toSQLiteQuery())
     }
+
+    @Transaction
+    @Query("SELECT song.* FROM event JOIN song ON song.id = event.songId GROUP BY song.id ORDER BY MAX(event.timestamp) DESC LIMIT :limit OFFSET :offset")
+    fun recentSongs(limit: Int, offset: Int = 0): Flow<List<Song>>
+
+    @Query("SELECT *, (SELECT COUNT(1) FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE song_artist_map.artistId = artist.id AND song.inLibrary IS NOT NULL) AS songCount FROM artist JOIN(SELECT artistId, MAX(songTimestamp) AS lastPlayTime FROM song_artist_map JOIN (SELECT songId, MAX(timestamp) AS songTimestamp FROM event GROUP BY songId) AS e ON song_artist_map.songId = e.songId GROUP BY artistId ORDER BY lastPlayTime DESC LIMIT :limit OFFSET :offset) ON artist.id = artistId")
+    fun recentArtists(limit: Int, offset: Int = 0): Flow<List<Artist>>
+
+    @Query(
+        """
+        SELECT album.*, 
+               (SELECT COUNT(1) FROM song_album_map JOIN song ON song_album_map.albumId = album.id AND song.inLibrary IS NOT NULL) AS songCount
+        FROM album
+        JOIN song_album_map ON album.id = song_album_map.albumId
+        JOIN event ON song_album_map.songId = event.songId
+        GROUP BY album.id
+        ORDER BY MAX(event.timestamp) DESC
+        LIMIT :limit OFFSET :offset
+        """
+    )
+    fun recentAlbums(limit: Int, offset: Int = 0): Flow<List<Album>>
+
+    @Transaction
+    @Query("DELETE FROM event")
+    fun clearAllEvents()
+
+    @Transaction
+    @Query("UPDATE song SET liked = 0")
+    fun clearAllLikes()
+
+    @Transaction
+    @Query("DELETE FROM playlist WHERE isEditable = 1")
+    fun clearUserPlaylists()
+
+    @Transaction
+    @Query("DELETE FROM playlist_song_map")
+    fun clearAllPlaylistSongs()
+
+    @Transaction
+    @Query("UPDATE artist SET bookmarkedAt = NULL")
+    fun clearAllArtistBookmarks()
+
+    @Transaction
+    @Query("UPDATE album SET bookmarkedAt = NULL")
+    fun clearAllAlbumBookmarks()
+
+    @Query("SELECT * FROM event ORDER BY timestamp DESC LIMIT :limit")
+    fun recentEvents(limit: Int = 500): Flow<List<Event>>
 }

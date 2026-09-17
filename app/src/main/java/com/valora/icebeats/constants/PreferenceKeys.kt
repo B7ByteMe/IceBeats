@@ -1,4 +1,4 @@
-package com.valora.icebeats.constants
+ï»¿package com.valora.icebeats.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -67,6 +67,15 @@ val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
+val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusic")
+val EnableUnisonLyricsKey = booleanPreferencesKey("enableUnison")
+val EnableYouLyLyricsKey = booleanPreferencesKey("enableYouLy")
+val EnableMegalobizLyricsKey = booleanPreferencesKey("enableMegalobiz")
+val EnablePaxsenixLyricsKey = booleanPreferencesKey("enablePaxsenix")
+val EnablePortatoLyricsKey = booleanPreferencesKey("enablePortato")
+val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
+val EnableYouTubeSubtitleLyricsKey = booleanPreferencesKey("enableYouTubeSubtitles")
+val EnableYouTubeMusicLyricsKey = booleanPreferencesKey("enableYouTubeMusicLyrics")
 val MusicProviderKey = stringPreferencesKey("musicProvider")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val LastNewReleaseCheckKey = longPreferencesKey("last_new_release_check")
@@ -91,6 +100,29 @@ val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val SimilarContent = booleanPreferencesKey("similarContent")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
+
+val DownloadQualityKey = stringPreferencesKey("downloadQuality")
+val PermanentShuffleKey = booleanPreferencesKey("permanentShuffle")
+val SkipUncachedPartKey = booleanPreferencesKey("skipUncachedPart")
+val CrossfadeKey = intPreferencesKey("crossfade")
+val ReduceAnimationsKey = booleanPreferencesKey("reduceAnimations")
+val SpotifyCookieKey = stringPreferencesKey("spotifyCookie")
+
+val DynamicIslandWidthKey = intPreferencesKey("dynamicIslandWidth")
+val DynamicIslandHeightKey = intPreferencesKey("dynamicIslandHeight")
+val DynamicIslandLandscapeOffsetXKey = intPreferencesKey("dynamicIslandLandscapeOffsetX")
+val DynamicIslandLandscapeOffsetYKey = intPreferencesKey("dynamicIslandLandscapeOffsetY")
+val DynamicIslandLandscapeWidthKey = intPreferencesKey("dynamicIslandLandscapeWidth")
+val DynamicIslandLandscapeHeightKey = intPreferencesKey("dynamicIslandLandscapeHeight")
+val DynamicIslandBgColorKey = intPreferencesKey("dynamicIslandBgColor")
+val DynamicIslandAccentColorKey = intPreferencesKey("dynamicIslandAccentColor")
+val DynamicIslandTextColorKey = intPreferencesKey("dynamicIslandTextColor")
+val DynamicIslandLiquidGlassKey = booleanPreferencesKey("dynamicIslandLiquidGlass")
+
+val EnableVoiceAssistantKey = booleanPreferencesKey("enable_voice_assistant")
+val VoiceAssistantAutoStartOnBootKey = booleanPreferencesKey("voice_auto_start_boot")
+val VoiceAssistantDirectCommandsKey = booleanPreferencesKey("voice_direct_commands")
+val VoiceAssistantTtsFeedbackKey = booleanPreferencesKey("voice_tts_feedback")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
@@ -316,6 +348,15 @@ enum class QuickPicks {
 enum class PreferredLyricsProvider {
     LRCLIB,
     KUGOU,
+    SIMP_MUSIC,
+    YOUTUBE_SUBTITLES,
+    PAXSENIX,
+    UNISON,
+    BETTER_LYRICS,
+    PORTATO,
+    YOULY,
+    MEGALOBIZ,
+    YOUTUBE_MUSIC,
 }
 
 enum class PlayerBackgroundStyle {
@@ -377,23 +418,23 @@ val LanguageCodeToName =
         "az" to "Az?rbaycan",
         "id" to "Bahasa Indonesia",
         "ms" to "Bahasa Malaysia",
-        "ca" to "Català",
-        "cs" to "Ceština",
+        "ca" to "Catalâ€¢",
+        "cs" to "Ceâ€¢tina",
         "da" to "Dansk",
         "de" to "Deutsch",
         "et" to "Eesti",
         "en-GB" to "English (UK)",
         "en" to "English (US)",
-        "es" to "Español (España)",
-        "es-419" to "Español (Latinoamérica)",
+        "es" to "Espaâ€¢ol (Espaâ€¢a)",
+        "es-419" to "Espaâ€¢ol (Latinoamâ€¢rica)",
         "eu" to "Euskara",
         "fil" to "Filipino",
-        "fr" to "Français",
-        "fr-CA" to "Français (Canada)",
+        "fr" to "Franâ€¢ais",
+        "fr-CA" to "Franâ€¢ais (Canada)",
         "gl" to "Galego",
         "hr" to "Hrvatski",
         "zu" to "IsiZulu",
-        "is" to "Íslenska",
+        "is" to "â€¢slenska",
         "it" to "Italiano",
         "sw" to "Kiswahili",
         "lt" to "Lietuviu",
@@ -401,19 +442,19 @@ val LanguageCodeToName =
         "nl" to "Nederlands",
         "no" to "Norsk",
         "or" to "Odia",
-        "uz" to "O‘zbe",
+        "uz" to "Oâ€¢zbe",
         "pl" to "Polski",
-        "pt-PT" to "Português",
-        "pt" to "Português (Brasil)",
-        "ro" to "Româna",
+        "pt-PT" to "Portuguâ€¢s",
+        "pt" to "Portuguâ€¢s (Brasil)",
+        "ro" to "Româ€¢na",
         "sq" to "Shqip",
         "sk" to "Slovencina",
-        "sl" to "Slovenšcina",
+        "sl" to "Slovenâ€¢cina",
         "fi" to "Suomi",
         "sv" to "Svenska",
         "bo" to "Tibetan ????????",
         "vi" to "Ti?ng Vi?t",
-        "tr" to "Türkçe",
+        "tr" to "Tâ€¢rkâ€¢e",
         "bg" to "?????????",
         "ky" to "????????",
         "kk" to "????? ????",
@@ -596,3 +637,5 @@ val AodTextScaleKey = floatPreferencesKey("aod_text_scale")
 val AodShowClockKey = booleanPreferencesKey("aod_show_clock")
 val AodClockFormatKey = booleanPreferencesKey("aod_clock_24h")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
+val NeverShowSupportValoraKey = booleanPreferencesKey("neverShowSupportValora")
+val LastSupportValoraShownTimeKey = longPreferencesKey("lastSupportValoraShownTime")

@@ -77,24 +77,28 @@ object icebeatsStatsCloudSync {
         namePreferenceManager: NamePreferenceManager,
         preferences: android.content.SharedPreferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE),
     ): String {
-        val existing = preferences.getString(KEY_USER_ID, null)
-        if (!existing.isNullOrBlank()) return existing
+        val supabaseUid = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).userId.value.trim()
+        if (supabaseUid.isNotBlank()) {
+            preferences.edit().putString(KEY_USER_ID, supabaseUid).apply()
+            return supabaseUid
+        }
 
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
         if (!email.isNullOrBlank()) {
-            val boardUserId =
-                icebeatsStatsCloudClient()
-                    .readBoard()
-                    .getOrNull()
-                    ?.users
-                    ?.firstOrNull { it.email.normalizedEmail() == email }
-                    ?.id
-            val resolved = boardUserId ?: "google-${sha256(email)}"
+            val resolved = "user-${sha256(email)}"
             preferences.edit().putString(KEY_USER_ID, resolved).apply()
             return resolved
         }
 
+        val existing = preferences.getString(KEY_USER_ID, null)
+        if (!existing.isNullOrBlank()) return existing
+
         return stableUserId(preferences)
+    }
+
+    fun clearCachedUserId(context: Context) {
+        val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        preferences.edit().remove(KEY_USER_ID).remove(KEY_LAST_UPLOAD_DAY).apply()
     }
 
     private fun stableUserId(preferences: android.content.SharedPreferences): String {

@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -374,7 +374,7 @@ fun LyricsV2(
 
         val distance = abs(currentLineIndex - (listState.firstVisibleItemIndex))
         if (distance > 15) {
-            // Far jump — snap first, then settle
+            // Far jump â€¢ snap first, then settle
             listState.scrollToItem(
                 (currentLineIndex - 2).coerceAtLeast(0),
                 0
@@ -1264,7 +1264,7 @@ private fun AnimatedWordV2(
     val glowRadius = if (isWordActive) glowProgress * 12f else 0f
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
-    val fontWeight = FontWeight.SemiBold // Consistent weight — no thin?bold jump
+    val fontWeight = FontWeight.SemiBold // Consistent weight â€¢ no thin?bold jump
 
     // -- Two-layer rendering: dim base + liquid fill overlay --
     Box(

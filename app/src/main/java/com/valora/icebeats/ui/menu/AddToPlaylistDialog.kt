@@ -45,6 +45,7 @@ fun AddToPlaylistDialog(
     onGetSong: suspend (Playlist) -> List<String>, // list of song ids. Songs should be inserted to database in this function.
     onDismiss: () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     var playlists by remember {
@@ -113,8 +114,9 @@ fun AddToPlaylistDialog(
                             } else {
                                 onDismiss()
                                 database.addSongToPlaylist(playlist, songIds!!)
+                                com.valora.icebeats.supabase.SupabaseClient(context).autoSyncPlaylist(database, playlist.id)
 
-                                playlist.playlist.browseId?.let { plist ->
+                                playlist.playlist.browseId?.takeIf { it.isNotBlank() && it != "null" && !it.startsWith("Success(") }?.let { plist ->
                                     songIds?.forEach {
                                         YouTube.addToPlaylist(plist, it)
                                     }

@@ -88,7 +88,7 @@
 }
 -keep class com.valora.icebeats.utils.potoken.** { *; }
 
-## Logging (does not affect Timber)
+## Logging
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
@@ -97,6 +97,16 @@
     #public static int i(...);
     #public static int w(...);
     #public static int e(...);
+}
+
+-assumenosideeffects class timber.log.Timber {
+    public static void v(...);
+    public static void d(...);
+}
+
+-assumenosideeffects class timber.log.Timber$Forest {
+    public void v(...);
+    public void d(...);
 }
 
 # Generated automatically by the Android Gradle plugin.

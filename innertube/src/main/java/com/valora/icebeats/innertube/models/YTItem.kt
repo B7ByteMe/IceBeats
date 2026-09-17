@@ -1,12 +1,19 @@
-﻿package com.valora.icebeats.innertube.models
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models
 
 import com.valora.icebeats.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
 import com.valora.icebeats.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_UGC
+import java.util.Locale
 
 sealed class YTItem {
     abstract val id: String
     abstract val title: String
-    abstract val thumbnail: String
+    abstract val thumbnail: String?
     abstract val explicit: Boolean
     abstract val shareLink: String
 }
@@ -21,16 +28,34 @@ data class Album(
     val id: String,
 )
 
+enum class AlbumReleaseType {
+    ALBUM,
+    SINGLE,
+    EP;
+
+    companion object {
+        fun fromLabel(label: String?): AlbumReleaseType {
+            return when (label?.trim()?.lowercase(Locale.ROOT)) {
+                "single", "singles" -> SINGLE
+                "ep", "eps" -> EP
+                else -> ALBUM
+            }
+        }
+    }
+}
+
 data class SongItem(
     override val id: String,
     override val title: String,
     val artists: List<Artist>,
     val album: Album? = null,
     val duration: Int? = null,
-    val setVideoId: String? = null,
+    val chartPosition: Int? = null,
+    val chartChange: String? = null,
     override val thumbnail: String,
     override val explicit: Boolean = false,
     val endpoint: WatchEndpoint? = null,
+    val setVideoId: String? = null,
 ) : YTItem() {
     override val shareLink: String
         get() = "https://icebeats.pages.dev/song?id=$id"
@@ -45,21 +70,23 @@ data class AlbumItem(
     val year: Int? = null,
     override val thumbnail: String,
     override val explicit: Boolean = false,
+    val releaseType: AlbumReleaseType = AlbumReleaseType.ALBUM,
 ) : YTItem() {
     override val shareLink: String
-        get() = "https://icebeats.pages.dev/album?id=$browseId"
+        get() = "https://icebeats.pages.dev/playlist?id=$playlistId"
 }
 
 data class PlaylistItem(
     override val id: String,
     override val title: String,
-    var author: Artist?, // changed to var for Home Playlists
+    val author: Artist?,
     val songCountText: String?,
-    override val thumbnail: String,
+    override val thumbnail: String?,
     val playEndpoint: WatchEndpoint?,
     val shuffleEndpoint: WatchEndpoint?,
     val radioEndpoint: WatchEndpoint?,
     val isEditable: Boolean = false,
+    val description: String? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false
@@ -70,10 +97,13 @@ data class PlaylistItem(
 data class ArtistItem(
     override val id: String,
     override val title: String,
-    override val thumbnail: String,
+    override val thumbnail: String?,
     val channelId: String? = null,
+    val playEndpoint: WatchEndpoint? = null,
     val shuffleEndpoint: WatchEndpoint?,
     val radioEndpoint: WatchEndpoint?,
+    val subscriberCountText: String? = null,
+    val monthlyListenerCountText: String? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false

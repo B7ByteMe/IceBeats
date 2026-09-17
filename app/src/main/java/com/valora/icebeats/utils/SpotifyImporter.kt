@@ -49,15 +49,17 @@ object SpotifyImporter {
             val songIds = mutableListOf<String>()
 
             // 4. Create Playlist in DB
-            val newPlaylistId = UUID.randomUUID().toString()
+            val newPlaylistId = PlaylistEntity.generatePlaylistId()
             val playlistEntity = PlaylistEntity(
                 id = newPlaylistId,
                 name = playlistName,
+                browseId = null,
+                isEditable = true,
                 bookmarkedAt = java.time.LocalDateTime.now()
             )
             dao.insert(playlistEntity)
 
-            // 5. Match songs and add to playlist
+            // 5. Match songs and add to playlist incrementally
             for (i in 0 until totalTracks) {
                 onProgress(i + 1, totalTracks)
                 val trackObj = trackListArray.optJSONObject(i) ?: continue
@@ -72,26 +74,20 @@ object SpotifyImporter {
                     val searchResult = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
                     val firstSong = searchResult?.items?.firstOrNull() as? com.valora.icebeats.innertube.models.SongItem
                     if (firstSong != null) {
+                        val currentPosition = songIds.size
                         songIds.add(firstSong.id)
                         dao.insert(firstSong.toMediaMetadata())
+                        dao.insert(
+                            com.valora.icebeats.db.entities.PlaylistSongMap(
+                                songId = firstSong.id,
+                                playlistId = newPlaylistId,
+                                position = currentPosition
+                            )
+                        )
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-            }
-
-            // 6. Save songs to playlist
-            // Since we only have a PlaylistEntity, we need to convert to Playlist model, 
-            // but addSongToPlaylist takes a Playlist object which is complex.
-            // Let's just insert PlaylistSongMap directly.
-            songIds.forEachIndexed { index, songId ->
-                dao.insert(
-                    com.valora.icebeats.db.entities.PlaylistSongMap(
-                        songId = songId,
-                        playlistId = newPlaylistId,
-                        position = index
-                    )
-                )
             }
 
             playlistName

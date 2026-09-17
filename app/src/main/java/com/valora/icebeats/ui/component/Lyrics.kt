@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.component
+ï»¿package com.valora.icebeats.ui.component
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -387,7 +387,7 @@ fun Lyrics(
         }
     }
 
-    // Disable auto-scroll cuando el usuario interactúa
+    // Disable auto-scroll cuando el usuario interactâ€¢a
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPostScroll(
@@ -1158,7 +1158,7 @@ fun Lyrics(
                                 distance == 1 -> 1f
                                 distance >= 2 -> 0.95f
                                 else -> 1f
-                            }, tween(if (animateLyrics) 400 else 0)) // Aumentada duración
+                            }, tween(if (animateLyrics) 400 else 0)) // Aumentada duraciâ€¢n
 
                             val animatedAlpha by animateFloatAsState(when {
                                 !isSynced || (isSelectionModeActive && isSelected) -> 1f
@@ -1166,7 +1166,7 @@ fun Lyrics(
                                 kotlin.math.abs(index - displayedCurrentLineIndex) == 1 -> 0.7f
                                 kotlin.math.abs(index - displayedCurrentLineIndex) == 2 -> 0.4f
                                 else -> 0.2f
-                            }, tween(if (animateLyrics) 400 else 0)) // Aumentada duración
+                            }, tween(if (animateLyrics) 400 else 0)) // Aumentada duraciâ€¢n
 
                             val itemModifier = Modifier
                                 .fillMaxWidth()
@@ -1199,7 +1199,7 @@ fun Lyrics(
                                         } else if (isSynced && changeLyrics) {
                                             playerConnection.player.seekTo(item.time)
                                             scope.launch {
-                                                performSmoothPageScroll(index, 1500) // Usar la función mejorada
+                                                performSmoothPageScroll(index, 1500) // Usar la funciâ€¢n mejorada
                                             }
                                             lastPreviewTime = 0L
                                         }
@@ -1318,7 +1318,7 @@ fun Lyrics(
                                             }
                                     )
                                 } else {
-                                    // Línea inactiva con color expresivo
+                                    // Lâ€¢nea inactiva con color expresivo
                                     val lineColor = if (isFullscreen) {
                                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                     } else {
@@ -1513,7 +1513,7 @@ fun Lyrics(
                                 )
 
                                 Text(
-                                    text = "Las letras no están disponibles para esta canción",
+                                    text = "Las letras no estâ€¢n disponibles para esta canciâ€¢n",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center

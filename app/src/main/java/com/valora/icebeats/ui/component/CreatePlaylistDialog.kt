@@ -34,6 +34,7 @@ fun CreatePlaylistDialog(
     initialTextFieldValue: String? = null,
     allowSyncing: Boolean = true,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     var syncedPlaylist by remember { mutableStateOf(false) }
@@ -44,19 +45,24 @@ fun CreatePlaylistDialog(
         onDismiss = onDismiss,
         onDone = { playlistName ->
             coroutineScope.launch(Dispatchers.IO) {
-                val browseId = if (syncedPlaylist)
-                    YouTube.createPlaylist(playlistName)
-                else null
+                val browseId = if (syncedPlaylist) {
+                    YouTube.createPlaylist(playlistName).getOrNull()
+                } else {
+                    null
+                }
+                val newId = PlaylistEntity.generatePlaylistId()
                 database.query {
                     insert(
                         PlaylistEntity(
+                            id = newId,
                             name = playlistName,
-                            browseId = browseId.toString(),
+                            browseId = browseId?.takeIf { it.isNotBlank() && it != "null" },
                             bookmarkedAt = LocalDateTime.now(),
                             isEditable = true,
                         )
                     )
                 }
+                com.valora.icebeats.supabase.SupabaseClient(context).autoSyncPlaylist(database, newId)
             }
         },
         extraContent = {

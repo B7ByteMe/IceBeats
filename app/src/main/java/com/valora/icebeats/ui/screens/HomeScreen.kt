@@ -198,6 +198,12 @@ fun HomeScreen(
     }
     val url = if (isLoggedIn) accountImageUrl else null
 
+    LaunchedEffect(innerTubeCookie) {
+        if (innerTubeCookie.isNotEmpty()) {
+            viewModel.onAccountChanged(innerTubeCookie)
+        }
+    }
+
     val scope = rememberCoroutineScope()
     val lazylistState = rememberLazyListState()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -1006,7 +1012,7 @@ fun ModernHomeTopBarInline(
     val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
 
     val userName = LocalUserName.current
-    val displayName = if (userName.isNotEmpty()) userName else "Friend"
+    val displayName = if (userName.isNotEmpty()) userName else "Hai, selamat datang di IceBeats"
 
     val currentVersion = BuildConfig.VERSION_NAME
     var showUpdateIcon by remember { mutableStateOf(false) }
@@ -1150,8 +1156,15 @@ fun ModernHomeTopBarInline(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
+            val isDefaultGreeting = displayName.isBlank() ||
+                displayName.startsWith("Hai,", ignoreCase = true) ||
+                displayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true) ||
+                displayName.equals("Friend", ignoreCase = true) ||
+                displayName.equals("Guest", ignoreCase = true)
+            val greetingText = if (isDefaultGreeting) "Hai, selamat datang di IceBeats" else "Hi, $displayName"
+
             Text(
-                text = "Hi, $displayName",
+                text = greetingText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),

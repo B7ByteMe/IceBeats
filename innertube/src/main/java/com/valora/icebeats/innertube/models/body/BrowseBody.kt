@@ -1,4 +1,10 @@
-﻿package com.valora.icebeats.innertube.models.body
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models.body
 
 import com.valora.icebeats.innertube.models.Context
 import com.valora.icebeats.innertube.models.Continuation

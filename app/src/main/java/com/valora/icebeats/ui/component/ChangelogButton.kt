@@ -172,7 +172,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header con t�tulo principal
+        // Header con t•tulo principal
         Text(
             text = stringResource(R.string.changelogs),
             style = MaterialTheme.typography.headlineMedium,
@@ -751,8 +751,8 @@ private fun cleanMarkdown(markdown: String): String {
         "&#39;" to "'",
         "&#x27;" to "'",
         "&hellip;" to "...",
-        "&mdash;" to "�",
-        "&ndash;" to "�"
+        "&mdash;" to "•",
+        "&ndash;" to "•"
     )
 
     for ((entity, replacement) in htmlEntities) {
@@ -1193,7 +1193,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener la informaci�n despu�s de los reintentos")
+            throw IOException("No se pudo obtener la informaci•n despu•s de los reintentos")
         }
 
     private suspend fun fetchCommits(owner: String, repo: String): List<Commit> =
@@ -1240,7 +1240,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener los commits despu�s de los reintentos")
+            throw IOException("No se pudo obtener los commits despu•s de los reintentos")
         }
 
     private fun getCurrentTimestamp(): String {

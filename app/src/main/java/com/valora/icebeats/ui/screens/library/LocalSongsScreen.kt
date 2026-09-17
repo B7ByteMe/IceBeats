@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.screens.library
+﻿package com.valora.icebeats.ui.screens.library
 
 import android.Manifest
 import android.os.Build
@@ -336,7 +336,7 @@ private fun SearchBar(
                 Box {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search songs, artists, albums�",
+                            text = "Search songs, artists, albums•",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )

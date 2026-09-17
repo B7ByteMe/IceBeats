@@ -171,7 +171,7 @@ fun PlayfulHomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val userName = com.valora.icebeats.ui.component.LocalUserName.current
-                            val displayName = if (userName.isNotEmpty()) userName else stringResource(R.string.friend)
+                            val displayName = if (userName.isNotEmpty()) userName else "Hai, selamat datang di IceBeats"
                             val context = androidx.compose.ui.platform.LocalContext.current
                             val rankPrefMgr = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
                             val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
@@ -185,20 +185,36 @@ fun PlayfulHomeScreen(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = stringResource(R.string.greeting_prefix),
-                                    fontSize = 36.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = greatVibesFontFamily,
-                                    color = Color.Black
-                                )
-                                Text(
-                                    text = displayName,
-                                    fontSize = 36.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontFamily = greatVibesFontFamily,
-                                    color = Color.Black
-                                )
+                                val isDefaultGreeting = displayName.isBlank() ||
+                                    displayName.startsWith("Hai,", ignoreCase = true) ||
+                                    displayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true) ||
+                                    displayName.equals("Friend", ignoreCase = true) ||
+                                    displayName.equals("Guest", ignoreCase = true)
+
+                                if (isDefaultGreeting) {
+                                    Text(
+                                        text = "Hai, selamat datang di IceBeats",
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = greatVibesFontFamily,
+                                        color = Color.Black
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.greeting_prefix),
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = greatVibesFontFamily,
+                                        color = Color.Black
+                                    )
+                                    Text(
+                                        text = displayName,
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontFamily = greatVibesFontFamily,
+                                        color = Color.Black
+                                    )
+                                }
 
                                 currentRank?.let { rank ->
                                     Spacer(modifier = Modifier.width(8.dp))

@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.component
+﻿package com.valora.icebeats.ui.component
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -131,7 +131,7 @@ fun ShareLyricsDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "$songTitle � $artists",
+                        text = "$songTitle • $artists",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,

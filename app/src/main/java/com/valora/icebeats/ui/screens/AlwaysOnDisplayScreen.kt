@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+ï»¿@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 /*
  * icebeats Project Original (2026)
@@ -143,7 +143,7 @@ import java.util.Locale
 import kotlin.math.abs
 
 // ---------------------------------------------------------------------------
-//  Utilidad: extrae el color dominante de la portada vía Palette API
+//  Utilidad: extrae el color dominante de la portada vâ€¢a Palette API
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -160,7 +160,7 @@ private fun rememberDominantColor(thumbnailUrl: String?): Color {
             val req = ImageRequest.Builder(context)
                 .data(thumbnailUrl)
                 .allowHardware(false)   // Palette necesita bitmap de software
-                .size(128, 128)         // Tamaño pequeño es suficiente y más rápido
+                .size(128, 128)         // Tamaâ€¢o pequeâ€¢o es suficiente y mâ€¢s râ€¢pido
                 .build()
             val result = context.imageLoader.execute(req)
             if (result is SuccessResult) {
@@ -181,7 +181,7 @@ private fun rememberDominantColor(thumbnailUrl: String?): Color {
 }
 
 // ---------------------------------------------------------------------------
-//  Estado compartido entre transiciones — clave de sincronización
+//  Estado compartido entre transiciones â€¢ clave de sincronizaciâ€¢n
 // ---------------------------------------------------------------------------
 
 private data class AodMediaState(
@@ -335,7 +335,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
         }
     }
 
-    // -- Parámetros unificados pasados a todos los layouts -----------------
+    // -- Parâ€¢metros unificados pasados a todos los layouts -----------------
     val commonParams = AodCommonParams(
         mediaState = mediaState,
         dominantColor = dominantColor,
@@ -400,7 +400,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
 }
 
 // ---------------------------------------------------------------------------
-//  Datos compartidos — evita param explosion
+//  Datos compartidos â€¢ evita param explosion
 // ---------------------------------------------------------------------------
 
 private data class AodCommonParams(
@@ -553,7 +553,7 @@ private fun BackgroundAodLayout(
                     )
                 )
         )
-        // Viñetas
+        // Viâ€¢etas
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -853,7 +853,7 @@ private fun LargeAodLayout(
 }
 
 // ---------------------------------------------------------------------------
-//  SPOTLIGHT ? — halo real con color extraído de la portada
+//  SPOTLIGHT ? â€¢ halo real con color extraâ€¢do de la portada
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -865,7 +865,7 @@ private fun SpotlightAodLayout(
     spotlightIntensity: Float,
     spotlightPulse: Boolean,
 ) {
-    // Color del halo con animación suave al cambiar de canción
+    // Color del halo con animaciâ€¢n suave al cambiar de canciâ€¢n
     val animatedHaloColor by animateColorAsState(
         targetValue = params.dominantColor,
         animationSpec = tween(params.transitionDuration + 200),
@@ -911,10 +911,10 @@ private fun SpotlightAodLayout(
             val cy = if (params.isLandscape) size.height / 2f else size.height * 0.38f
             val center = Offset(cx, cy)
 
-            // Máxima intensidad configurada por el usuario
+            // Mâ€¢xima intensidad configurada por el usuario
             val maxAlpha = spotlightIntensity.coerceIn(0.10f, 1.0f)
 
-            // ? Glow exterior difuso — radio muy amplio, muy translúcido
+            // ? Glow exterior difuso â€¢ radio muy amplio, muy translâ€¢cido
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -929,7 +929,7 @@ private fun SpotlightAodLayout(
                 radius = artApproxRadius * 3.6f * pulseScale
             )
 
-            // ? Halo medio — define el "cono" de luz
+            // ? Halo medio â€¢ define el "cono" de luz
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -944,7 +944,7 @@ private fun SpotlightAodLayout(
                 radius = artApproxRadius * 1.9f * pulseScale
             )
 
-            // ? Corona interior brillante — justo alrededor de la portada
+            // ? Corona interior brillante â€¢ justo alrededor de la portada
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -960,7 +960,7 @@ private fun SpotlightAodLayout(
                 radius = artApproxRadius * 1.28f * pulseScale
             )
 
-            // ? Anillo de borde — contorno sutil con color dominante
+            // ? Anillo de borde â€¢ contorno sutil con color dominante
             drawCircle(
                 color = animatedHaloColor.copy(alpha = maxAlpha * 0.38f * pulseAlpha),
                 center = center,
@@ -1052,7 +1052,7 @@ private fun SpotlightAodLayout(
 // ---------------------------------------------------------------------------
 
 /**
- * Imagen de portada con transición sincronizada al [mediaState].
+ * Imagen de portada con transiciâ€¢n sincronizada al [mediaState].
  * Todos los layouts usan este composable ? fade del arte ocurre al mismo tiempo
  */
 @Composable
@@ -1249,7 +1249,7 @@ private fun AodMetaAndControls(
 }
 
 // ---------------------------------------------------------------------------
-//  BOTONES DE CONTROL — soportan AodControlStyle
+//  BOTONES DE CONTROL â€¢ soportan AodControlStyle
 // ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)

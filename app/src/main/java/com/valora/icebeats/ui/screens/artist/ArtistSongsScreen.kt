@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.screens.artist
+ï»¿package com.valora.icebeats.ui.screens.artist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -96,21 +96,21 @@ fun ArtistSongsScreen(
     val songs by viewModel.songs.collectAsState()
     val lazyListState = rememberLazyListState()
 
-    // Estados para búsqueda
+    // Estados para bâ€¢squeda
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     var isSearching by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
 
-    // Estado para selección múltiple
+    // Estado para selecciâ€¢n mâ€¢ltiple
     var selection by remember { mutableStateOf(false) }
 
-    // Envolver canciones para selección
+    // Envolver canciones para selecciâ€¢n
     val wrappedSongs = remember(songs) {
         songs.map { song -> ItemWrapper(song) }
     }
 
-    // Filtrar canciones por búsqueda
+    // Filtrar canciones por bâ€¢squeda
     val searchQueryStr = searchQuery.text.trim()
     val filteredSongs = if (searchQueryStr.isEmpty()) {
         wrappedSongs
@@ -122,7 +122,7 @@ fun ArtistSongsScreen(
         }
     }
 
-    // Auto-focus cuando se activa búsqueda
+    // Auto-focus cuando se activa bâ€¢squeda
     LaunchedEffect(isSearching) {
         if (isSearching) {
             focusRequester.requestFocus()
@@ -328,7 +328,7 @@ fun ArtistSongsScreen(
                     selection -> {
                         val count = wrappedSongs.count { it.isSelected }
 
-                        // Botón seleccionar/deseleccionar todo
+                        // Botâ€¢n seleccionar/deseleccionar todo
                         IconButton(
                             onClick = {
                                 if (count == wrappedSongs.size) {
@@ -346,7 +346,7 @@ fun ArtistSongsScreen(
                             )
                         }
 
-                        // Menú de opciones para selección
+                        // Menâ€¢ de opciones para selecciâ€¢n
                         IconButton(
                             onClick = {
                                 menuState.show {
@@ -370,7 +370,7 @@ fun ArtistSongsScreen(
                     }
 
                     !isSearching -> {
-                        // Botón de búsqueda
+                        // Botâ€¢n de bâ€¢squeda
                         IconButton(
                             onClick = { isSearching = true }
                         ) {
@@ -384,7 +384,7 @@ fun ArtistSongsScreen(
             },
         )
 
-        // FAB para shuffle (solo visible cuando no hay búsqueda ni selección)
+        // FAB para shuffle (solo visible cuando no hay bâ€¢squeda ni selecciâ€¢n)
         if (!isSearching && !selection && filteredSongs.isNotEmpty()) {
             HideOnScrollFAB(
                 lazyListState = lazyListState,

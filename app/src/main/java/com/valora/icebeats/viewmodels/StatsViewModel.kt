@@ -235,26 +235,21 @@ constructor(
         globalStats.value = globalStats.value.copy(isLoading = true, error = null)
         val userId = icebeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager, statsPreferences)
         if (forceUpload || shouldUploadToday()) {
-            buildUpload(userId)?.let { upload ->
-                cloudClient
-                    .uploadDaily(upload)
-                    .onSuccess { board ->
-                        statsPreferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
-                        globalStats.value =
-                            GlobalStatsUiState(
-                                isLoading = false,
-                                board = board,
-                                currentUserId = userId,
-                            )
-                    }.onFailure { error ->
-                        globalStats.value =
-                            globalStats.value.copy(
-                                isLoading = false,
-                                error = error.message,
-                                currentUserId = userId,
-                            )
-                    }
-                return
+            val upload = runCatching { buildUpload(userId) }.getOrNull()
+            if (upload != null) {
+                val uploadResult = cloudClient.uploadDaily(upload)
+                if (uploadResult.isSuccess) {
+                    val board = uploadResult.getOrThrow()
+                    statsPreferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
+                    globalStats.value =
+                        GlobalStatsUiState(
+                            isLoading = false,
+                            board = board,
+                            currentUserId = userId,
+                        )
+                    return
+                }
+                // If upload failed, continue below to readBoard so leaderboard is not lost
             }
         }
 
@@ -302,22 +297,18 @@ constructor(
                 else -> null
             }
         var fcmToken: String? = null
-        for (i in 1..3) {
-            fcmToken = try {
+        try {
+            fcmToken = kotlinx.coroutines.withTimeoutOrNull(2000L) {
                 suspendCancellableCoroutine<String?> { continuation ->
                     com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            continuation.resume(task.result)
-                        } else {
-                            continuation.resume(null)
+                        if (continuation.isActive) {
+                            continuation.resume(if (task.isSuccessful) task.result else null)
                         }
                     }
                 }
-            } catch (e: Exception) {
-                null
             }
-            if (fcmToken != null) break
-            kotlinx.coroutines.delay(1000L * i)
+        } catch (_: Exception) {
+            fcmToken = null
         }
         if (fcmToken == null) {
             fcmToken = "n/v"

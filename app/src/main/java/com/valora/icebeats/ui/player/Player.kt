@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.player
+ï»¿package com.valora.icebeats.ui.player
 
 import android.content.Context
 import android.content.Intent
@@ -730,8 +730,8 @@ fun BottomSheetPlayer(
         label = "rotation"
     )
 
-    // Forma dinámica: cuando está reproduciendo usa la forma seleccionada
-    // Cuando está en pausa usa Square
+    // Forma dinâ€¢mica: cuando estâ€¢ reproduciendo usa la forma seleccionada
+    // Cuando estâ€¢ en pausa usa Square
     val currentPlayPauseShape = remember(isPlaying, playPauseShape) {
         if (isPlaying) {
             playPauseShape
@@ -3400,7 +3400,7 @@ private fun SpotifyDetailsCard(
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = listOf(mediaMetadata.title, artists).joinToString(" • "),
+                text = listOf(mediaMetadata.title, artists).joinToString(" â€¢ "),
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.White.copy(alpha = 0.62f),
             )

@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.component
+﻿package com.valora.icebeats.ui.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -51,7 +51,7 @@ fun ReleaseNotesCard() {
             Spacer(modifier = Modifier.height(8.dp))
             releaseNotes.forEach { note ->
                 Text(
-                    text = "� $note",
+                    text = "• $note",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 2.dp)
                 )

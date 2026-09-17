@@ -142,12 +142,15 @@ fun YouTubeImportDialog(
                                     statusText = "Saving $total songs to library..."
                                 }
 
+                                val newPlaylistId = PlaylistEntity.generatePlaylistId()
                                 val playlistEntity = PlaylistEntity(
+                                    id = newPlaylistId,
                                     name = playlistTitle,
-                                    browseId = cleanBrowseId,
-                                    isEditable = false,
+                                    browseId = null,
+                                    isEditable = true,
+                                    bookmarkedAt = java.time.LocalDateTime.now(),
                                     remoteSongCount = songs.size
-                                ).toggleLike()
+                                )
 
                                 database.transaction {
                                     insert(playlistEntity)
@@ -158,7 +161,7 @@ fun YouTubeImportDialog(
                                         .mapIndexed { index, song ->
                                             PlaylistSongMap(
                                                 songId = song.id,
-                                                playlistId = playlistEntity.id,
+                                                playlistId = newPlaylistId,
                                                 position = index
                                             )
                                         }

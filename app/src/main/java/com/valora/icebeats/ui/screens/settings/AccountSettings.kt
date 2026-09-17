@@ -22,6 +22,9 @@ import com.valora.icebeats.ui.component.*
 import com.valora.icebeats.utils.rememberPreference
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import android.widget.Toast
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -80,10 +83,21 @@ fun AccountSettings(
     val (dataSyncId, onDataSyncIdChange) =
         rememberPreference(DataSyncIdKey, "")
 
+    val database = com.valora.icebeats.LocalDatabase.current
+    val supabaseAuthManager = remember { com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context) }
+    val supabaseClient = remember { com.valora.icebeats.supabase.SupabaseClient(context) }
+    val isSupabaseLoggedIn by supabaseAuthManager.isLoggedIn.collectAsState()
+    val supabaseEmail by supabaseAuthManager.userEmail.collectAsState()
+    val supabaseName by supabaseAuthManager.userName.collectAsState()
+    val authProvider by supabaseAuthManager.authProvider.collectAsState()
+    val lastSyncTime by supabaseAuthManager.lastSyncTime.collectAsState()
+    var isSyncing by remember { mutableStateOf(false) }
+
     val isLoggedIn = remember(innerTubeCookie) {
         innerTubeCookie.isNotEmpty() &&
                 "SAPISID" in parseCookieString(innerTubeCookie)
     }
+    val isUserLoggedIn = isSupabaseLoggedIn || isLoggedIn || currentGoogleEmail.isNotBlank()
 
     val getAccountDisplayName =
         remember(accountName, accountEmail, accountChannelHandle, isLoggedIn) {
@@ -143,18 +157,15 @@ fun AccountSettings(
     fun linkGoogleAccount(name: String, email: String, photoUrl: String?, idToken: String?) {
         scope.launch {
             try {
-                if (idToken != null) {
-                    val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
-                    com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(credential).await()
+                if (!idToken.isNullOrBlank()) {
+                    val supabaseResult = supabaseClient.signInWithGoogleIdToken(idToken)
+                    supabaseResult.onFailure { err ->
+                        Toast.makeText(context, "Gagal sinkron Google ke Supabase: ${err.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
-                if (!nameManager.canUseGoogleEmail(email)) {
-                    val lockedEmail = nameManager.previousGoogleEmail.first().ifBlank { "your previous email" }
-                    Toast.makeText(context, nameManager.lockedEmailMessage(lockedEmail), Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-
-                nameManager.saveUserName(name)
                 nameManager.rememberGoogleLoginEmail(email)
+                nameManager.saveUserName(name)
+                nameManager.saveAccountEmail(email)
                 if (!photoUrl.isNullOrBlank()) {
                     avatarManager.saveAvatarSelection(
                         AvatarSelection.Custom(uri = photoUrl, cloudUrl = photoUrl)
@@ -164,33 +175,22 @@ fun AccountSettings(
                         AvatarSelection.DiceBear(generatedAvatarUrl(name, email))
                     )
                 }
-                
-                val backupClient = com.valora.icebeats.utils.CloudBackupClient()
-                val backupExists = backupClient.checkBackupExists(email)
-                
-                if (backupExists) {
-                    Toast.makeText(context, "Restoring cloud backup...", Toast.LENGTH_SHORT).show()
-                    val result = backupViewModel.restoreFromDrive(context, email)
-                    if (result is com.valora.icebeats.utils.DriveResult.Success) {
-                        Toast.makeText(context, "Cloud backup restored!", Toast.LENGTH_SHORT).show()
-                        
-                        delay(1500)
-                        context.stopService(android.content.Intent(context, com.valora.icebeats.playback.MusicService::class.java))
-                        context.startActivity(android.content.Intent(context, com.valora.icebeats.MainActivity::class.java).apply {
-                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        })
-                        Runtime.getRuntime().exit(0)
-                        return@launch
-                    } else {
-                        Toast.makeText(context, context.getString(R.string.restore_failed), Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    Toast.makeText(context, context.getString(R.string.creating_initial_cloud_backup), Toast.LENGTH_SHORT).show()
-                    val result = backupViewModel.backupToDrive(context, email, name)
-                    if (result is com.valora.icebeats.utils.DriveResult.Success) {
-                        Toast.makeText(context, context.getString(R.string.google_account_linked_backup_created), Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(context, context.getString(R.string.backup_create_failed_account_linked), Toast.LENGTH_LONG).show()
+
+                // Clear any leftover guest residue and restore account data from Supabase
+                if (database != null) {
+                    withContext(Dispatchers.IO) {
+                        database.clearAllLikes()
+                        database.clearUserPlaylists()
+                        database.clearAllPlaylistSongs()
+                        database.clearAllEvents()
+                        database.clearAllArtistBookmarks()
+                        database.clearAllAlbumBookmarks()
+                        val res = supabaseClient.restoreUserData(database)
+                        res.onSuccess { count ->
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Berhasil memulihkan $count data akun dari Cloud!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -265,6 +265,59 @@ fun AccountSettings(
         }
     }
 
+    var isLoggingOut by remember { mutableStateOf(false) }
+
+    val performLogout: (String) -> Unit = { successMessage ->
+        if (!isLoggingOut) {
+            isLoggingOut = true
+            scope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        if (database != null) {
+                            runCatching {
+                                withTimeoutOrNull(7000L) {
+                                    supabaseClient.syncUserData(database)
+                                }
+                            }
+                        }
+                        supabaseClient.signOut()
+                        supabaseAuthManager.clearSession()
+
+                        if (database != null) {
+                            database.clearAllLikes()
+                            database.clearUserPlaylists()
+                            database.clearAllPlaylistSongs()
+                            database.clearAllEvents()
+                            database.clearAllArtistBookmarks()
+                            database.clearAllAlbumBookmarks()
+                        }
+
+                        forgetAccount(context)
+                    }
+
+                    onInnerTubeCookieChange("")
+                    onAccountNameChange("")
+                    onAccountEmailChange("")
+                    onAccountChannelHandleChange("")
+                    onVisitorDataChange("")
+                    onDataSyncIdChange("")
+                    nameManager.clearGoogleLoginLock()
+                    nameManager.saveUserName("Hai, selamat datang di IceBeats")
+                    nameManager.saveAccountEmail("")
+                    avatarManager.saveAvatarSelection(AvatarSelection.Default)
+                    RankPreferenceManager(context).saveDisplayedRank(null)
+                    com.valora.icebeats.utils.icebeatsStatsCloudSync.clearCachedUserId(context)
+
+                    Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    isLoggingOut = false
+                }
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -317,6 +370,99 @@ fun AccountSettings(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
+                // ☁️ ICEBEATS CLOUD (SUPABASE)
+                SettingsGeneralCategory(
+                    title = "IceBeats Cloud (Supabase)",
+                    items = listOfNotNull(
+                        {
+                            PreferenceEntry(
+                                title = {
+                                    Text(
+                                        if (isSupabaseLoggedIn) {
+                                            supabaseName.ifBlank { supabaseEmail.substringBefore("@") }
+                                        } else {
+                                            "Masuk / Buat Akun Cloud"
+                                        }
+                                    )
+                                },
+                                description = if (isSupabaseLoggedIn) {
+                                    if (lastSyncTime.isNotBlank()) "Email: $supabaseEmail • Terakhir sinkron: $lastSyncTime"
+                                    else "Email: $supabaseEmail • Belum pernah disinkronkan"
+                                } else {
+                                    "Sinkronkan playlist & lagu favorit otomatis, fitur lupa password & backup"
+                                },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.sync),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingContent = {
+                                    if (isSupabaseLoggedIn) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                performLogout("Berhasil keluar dari Akun Cloud")
+                                            }
+                                        ) {
+                                            Text("Keluar")
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = { navController.navigate("login") }
+                                        ) {
+                                            Text("Masuk / Daftar")
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (!isSupabaseLoggedIn) {
+                                        navController.navigate("login")
+                                    }
+                                }
+                            )
+                        },
+                        if (isSupabaseLoggedIn && database != null) {
+                            {
+                                PreferenceEntry(
+                                    title = { Text("Sinkronkan Sekarang") },
+                                    description = "Kirim lagu favorit dan playlist lokal ke cloud Supabase",
+                                    icon = {
+                                        if (isSyncing) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Icon(
+                                                painter = painterResource(R.drawable.favorite),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        if (!isSyncing) {
+                                            isSyncing = true
+                                            scope.launch {
+                                                val res = supabaseClient.syncUserData(database)
+                                                isSyncing = false
+                                                res.onSuccess { msg ->
+                                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                                }.onFailure { err ->
+                                                    Toast.makeText(context, "Gagal sinkron: ${err.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        } else null
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 SettingsGeneralCategory(
                     title = stringResource(R.string.google),
                     items = listOf(
@@ -325,118 +471,82 @@ fun AccountSettings(
                         {
                             PreferenceEntry(
                                 title = { Text(stringResource(R.string.edit_display_name)) },
-                                description = if (currentDisplayName.isNotBlank())
+                                description = if (currentDisplayName.isNotBlank() && !currentDisplayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true))
                                     stringResource(R.string.current_value, currentDisplayName)
                                 else
-                                    stringResource(R.string.not_set),
+                                    "Hai, selamat datang di IceBeats (Default)",
                                 icon = { Icon(painterResource(R.drawable.person), null) },
                                 onClick = { showEditNameDialog = true }
                             )
                         },
 
-                        // 🔹 LOGIN / LOGOUT
+                        // 🔹 STATUS AKUN / AKUN TERHUBUNG
                         {
+                            val connectedEmail = when {
+                                supabaseEmail.isNotBlank() -> supabaseEmail
+                                currentGoogleEmail.isNotBlank() -> currentGoogleEmail
+                                accountEmail.isNotBlank() -> accountEmail
+                                currentDisplayName.isNotBlank() -> currentDisplayName
+                                else -> ""
+                            }
+                            val providerDesc = when {
+                                authProvider.isNotBlank() -> "Login menggunakan $authProvider"
+                                isSupabaseLoggedIn -> "Login menggunakan IceBeats Cloud"
+                                isLoggedIn -> "Login menggunakan Akun Google / YouTube"
+                                currentGoogleEmail.isNotBlank() -> "Login menggunakan Google"
+                                else -> "Belum ada akun yang terhubung"
+                            }
+                            val providerIcon = when {
+                                authProvider.equals("GitHub", ignoreCase = true) -> R.drawable.github
+                                authProvider.equals("GitLab", ignoreCase = true) -> R.drawable.gitlab
+                                authProvider.equals("Google", ignoreCase = true) || currentGoogleEmail.isNotBlank() -> R.drawable.google
+                                else -> R.drawable.person
+                            }
+
                             PreferenceEntry(
                                 title = {
-                                    Text(
-                                        if (isLoggedIn) {
-                                            getAccountDisplayName.takeIf { it.isNotBlank() }
-                                                ?: stringResource(R.string.login)
-                                        } else {
-                                            stringResource(R.string.login)
-                                        }
+                                    Text(if (isUserLoggedIn && connectedEmail.isNotBlank()) connectedEmail else "Status Akun")
+                                },
+                                description = providerDesc,
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(providerIcon),
+                                        contentDescription = null,
+                                        tint = if (providerIcon == R.drawable.google) androidx.compose.ui.graphics.Color.Unspecified else MaterialTheme.colorScheme.onSurface
                                     )
                                 },
-                                description = if (isLoggedIn) getAccountDescription else null,
-                                icon = { Icon(painterResource(R.drawable.login), null) },
-                                trailingContent = {
-                                    if (isLoggedIn) {
-                                        OutlinedButton(onClick = {
-                                            onInnerTubeCookieChange("")
-                                            onAccountNameChange("")
-                                            onAccountEmailChange("")
-                                            onAccountChannelHandleChange("")
-                                            onVisitorDataChange("")
-                                            onDataSyncIdChange("")
-                                            forgetAccount(context)
-                                        }) {
-                                            Text(stringResource(R.string.logout))
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    if (!isLoggedIn)
-                                        navController.navigate("login")
-                                }
+                                onClick = {}
                             )
                         },
 
-                        // 🔹 CLOUD BACKUP ACCOUNT
+                        // 🔹 LOGIN / LOGOUT
                         {
-                            if (isLoggedIn) {
-                                // Google Cloud Account (Legacy/Existing)
+                            if (!isUserLoggedIn) {
                                 PreferenceEntry(
-                                    title = {
-                                        Text(
-                                            if (currentGoogleEmail.isNotBlank()) currentGoogleEmail 
-                                            else stringResource(R.string.login_with_google)
-                                        )
-                                    },
-                                    description = if (currentGoogleEmail.isNotBlank()) {
-                                        stringResource(R.string.cloud_backup_stats_linked)
-                                    } else {
-                                        stringResource(R.string.link_account_for_cloud_backups)
-                                    },
-                                    icon = { Icon(painterResource(R.drawable.google), null, tint = androidx.compose.ui.graphics.Color.Unspecified) },
+                                    title = { Text(stringResource(R.string.login)) },
+                                    description = "Masuk ke akun IceBeats",
+                                    icon = { Icon(painterResource(R.drawable.login), null) },
                                     trailingContent = {
-                                        if (currentGoogleEmail.isNotBlank()) {
-                                            OutlinedButton(onClick = {
-                                                scope.launch {
-                                                    nameManager.saveAccountEmail("")
-                                                    Toast.makeText(context, context.getString(R.string.google_account_unlinked), Toast.LENGTH_SHORT).show()
-                                                }
-                                            }) {
-                                                Text(stringResource(R.string.logout))
-                                            }
+                                        Button(onClick = { navController.navigate("login") }) {
+                                            Text(stringResource(R.string.login))
                                         }
                                     },
-                                    onClick = {
-                                        if (currentGoogleEmail.isBlank()) {
-                                            requestGoogleSignIn()
-                                        }
-                                    }
+                                    onClick = { navController.navigate("login") }
                                 )
                             } else {
-                                // Email Cloud Account (New)
                                 PreferenceEntry(
-                                    title = {
-                                        Text(
-                                            if (currentGoogleEmail.isNotBlank()) currentGoogleEmail 
-                                            else "Login with Email"
-                                        )
-                                    },
-                                    description = if (currentGoogleEmail.isNotBlank()) {
-                                        stringResource(R.string.cloud_backup_stats_linked)
-                                    } else {
-                                        "Link account for cloud backups"
-                                    },
-                                    icon = { Icon(painterResource(R.drawable.person), null) },
+                                    title = { Text("Logout Akun") },
+                                    description = "Keluar dari sesi saat ini dan kembali ke mode Guest",
+                                    icon = { Icon(painterResource(R.drawable.logout), null) },
                                     trailingContent = {
-                                        if (currentGoogleEmail.isNotBlank()) {
-                                            OutlinedButton(onClick = {
-                                                scope.launch {
-                                                    nameManager.saveAccountEmail("")
-                                                    Toast.makeText(context, "Account unlinked", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }) {
-                                                Text(stringResource(R.string.logout))
-                                            }
+                                        OutlinedButton(onClick = {
+                                            performLogout("Berhasil logout")
+                                        }) {
+                                            Text(stringResource(R.string.logout))
                                         }
                                     },
                                     onClick = {
-                                        if (currentGoogleEmail.isBlank()) {
-                                            navController.navigate("login")
-                                        }
+                                        performLogout("Berhasil logout")
                                     }
                                 )
                             }
@@ -536,7 +646,8 @@ fun AccountSettings(
     // 🔥 EDIT NAME DIALOG
     if (showEditNameDialog) {
         var newName by remember {
-            mutableStateOf(TextFieldValue(currentDisplayName))
+            val initial = if (currentDisplayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true)) "" else currentDisplayName
+            mutableStateOf(TextFieldValue(initial))
         }
 
         AlertDialog(
@@ -547,10 +658,13 @@ fun AccountSettings(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = {
-                            if (it.text.length <= 9)
+                            if (it.text.length <= 30)
                                 newName = it
                         },
                         label = { Text(stringResource(R.string.your_name)) },
+                        supportingText = {
+                            Text("${newName.text.length} / 30")
+                        },
                         singleLine = true
                     )
 
@@ -566,7 +680,8 @@ fun AccountSettings(
                 Button(
                     onClick = {
                         scope.launch {
-                            nameManager.saveUserName(newName.text)
+                            val savedName = newName.text.trim()
+                            nameManager.saveUserName(if (savedName.isNotBlank()) savedName else "Hai, selamat datang di IceBeats")
                         }
                         showEditNameDialog = false
                     }
@@ -629,4 +744,5 @@ fun AccountSettings(
             }
         )
     }
+
 }

@@ -1,5 +1,5 @@
-/*
- * icebeats Insight — Year in Music, redesigned (2026)
+ï»¿/*
+ * icebeats Insight â€¢ Year in Music, redesigned (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -139,7 +139,7 @@ private data class InsightPersonality(
 private val PersonalityDevoted = InsightPersonality(
     emoji = "??",
     title = "Devoted Fan",
-    description = "When you find a song you love, you play it on repeat. Your loyalty to your favourites is unmatched — and that's your superpower.",
+    description = "When you find a song you love, you play it on repeat. Your loyalty to your favourites is unmatched â€¢ and that's your superpower.",
     gradTop = PersonA, gradBot = PersonB, accent = PersonB,
 )
 private val PersonalityExplorer = InsightPersonality(
@@ -151,7 +151,7 @@ private val PersonalityExplorer = InsightPersonality(
 private val PersonalityAudiophile = InsightPersonality(
     emoji = "??",
     title = "True Audiophile",
-    description = "Hours melt away when you're in the zone. Music isn't background noise for you — it's everything.",
+    description = "Hours melt away when you're in the zone. Music isn't background noise for you â€¢ it's everything.",
     gradTop = MinutesA, gradBot = MinutesB, accent = MinutesC,
 )
 private val PersonalityCasual = InsightPersonality(
@@ -349,7 +349,7 @@ fun YearInMusicScreen(
                         Icon(painterResource(R.drawable.arrow_back), null, tint = Snow)
                     }
                     Spacer(Modifier.weight(1f))
-                    // Brand label — centered
+                    // Brand label â€¢ centered
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text       = "icebeats",
@@ -1206,7 +1206,7 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
 
             albums.take(5).forEachIndexed { index, album ->
                 val imageModel = rememberSafeImageRequest(album.thumbnailUrl)
-                val artistNames = album.artists.take(2).joinToString(" · ") { it.name }
+                val artistNames = album.artists.take(2).joinToString(" â€¢ ") { it.name }
 
                 Row(
                     modifier = Modifier
@@ -1899,7 +1899,7 @@ private fun rememberAnimatedLong(target: Long, durationMs: Int = 1400): Long {
 }
 
 // -----------------------------------------------------------------------------
-// Safe image request (no hardware bitmap — required for share capture)
+// Safe image request (no hardware bitmap â€¢ required for share capture)
 // -----------------------------------------------------------------------------
 
 @Composable

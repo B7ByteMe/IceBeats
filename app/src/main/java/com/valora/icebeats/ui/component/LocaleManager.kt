@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION")
+ï»¿@file:Suppress("DEPRECATION")
 
 package com.valora.icebeats.ui.component
 
@@ -116,7 +116,7 @@ enum class CompletionStatus(val label: String, val color: @Composable () -> Colo
     EXPERIMENTAL("Exp", { MaterialTheme.colorScheme.secondary })
 }
 
-/** Estados de la operación de cambio de idioma */
+/** Estados de la operaciâ€¢n de cambio de idioma */
 sealed class LanguageChangeState {
     object Idle : LanguageChangeState()
     object Changing : LanguageChangeState()
@@ -142,7 +142,7 @@ class LocaleManager private constructor(private val context: Context) {
             }
         }
 
-        // Mapeo de banderas y estados de traducción
+        // Mapeo de banderas y estados de traducciâ€¢n
         private val LANGUAGE_METADATA = mapOf(
             "en" to LanguageMetadata("????", CompletionStatus.COMPLETE),
             "es" to LanguageMetadata("????", CompletionStatus.COMPLETE),
@@ -265,7 +265,7 @@ class LocaleManager private constructor(private val context: Context) {
     }
 
     /**
-     * Verifica si existen traducciones para un locale específico
+     * Verifica si existen traducciones para un locale especâ€¢fico
      */
     private fun hasTranslationsForLocale(localeCode: String): Boolean {
         return try {
@@ -281,7 +281,7 @@ class LocaleManager private constructor(private val context: Context) {
             val localizedContext = context.createConfigurationContext(config)
             val localizedResources = localizedContext.resources
 
-            // Intentar obtener un string básico para verificar
+            // Intentar obtener un string bâ€¢sico para verificar
             try {
                 val appName = localizedResources.getString(R.string.app_name)
                 true
@@ -313,7 +313,7 @@ class LocaleManager private constructor(private val context: Context) {
     }
 
     /**
-     * Convierte código de locale a Locale
+     * Convierte câ€¢digo de locale a Locale
      */
     private fun parseLocaleCode(code: String): Locale {
         return when {
@@ -338,7 +338,7 @@ class LocaleManager private constructor(private val context: Context) {
 
             val languages = mutableListOf<LanguageItem>()
 
-            // Agregar opción de sistema
+            // Agregar opciâ€¢n de sistema
             val systemDisplayName = try {
                 val locale = parseLocaleCode(systemLanguageCode)
                 locale.displayLanguage.replaceFirstChar { it.uppercase() }
@@ -385,7 +385,7 @@ class LocaleManager private constructor(private val context: Context) {
                 }
             }
 
-            // Ordenar por: sistema primero, luego completos, luego alfabéticamente
+            // Ordenar por: sistema primero, luego completos, luego alfabâ€¢ticamente
             val sorted = languages.sortedWith(
                 compareBy<LanguageItem> { !it.isSystemDefault }
                     .thenBy { it.completionStatus.ordinal }
@@ -477,7 +477,7 @@ class LocaleManager private constructor(private val context: Context) {
             @Suppress("DEPRECATION")
             context.resources.updateConfiguration(config, context.resources.displayMetrics)
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error aplicando configuración de idioma")
+            Timber.tag(TAG).e(e, "Error aplicando configuraciâ€¢n de idioma")
         }
     }
 
@@ -530,7 +530,7 @@ class LocaleManager private constructor(private val context: Context) {
                 }
             }, RESTART_DELAY)
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error reiniciando aplicación")
+            Timber.tag(TAG).e(e, "Error reiniciando aplicaciâ€¢n")
         }
     }
 
@@ -767,7 +767,7 @@ private fun SearchBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Limpiar búsqueda",
+                        contentDescription = "Limpiar bâ€¢squeda",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -831,7 +831,7 @@ private fun EmptySearchResult(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Prueba con otro término",
+            text = "Prueba con otro tâ€¢rmino",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 4.dp)
@@ -888,7 +888,7 @@ private fun LanguageItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Información
+            // Informaciâ€¢n
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = language.displayName,

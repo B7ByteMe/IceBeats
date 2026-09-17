@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -46,7 +46,7 @@ import com.valora.icebeats.R
 import com.valora.icebeats.models.MediaMetadata
 
 // -----------------------------------------------------------------------------
-// API pública
+// API pâ€¢blica
 // -----------------------------------------------------------------------------
 
 /**
@@ -54,12 +54,12 @@ import com.valora.icebeats.models.MediaMetadata
  *  1. Previsualizar en tiempo real la tarjeta de letras.
  *  2. Seleccionar un layout en el carrusel horizontal.
  *  3. Elegir el estilo de vidrio/color.
- *  4. Ajustar tamaño de texto, alineación, visibilidad y padding.
- *  5. Compartir o guardar la configuración resultante.
+ *  4. Ajustar tamaâ€¢o de texto, alineaciâ€¢n, visibilidad y padding.
+ *  5. Compartir o guardar la configuraciâ€¢n resultante.
  *
  * @param onShare  Se llama con el [LyricsCardConfig] final cuando el usuario pulsa "Compartir".
  *                 El caller es responsable de capturar el composable como bitmap y lanzar el Intent.
- * @param onSave   Opcional. Si se provee, aparece el botón "Guardar".
+ * @param onSave   Opcional. Si se provee, aparece el botâ€¢n "Guardar".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +88,7 @@ fun LyricsShareCarouselSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
 
-            // -- Título del sheet ------------------------------------------
+            // -- Tâ€¢tulo del sheet ------------------------------------------
             Text(
                 text       = "Compartir letra",
                 style      = MaterialTheme.typography.titleMedium,
@@ -116,7 +116,7 @@ fun LyricsShareCarouselSheet(
             Spacer(Modifier.height(22.dp))
 
             // -- Carrusel de layouts ---------------------------------------
-            SheetSectionLabel("Diseño")
+            SheetSectionLabel("Diseâ€¢o")
 
             Row(
                 modifier = Modifier
@@ -160,7 +160,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(14.dp))
 
-            // -- Panel de personalización (expandible) ---------------------
+            // -- Panel de personalizaciâ€¢n (expandible) ---------------------
             CustomizationPanel(
                 config        = config,
                 onConfigChange = { config = it },
@@ -171,7 +171,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(26.dp))
 
-            // -- Botones de acción -----------------------------------------
+            // -- Botones de acciâ€¢n -----------------------------------------
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,7 +214,7 @@ fun LyricsShareCarouselSheet(
 }
 
 // -----------------------------------------------------------------------------
-// Preview principal — box con la tarjeta escalada
+// Preview principal â€¢ box con la tarjeta escalada
 // -----------------------------------------------------------------------------
 
 @Composable
@@ -290,7 +290,7 @@ private fun LayoutStyleThumbnail(
                 .clickable(onClick = onSelect),
             contentAlignment = Alignment.Center,
         ) {
-            // Preview escalada — Coil cachea la imagen, cloudy corre en GPU
+            // Preview escalada â€¢ Coil cachea la imagen, cloudy corre en GPU
             Box(
                 modifier = Modifier
                     .requiredSize(340.dp)
@@ -308,7 +308,7 @@ private fun LayoutStyleThumbnail(
                 )
             }
 
-            // Indicador de selección
+            // Indicador de selecciâ€¢n
             if (isSelected) {
                 Box(
                     modifier = Modifier
@@ -390,7 +390,7 @@ private fun GlassStyleChip(
 }
 
 // -----------------------------------------------------------------------------
-// Panel de personalización (expandible)
+// Panel de personalizaciâ€¢n (expandible)
 // -----------------------------------------------------------------------------
 
 @Composable
@@ -407,7 +407,7 @@ private fun CustomizationPanel(
 
     Column(modifier = modifier) {
 
-        // Cabecera – toca para abrir/cerrar
+        // Cabecera â€¢ toca para abrir/cerrar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -418,7 +418,7 @@ private fun CustomizationPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text       = "Personalización",
+                text       = "Personalizaciâ€¢n",
                 style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -444,7 +444,7 @@ private fun CustomizationPanel(
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
 
-                // -- Tamaño de texto ---------------------------------------
+                // -- Tamaâ€¢o de texto ---------------------------------------
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -452,7 +452,7 @@ private fun CustomizationPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Tamaño de texto",
+                            "Tamaâ€¢o de texto",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )
@@ -471,10 +471,10 @@ private fun CustomizationPanel(
                     )
                 }
 
-                // -- Alineación del texto ----------------------------------
+                // -- Alineaciâ€¢n del texto ----------------------------------
                 Column {
                     Text(
-                        text       = "Alineación",
+                        text       = "Alineaciâ€¢n",
                         style      = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         modifier   = Modifier.padding(bottom = 8.dp),
@@ -513,7 +513,7 @@ private fun CustomizationPanel(
                     fontWeight = FontWeight.Medium,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    ToggleRow("Mostrar título",    config.showTitle)   { onConfigChange(config.copy(showTitle   = it)) }
+                    ToggleRow("Mostrar tâ€¢tulo",    config.showTitle)   { onConfigChange(config.copy(showTitle   = it)) }
                     ToggleRow("Mostrar artista",   config.showArtist)  { onConfigChange(config.copy(showArtist  = it)) }
                     ToggleRow("Mostrar portada",   config.showCoverArt){ onConfigChange(config.copy(showCoverArt = it)) }
                     ToggleRow("Mostrar icebeats",  config.showBranding){ onConfigChange(config.copy(showBranding = it)) }

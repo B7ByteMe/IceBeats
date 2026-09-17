@@ -49,10 +49,13 @@ class icebeatsStatsCloudClient {
     suspend fun readBoard(fileName: String = GLOBAL_STATS_FILE): Result<GlobalStatsBoard> =
         withContext(Dispatchers.IO) {
             runCatching {
+                val supabaseUrl = "${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL}/rest/v1/user_stats?select=*&order=total_listen_ms.desc&limit=500"
                 val request =
                     Request
                         .Builder()
-                        .url("$BASE_URL/read?file=$fileName&_t=${System.currentTimeMillis()}")
+                        .url(supabaseUrl)
+                        .header("apikey", com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY)
+                        .header("Authorization", "Bearer ${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY}")
                         .header("Cache-Control", "no-cache")
                         .header("Pragma", "no-cache")
                         .get()
@@ -60,103 +63,81 @@ class icebeatsStatsCloudClient {
                 client.newCall(request).execute().use { response ->
                     if (response.code == 404) return@use GlobalStatsBoard()
                     val text = response.body?.bytes()?.let { String(it, Charsets.UTF_8) }.orEmpty()
-                    if (!response.isSuccessful) error(parseError(text, response.code))
-                    val wrapper = try {
-                        JSONObject(text)
-                    } catch (e: Exception) {
-                        try {
-                            val safeText = text.substringBeforeLast(",{") + "]}}"
-                            JSONObject(safeText)
-                        } catch (e2: Exception) {
-                            JSONObject()
-                        }
+                    if (!response.isSuccessful) {
+                        error("HTTP ${response.code}: $text")
                     }
-                    parseBoard(wrapper.optJSONObject("data") ?: wrapper)
+                    val jsonArray = JSONArray(text)
+                    val userList = mutableListOf<GlobalStatsUser>()
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.optJSONObject(i) ?: continue
+                        val parsedId = obj.optString("id").ifBlank { obj.optString("uuid") }
+                        if (parsedId.isBlank()) continue
+                        userList.add(
+                            GlobalStatsUser(
+                                id = parsedId,
+                                name = obj.optString("name", "User"),
+                                profileUrl = obj.optString("profile_url").trim().takeIf { it.isNotBlank() && it != "null" },
+                                email = obj.optString("email").trim().takeIf { it.isNotBlank() && it != "null" },
+                                totalListenMs = obj.optLong("total_listen_ms", 0L),
+                                weeklyListenMs = obj.optLong("weekly_listen_ms", 0L),
+                                lastUpdatedAt = obj.optLong("last_updated_at", 0L),
+                                rank = i + 1,
+                                fcmToken = obj.optString("fcm_token").trim().takeIf { it.isNotBlank() && it != "null" }
+                            )
+                        )
+                    }
+                    GlobalStatsBoard(
+                        users = userList,
+                        updatedAt = System.currentTimeMillis()
+                    )
                 }
             }
         }
 
-    private fun writeBoard(fileName: String, json: JSONObject) {
-        val request =
-            Request
-                .Builder()
-                .url("$BASE_URL/write?file=$fileName")
-                .addHeader("X-API-Key", API_KEY)
-                .post(json.toString().toRequestBody(JSON_MEDIA_TYPE))
-                .build()
-        client.newCall(request).execute().use { response ->
-            val text = response.body?.bytes()?.let { String(it, Charsets.UTF_8) }.orEmpty()
-            if (!response.isSuccessful) error(parseError(text, response.code))
-        }
-    }
-
     suspend fun uploadDaily(upload: LocalStatsUpload): Result<GlobalStatsBoard> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val currentGlobal = readBoard(GLOBAL_STATS_FILE).getOrThrow()
-                val currentFcm = readBoard(FCM_STATS_FILE).getOrElse { GlobalStatsBoard() }
-                val now = System.currentTimeMillis()
-                val normalizedEmail = upload.email.normalizedEmail()
-                val existingGlobalUser =
-                    currentGlobal.users.firstOrNull { it.id == upload.userId }
-                        ?: normalizedEmail?.let { email ->
-                            currentGlobal.users.firstOrNull { it.email.normalizedEmail() == email }
+                val sanitizedName = upload.name.trim()
+                    .replace("<", "")
+                    .replace(">", "")
+                    .replace(";", "")
+                    .take(40)
+                    .ifBlank { "IceBeats User" }
+                val safeTotalListenMs = upload.totalListenMs.coerceAtLeast(0L)
+                val safeWeeklyListenMs = upload.weeklyListenMs.coerceAtLeast(0L)
+
+                val bodyJson = JSONObject().apply {
+                    put("id", upload.userId)
+                    put("name", sanitizedName)
+                    put("profile_url", upload.profileUrl ?: JSONObject.NULL)
+                    put("email", upload.email?.normalizedEmail() ?: JSONObject.NULL)
+                    put("total_listen_ms", safeTotalListenMs)
+                    put("weekly_listen_ms", safeWeeklyListenMs)
+                    put("last_updated_at", System.currentTimeMillis())
+                    put("fcm_token", upload.fcmToken ?: JSONObject.NULL)
+                }
+
+                val supabaseUrl = "${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL}/rest/v1/user_stats"
+                val request =
+                    Request
+                        .Builder()
+                        .url(supabaseUrl)
+                        .header("apikey", com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY)
+                        .header("Authorization", "Bearer ${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY}")
+                        .header("Content-Type", "application/json")
+                        .header("Prefer", "resolution=merge-duplicates")
+                        .post(bodyJson.toString().toRequestBody(JSON_MEDIA_TYPE))
+                        .build()
+
+                runCatching {
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            android.util.Log.w("IceBeatsStats", "Upsert returned ${response.code}")
                         }
-                val resolvedUserId = existingGlobalUser?.id ?: upload.userId
+                    }
+                }
 
-                val globalUsers =
-                    (currentGlobal.users.filterNot {
-                        it.id == resolvedUserId ||
-                            (normalizedEmail != null && it.email.normalizedEmail() == normalizedEmail)
-                    } +
-                        GlobalStatsUser(
-                            id = resolvedUserId,
-                            name = upload.name.ifBlank { "icebeats User" },
-                            profileUrl = upload.profileUrl,
-                            email = normalizedEmail ?: existingGlobalUser?.email,
-                            totalListenMs = maxOf(upload.totalListenMs.coerceAtLeast(0L), existingGlobalUser?.totalListenMs ?: 0L),
-                            weeklyListenMs = upload.weeklyListenMs.coerceAtLeast(0L),
-                            lastUpdatedAt = now,
-                        ))
-                        .sortedByDescending { it.totalListenMs }
-                        .take(MAX_GLOBAL_USERS)
-                        .mapIndexed { index, user -> user.copy(rank = index + 1) }
-
-                val globalBoard = GlobalStatsBoard(users = globalUsers, updatedAt = now)
-                
-                val existingFcmUser =
-                    currentFcm.users.firstOrNull { it.id == resolvedUserId }
-                        ?: normalizedEmail?.let { email ->
-                            currentFcm.users.firstOrNull { it.email.normalizedEmail() == email }
-                        }
-                val validNewToken = upload.fcmToken.takeIf { it != null && it != "n/v" }
-                val resolvedToken = validNewToken ?: existingFcmUser?.fcmToken ?: "n/v"
-
-                val fcmUsers = 
-                    (currentFcm.users.filterNot {
-                        it.id == resolvedUserId ||
-                            (normalizedEmail != null && it.email.normalizedEmail() == normalizedEmail)
-                    } +
-                        GlobalStatsUser(
-                            id = resolvedUserId,
-                            name = upload.name.ifBlank { "icebeats User" },
-                            totalListenMs = maxOf(upload.totalListenMs.coerceAtLeast(0L), existingFcmUser?.totalListenMs ?: 0L),
-                            rank = globalUsers.find { it.id == resolvedUserId }?.rank ?: 0,
-                            fcmToken = resolvedToken,
-                            lastUpdatedAt = now,
-                            weeklyListenMs = 0L,
-                            profileUrl = null,
-                            email = normalizedEmail ?: existingFcmUser?.email,
-                        ))
-                        .sortedByDescending { it.totalListenMs }
-                        .take(MAX_GLOBAL_USERS)
-
-                val fcmBoard = GlobalStatsBoard(users = fcmUsers, updatedAt = now)
-
-                writeBoard(GLOBAL_STATS_FILE, globalBoard.toJson(isFcmFile = false))
-                writeBoard(FCM_STATS_FILE, fcmBoard.toJson(isFcmFile = true))
-
-                globalBoard
+                readBoard().getOrThrow()
             }
         }
 

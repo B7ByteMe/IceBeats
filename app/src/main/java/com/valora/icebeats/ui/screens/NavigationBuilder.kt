@@ -52,6 +52,15 @@ import com.valora.icebeats.ui.screens.settings.PrivacySettings
 import com.valora.icebeats.ui.screens.settings.SettingsScreen
 import com.valora.icebeats.ui.screens.settings.StorageSettings
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import com.valora.icebeats.utils.rememberPreference
+import com.valora.icebeats.constants.NeverShowSupportValoraKey
+import com.valora.icebeats.constants.LastSupportValoraShownTimeKey
+import com.valora.icebeats.ui.component.SupportValoraDialog
+
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +77,26 @@ fun NavGraphBuilder.navigationBuilder(
             defaultValue = HomeScreenStyle.CLASSIC
         )
 
+        val (neverShowSupport, setNeverShowSupport) = rememberPreference(
+            NeverShowSupportValoraKey,
+            defaultValue = false
+        )
+        val (lastSupportShownTime, setLastSupportShownTime) = rememberPreference(
+            LastSupportValoraShownTimeKey,
+            defaultValue = 0L
+        )
+        var showSupportValoraDialog by remember { mutableStateOf(false) }
+
+        LaunchedEffect(neverShowSupport, lastSupportShownTime) {
+            if (!neverShowSupport) {
+                val now = System.currentTimeMillis()
+                if (now - lastSupportShownTime >= 24 * 60 * 60 * 1000L) {
+                    delay(1500)
+                    showSupportValoraDialog = true
+                }
+            }
+        }
+
         if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
             PlayfulHomeScreen(navController = navController, playerBottomSheetState = playerBottomSheetState, onSearchClick = onSearchClick)
         } else if (homeScreenStyle == HomeScreenStyle.NEON) {
@@ -78,6 +107,18 @@ fun NavGraphBuilder.navigationBuilder(
             com.valora.icebeats.ui.screens.apple.AppleHomeScreen(navController = navController)
         } else {
             HomeScreen(navController = navController)
+        }
+
+        if (showSupportValoraDialog) {
+            SupportValoraDialog(
+                onDismiss = { neverShowAgain ->
+                    showSupportValoraDialog = false
+                    setLastSupportShownTime(System.currentTimeMillis())
+                    if (neverShowAgain) {
+                        setNeverShowSupport(true)
+                    }
+                }
+            )
         }
     }
 

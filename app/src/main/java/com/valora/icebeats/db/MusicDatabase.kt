@@ -123,6 +123,15 @@ abstract class InternalDatabase : RoomDatabase() {
                     Room
                         .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
                         .addMigrations(MIGRATION_1_2)
+                        .addCallback(object : RoomDatabase.Callback() {
+                            override fun onOpen(db: SupportSQLiteDatabase) {
+                                super.onOpen(db)
+                                runCatching {
+                                    db.execSQL("UPDATE playlist SET browseId = NULL WHERE browseId = 'null' OR browseId LIKE 'Success(%' OR browseId LIKE 'Failure(%'")
+                                    db.execSQL("UPDATE playlist SET bookmarkedAt = COALESCE(lastUpdateTime, createdAt, ${System.currentTimeMillis()}) WHERE isEditable = 1 AND bookmarkedAt IS NULL")
+                                }
+                            }
+                        })
                         .build(),
             )
     }

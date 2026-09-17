@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -78,7 +78,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // API pública de captura de View
+    // API pâ€¢blica de captura de View
     // -------------------------------------------------------------------------
 
     suspend fun captureViewBitmap(
@@ -148,7 +148,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // Carga de la carátula (compartida por todos los renderers)
+    // Carga de la carâ€¢tula (compartida por todos los renderers)
     // -------------------------------------------------------------------------
 
     private suspend fun loadCoverArt(context: Context, url: String?): Bitmap? {
@@ -161,7 +161,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // Helper: fondo de álbum (desenfocado) + scrim
+    // Helper: fondo de â€¢lbum (desenfocado) + scrim
     // -------------------------------------------------------------------------
 
     private fun drawAlbumBackground(
@@ -184,7 +184,7 @@ object icebeatsComposeToImage {
                     false  // Cambia a false para mejor calidad
                 )
             )
-            // Reduce la intensidad del blur o usa un blur más suave
+            // Reduce la intensidad del blur o usa un blur mâ€¢s suave
             val blurred = if (coverArt.width > cardSize * 2) {
                 // Si la imagen original es grande, no la reduzcas tanto
                 scaleBlurQuality(scaled, 12) // Reduce la intensidad del blur
@@ -208,13 +208,13 @@ object icebeatsComposeToImage {
     private fun scaleBlurQuality(source: Bitmap, strength: Int): Bitmap {
         val safe = ensureSoftwareBitmap(source)
 
-        // Si la imagen ya es pequeña, no la reduzcas
+        // Si la imagen ya es pequeâ€¢a, no la reduzcas
         if (safe.width <= 400 || safe.height <= 400) {
             return safe
         }
 
-        // Reducción más suave para mantener calidad
-        val targetSize = max(safe.width / 4, 200) // Máximo reducción a 1/4
+        // Reducciâ€¢n mâ€¢s suave para mantener calidad
+        val targetSize = max(safe.width / 4, 200) // Mâ€¢ximo reducciâ€¢n a 1/4
         val smallW = targetSize
         val smallH = (safe.height * targetSize / safe.width).coerceAtLeast(100)
 
@@ -295,7 +295,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // Helper: metadata row (carátula + título + artista)
+    // Helper: metadata row (carâ€¢tula + tâ€¢tulo + artista)
     // -------------------------------------------------------------------------
 
     private fun drawMetadataRow(
@@ -407,7 +407,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // ? API PRINCIPAL NUEVA — despacha al renderer correcto según config
+    // ? API PRINCIPAL NUEVA â€¢ despacha al renderer correcto segâ€¢n config
     // -------------------------------------------------------------------------
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -432,7 +432,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // ? API LEGADA — sin cambios, backward compatible
+    // ? API LEGADA â€¢ sin cambios, backward compatible
     // -------------------------------------------------------------------------
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -459,7 +459,7 @@ object icebeatsComposeToImage {
     )
 
     // -------------------------------------------------------------------------
-    // RENDERER 1 — Glass Card  (fiel al diseño Compose original)
+    // RENDERER 1 â€¢ Glass Card  (fiel al diseâ€¢o Compose original)
     // -------------------------------------------------------------------------
 
     private fun renderGlassCard(
@@ -532,7 +532,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // RENDERER 2 — Minimal
+    // RENDERER 2 â€¢ Minimal
     // -------------------------------------------------------------------------
 
     private fun renderMinimal(
@@ -560,12 +560,12 @@ object icebeatsComposeToImage {
         val padding = (config.cardPadding.value / 340f) * cardSize
         val size    = cardSize.toFloat()
 
-        // Fondo sólido
+        // Fondo sâ€¢lido
         canvas.drawRoundRect(RectF(0f, 0f, size, size), corner, corner, Paint().apply {
             color = bgColor; isAntiAlias = true
         })
 
-        // Línea de acento superior
+        // Lâ€¢nea de acento superior
         val accentPaint = Paint().apply {
             isAntiAlias = true
             shader = LinearGradient(0f, 0f, size * 0.5f, 0f,
@@ -632,7 +632,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // RENDERER 3 — Cover Focused
+    // RENDERER 3 â€¢ Cover Focused
     // -------------------------------------------------------------------------
 
     private fun renderCoverFocused(
@@ -656,7 +656,7 @@ object icebeatsComposeToImage {
         // Fondo desenfocado
         drawAlbumBackground(canvas, cardSize, coverArt, 0.55f, corner)
 
-        // Carátula grande centrada en mitad superior
+        // Carâ€¢tula grande centrada en mitad superior
         if (config.showCoverArt && coverArt != null) {
             val artSize   = size * 0.4f
             val artLeft   = (size - artSize) / 2f
@@ -671,7 +671,7 @@ object icebeatsComposeToImage {
             })
         }
 
-        // Título y artista debajo de la carátula
+        // Tâ€¢tulo y artista debajo de la carâ€¢tula
         val artBottom = padding + size * 0.4f + padding * 0.5f
         val titlePaint = TextPaint().apply {
             color = mainColor; textSize = cardSize * 0.042f; typeface = Typeface.DEFAULT_BOLD
@@ -721,7 +721,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // RENDERER 4 — Centered
+    // RENDERER 4 â€¢ Centered
     // -------------------------------------------------------------------------
 
     private fun renderCentered(
@@ -803,7 +803,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // RENDERER 5 — Blur Wash
+    // RENDERER 5 â€¢ Blur Wash
     // -------------------------------------------------------------------------
 
     private fun renderBlurWash(
@@ -824,7 +824,7 @@ object icebeatsComposeToImage {
         val padding   = (config.cardPadding.value / 340f) * cardSize
         val size      = cardSize.toFloat()
 
-        // Fondo con blur máximo (30)
+        // Fondo con blur mâ€¢ximo (30)
         if (coverArt != null) {
             val scaled  = ensureSoftwareBitmap(Bitmap.createScaledBitmap(coverArt, cardSize, cardSize, true))
             val blurred = scaleBlur(scaled, 30)
@@ -887,7 +887,7 @@ object icebeatsComposeToImage {
     }
 
     // -------------------------------------------------------------------------
-    // RENDERER 6 — Streaming Modern
+    // RENDERER 6 â€¢ Streaming Modern
     // -------------------------------------------------------------------------
 
     private fun renderStreamingModern(

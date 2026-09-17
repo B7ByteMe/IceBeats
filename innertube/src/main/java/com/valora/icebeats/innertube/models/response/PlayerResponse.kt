@@ -1,10 +1,19 @@
-﻿package com.valora.icebeats.innertube.models.response
+﻿/*
+ * OpenTune Project Original (2026)
+ * Arturo254 (github.com/Arturo254)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+package com.valora.icebeats.innertube.models.response
 
 import com.valora.icebeats.innertube.models.ResponseContext
 import com.valora.icebeats.innertube.models.Thumbnails
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * PlayerResponse with [com.valora.icebeats.innertube.models.YouTubeClient.WEB_REMIX] client
+ */
 @Serializable
 data class PlayerResponse(
     val responseContext: ResponseContext,
@@ -36,7 +45,7 @@ data class PlayerResponse(
     data class StreamingData(
         val formats: List<Format>?,
         val adaptiveFormats: List<Format>,
-        val expiresInSeconds: Int,
+        val expiresInSeconds: Int? = null,
     ) {
         @Serializable
         data class Format(
@@ -58,6 +67,7 @@ data class PlayerResponse(
             val loudnessDb: Double?,
             val lastModified: Long?,
             val signatureCipher: String?,
+            val cipher: String?,
         ) {
             val isAudio: Boolean
                 get() = width == null

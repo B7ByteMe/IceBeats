@@ -1,4 +1,4 @@
-package com.valora.icebeats.ui.player
+﻿package com.valora.icebeats.ui.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -192,7 +192,7 @@ fun ApplePlayer(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Album Art � tap to open lyrics
+                    // Album Art • tap to open lyrics
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

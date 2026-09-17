@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -124,6 +125,15 @@ fun StatsScreen(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val context = LocalContext.current
 
+    val supabaseAuthManager = remember { com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context) }
+    val isSupabaseLoggedIn by supabaseAuthManager.isLoggedIn.collectAsState()
+    val (innerTubeCookie) = com.valora.icebeats.utils.rememberPreference(com.valora.icebeats.constants.InnerTubeCookieKey, "")
+    val (accountEmail) = com.valora.icebeats.utils.rememberPreference(com.valora.icebeats.constants.AccountEmailKey, "")
+    val isInnerTubeLoggedIn = remember(innerTubeCookie) {
+        innerTubeCookie.isNotEmpty() && "SAPISID" in com.valora.icebeats.innertube.utils.parseCookieString(innerTubeCookie)
+    }
+    val isUserLoggedIn = isSupabaseLoggedIn || isInnerTubeLoggedIn || accountEmail.isNotBlank()
+
     val indexChips by viewModel.indexChips.collectAsState()
     val mostPlayedSongs by viewModel.mostPlayedSongs.collectAsState()
     val mostPlayedSongsStats by viewModel.mostPlayedSongsStats.collectAsState()
@@ -142,8 +152,8 @@ fun StatsScreen(
     var showWeeklyGlobalStats by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(globalStats.board.updatedAt, globalStats.board.users.size) {
-        if (globalStats.board.users.isNotEmpty() && viewModel.shouldShowWeeklyPopup()) {
+    LaunchedEffect(globalStats.board.updatedAt, globalStats.board.users.size, isUserLoggedIn) {
+        if (isUserLoggedIn && globalStats.board.users.isNotEmpty() && viewModel.shouldShowWeeklyPopup()) {
             showWeeklyGlobalStats = true
         }
     }
@@ -264,8 +274,62 @@ fun StatsScreen(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
-            item {
-                ChoiceChipsRow(
+            if (!isUserLoggedIn) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.login),
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Masuk untuk Melihat Statistik",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Total waktu mendengarkan, lagu favorit, dan artis teratas hanya direkap setelah Anda login. Masuk ke akun Anda untuk mulai merekap data.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(onClick = { navController.navigate("login") }) {
+                                Text("Masuk / Login")
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    GlobalStatsBoardCard(
+                        state = globalStats,
+                        onRefresh = viewModel::refreshGlobalStats,
+                        isUserLoggedIn = false,
+                        onLoginClick = { navController.navigate("login") }
+                    )
+                }
+            } else {
+                item {
+                    ChoiceChipsRow(
                     chips =
                         when (selectedOption) {
                             OptionStats.WEEKS -> weeklyDates
@@ -352,6 +416,8 @@ fun StatsScreen(
                 GlobalStatsBoardCard(
                     state = globalStats,
                     onRefresh = viewModel::refreshGlobalStats,
+                    isUserLoggedIn = true,
+                    onLoginClick = null
                 )
             }
 
@@ -541,9 +607,10 @@ fun StatsScreen(
                 }
             }
         }
+    }
 
         // FAB to shuffle most played songs
-        if (mostPlayedSongs.isNotEmpty()) {
+        if (isUserLoggedIn && mostPlayedSongs.isNotEmpty()) {
             HideOnScrollFAB(
                 visible = true,
                 lazyListState = lazyListState,
@@ -621,9 +688,9 @@ fun StatsScreen(
 
     if (showWeeklyGlobalStats) {
         val weeklyUsers = remember(globalStats.board.users) {
-            globalStats.board.users
-                .filter { it.weeklyListenMs > 0 }
-                .sortedByDescending { it.weeklyListenMs }
+            val active = globalStats.board.users.filter { it.weeklyListenMs > 0 }
+            val list = if (active.isNotEmpty()) active else globalStats.board.users
+            list.sortedByDescending { if (active.isNotEmpty()) it.weeklyListenMs else it.totalListenMs }
                 .mapIndexed { index, user -> user.copy(rank = index + 1) }
         }
         WeeklyGlobalStatsSheet(
@@ -641,10 +708,12 @@ fun StatsScreen(
 private fun GlobalStatsBoardCard(
     state: GlobalStatsUiState,
     onRefresh: () -> Unit,
+    isUserLoggedIn: Boolean = true,
+    onLoginClick: (() -> Unit)? = null,
 ) {
     val users = state.board.users
     val topUser = users.firstOrNull()
-    val currentUser = users.firstOrNull { it.id == state.currentUserId }
+    val currentUser = if (isUserLoggedIn) users.firstOrNull { it.id == state.currentUserId } else null
 
     Card(
         modifier = Modifier
@@ -670,7 +739,7 @@ private fun GlobalStatsBoardCard(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = topUser?.let { "Most listened: ${it.name} • Total Users: ${users.size}" } ?: "Waiting for daily cloud stats",
+                        text = topUser?.let { "Most listened: ${it.name} â€¢ Total Users: ${users.size}" } ?: "Waiting for daily cloud stats",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -695,22 +764,76 @@ private fun GlobalStatsBoardCard(
                 )
                 GlobalStatPill(
                     label = "Your rank",
-                    value = currentUser?.rank?.let { "#$it" } ?: "--",
+                    value = if (isUserLoggedIn) (currentUser?.rank?.let { "#$it" } ?: "--") else "Belum Login",
                     modifier = Modifier.weight(1f),
                 )
             }
 
+            if (!isUserLoggedIn) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Login untuk masuk ke Global Stats",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = { onLoginClick?.invoke() }
+                        ) {
+                            Text("Login")
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
+            val top20Users = users.take(20)
+            val isCurrentUserInTop20 = isUserLoggedIn && top20Users.any { it.id == state.currentUserId }
+
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                items(users, key = { it.id }) { user ->
+                top20Users.forEach { user ->
                     GlobalUserRankRow(
                         user = user,
-                        isCurrentUser = user.id == state.currentUserId,
+                        isCurrentUser = isUserLoggedIn && user.id == state.currentUserId,
+                    )
+                }
+
+                if (isUserLoggedIn && !isCurrentUserInTop20 && currentUser != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "â€¢ â€¢ â€¢",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+
+                    GlobalUserRankRow(
+                        user = currentUser,
+                        isCurrentUser = true,
                     )
                 }
             }
@@ -832,7 +955,7 @@ private fun WeeklyGlobalStatsSheet(
                     fontWeight = FontWeight.Black,
                 )
                 Text(
-                    text = "Total Users: ${users.size} • Only names and listened hours are shown.",
+                    text = "Total Users: ${users.size} â€¢ Only names and listened hours are shown.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
@@ -1038,7 +1161,7 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Características
+        // Caracterâ€¢sticas
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -1063,7 +1186,7 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón para ver completo
+        // Botâ€¢n para ver completo
         Button(
             onClick = onNavigateToFullInsight,
             modifier = Modifier.fillMaxWidth(),
@@ -1209,7 +1332,7 @@ fun StatsHighlightsSection(
             StatsHighlightCard(
                 title = "Your Favourite Artist",
                 mainText = topArtist.artist.name,
-                subText = "${topArtist.songCount} songs played • ${makeTimeString(topArtist.timeListened?.toLong())}",
+                subText = "${topArtist.songCount} songs played â€¢ ${makeTimeString(topArtist.timeListened?.toLong())}",
                 imageUrl = topArtist.artist.thumbnailUrl,
                 onClick = { navController.navigate("artist/${topArtist.id}") }
             )
@@ -1219,7 +1342,7 @@ fun StatsHighlightsSection(
             StatsHighlightCard(
                 title = "Your Favourite Song",
                 mainText = topSong.title,
-                subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
+                subText = "${topSong.songCountListened} plays â€¢ ${makeTimeString(topSong.timeListened)}",
                 imageUrl = topSong.thumbnailUrl,
                 onClick = { }
             )

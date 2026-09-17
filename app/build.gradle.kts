@@ -34,10 +34,10 @@ android {
 
     defaultConfig {
         applicationId = "com.valora.icebeats"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
-        versionCode = 173
-        versionName = "6.0.3"
+        versionCode = 174
+        versionName = "7.0.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_API_KEY", googleApiKey.asBuildConfigString())
         buildConfigField("String", "STATS_API_KEY", statsApiKey.asBuildConfigString())
@@ -95,14 +95,14 @@ android {
     // ✅ Alineamos TODO a Java 17
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlin {
-        jvmToolchain(21)
+        jvmToolchain(17)
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
             freeCompilerArgs.add("-Xcontext-receivers")
         }
     }

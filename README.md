@@ -511,6 +511,7 @@ git push origin feature/your-feature-name
 
 ## Acknowledgments
 
+- **[z-huang / InnerTune](https://github.com/z-huang/InnerTune)** — Foundational open-source base
 - **[d0x-dev / AirBeats](https://github.com/d0x-dev/AirBeats)** — Original fork, redesign components
 - **Community Translators** — 40+ languages powered by Crowdin
 - **Beta Testers** — Stability and usability feedback

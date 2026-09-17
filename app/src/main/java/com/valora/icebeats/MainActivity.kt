@@ -361,12 +361,51 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleOAuthCallback(intent)
+    }
+
+    val pendingOAuthNavigateToHome = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 1)
+
+    private fun handleOAuthCallback(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "icebeats" && uri.host == "auth-callback") {
+            lifecycleScope.launch(Dispatchers.IO) {
+                val fragment = uri.fragment ?: uri.query ?: return@launch
+                val params = fragment.split("&").associate { param ->
+                    val parts = param.split("=")
+                    if (parts.size == 2) parts[0] to runCatching { java.net.URLDecoder.decode(parts[1], "UTF-8") }.getOrDefault(parts[1])
+                    else "" to ""
+                }
+                val accessToken = params["access_token"]
+                val refreshToken = params["refresh_token"]
+                if (!accessToken.isNullOrBlank()) {
+                    val client = com.valora.icebeats.supabase.SupabaseClient(this@MainActivity)
+                    client.fetchAndSaveUserProfile(accessToken, refreshToken)
+                    database.clearAllLikes()
+                    database.clearUserPlaylists()
+                    database.clearAllPlaylistSongs()
+                    database.clearAllEvents()
+                    database.clearAllArtistBookmarks()
+                    database.clearAllAlbumBookmarks()
+                    client.restoreUserData(database)
+                    withContext(Dispatchers.Main) {
+                        pendingOAuthNavigateToHome.tryEmit(Unit)
+                        android.widget.Toast.makeText(this@MainActivity, "Berhasil masuk!", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+        handleOAuthCallback(intent)
 
         // 🔔 Notification permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -568,6 +607,17 @@ class MainActivity : ComponentActivity() {
 
                             val navController = rememberNavController()
                             val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+                            LaunchedEffect(navController) {
+                                pendingOAuthNavigateToHome.collect {
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
+                                        popUpTo("onboarding") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+
                             val (previousTab) = rememberSaveable { mutableStateOf("home") }
 
                             val navigationItems = remember(homeScreenStyle, navBarStyle, enableLiquidGlass) { 
@@ -2094,7 +2144,7 @@ fun HeadphoneSplashScreen() {
                 try {
                     context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 } catch (e: Exception) {
-                    "6.0.0"
+                    "7.0.5"
                 }
             }
 

@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * icebeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // -----------------------------------------------------------------------------
-// Layout styles — cada valor representa un diseño visual distinto para la tarjeta
-// Agregar un nuevo estilo = añadir un entry aquí + un composable en LyricsCardLayouts
+// Layout styles â€¢ cada valor representa un diseâ€¢o visual distinto para la tarjeta
+// Agregar un nuevo estilo = aâ€¢adir un entry aquâ€¢ + un composable en LyricsCardLayouts
 // -----------------------------------------------------------------------------
 
 enum class LyricsLayoutStyle(
@@ -20,7 +20,7 @@ enum class LyricsLayoutStyle(
 ) {
     GlassCard(
         displayName = "Glass Card",
-        description = "Panel de vidrio líquido",
+        description = "Panel de vidrio lâ€¢quido",
     ),
     Minimal(
         displayName = "Minimal",
@@ -28,7 +28,7 @@ enum class LyricsLayoutStyle(
     ),
     CoverFocused(
         displayName = "Cover Focus",
-        description = "Portada del álbum destacada",
+        description = "Portada del â€¢lbum destacada",
     ),
     Centered(
         displayName = "Centrado",
@@ -40,7 +40,7 @@ enum class LyricsLayoutStyle(
     ),
     StreamingModern(
         displayName = "Streaming",
-        description = "Estilo app de música moderna",
+        description = "Estilo app de mâ€¢sica moderna",
     ),
 }
 
@@ -56,26 +56,26 @@ enum class LyricsBackgroundType(val displayName: String) {
 }
 
 // -----------------------------------------------------------------------------
-// LyricsCardConfig — estado inmutable del usuario.
+// LyricsCardConfig â€¢ estado inmutable del usuario.
 // Se pasa a LyricsCardByLayout y a LyricsShareCarouselSheet.
-// Modifica con .copy(...) para aplicar cambios sin mutación.
+// Modifica con .copy(...) para aplicar cambios sin mutaciâ€¢n.
 // -----------------------------------------------------------------------------
 
 data class LyricsCardConfig(
 
-    /** Qué template visual se renderiza en la tarjeta */
+    /** Quâ€¢ template visual se renderiza en la tarjeta */
     val layoutStyle: LyricsLayoutStyle = LyricsLayoutStyle.GlassCard,
 
     /** Estilo de vidrio/colores/blur; solo los layouts que usan cloudy/liquidGlass lo consumen */
     val glassStyle: LyricsGlassStyle = LyricsGlassStyle.FrostedDark,
 
     /**
-     * Multiplicador sobre el tamaño de fuente calculado automáticamente.
-     * Rango recomendado: 0.6f – 1.5f
+     * Multiplicador sobre el tamaâ€¢o de fuente calculado automâ€¢ticamente.
+     * Rango recomendado: 0.6f â€¢ 1.5f
      */
     val textSizeMultiplier: Float = 1f,
 
-    /** Alineación del bloque de letra */
+    /** Alineaciâ€¢n del bloque de letra */
     val textAlign: TextAlign = TextAlign.Center,
 
     /** Visibilidad de elementos dentro de la tarjeta */
@@ -89,7 +89,7 @@ data class LyricsCardConfig(
 
     /**
      * Padding interno de la tarjeta.
-     * Rango recomendado: 12.dp – 36.dp
+     * Rango recomendado: 12.dp â€¢ 36.dp
      */
     val cardPadding: Dp = 24.dp,
 )
