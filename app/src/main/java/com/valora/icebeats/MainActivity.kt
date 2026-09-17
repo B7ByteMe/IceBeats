@@ -2144,7 +2144,7 @@ fun HeadphoneSplashScreen() {
                 try {
                     context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 } catch (e: Exception) {
-                    "7.0.5"
+                    "7.0.6"
                 }
             }
 
