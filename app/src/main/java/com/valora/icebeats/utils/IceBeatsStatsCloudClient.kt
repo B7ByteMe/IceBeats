@@ -86,8 +86,22 @@ class icebeatsStatsCloudClient {
                             )
                         )
                     }
+                    val distinctUsers = userList
+                        .groupBy { user ->
+                            user.email?.takeIf { it.isNotBlank() }
+                                ?: user.name.trim().lowercase().takeIf { it.isNotBlank() }
+                                ?: user.id
+                        }
+                        .map { entry ->
+                            entry.value.maxByOrNull { it.totalListenMs } ?: entry.value.first()
+                        }
+                        .sortedByDescending { it.totalListenMs }
+                        .mapIndexed { index, user ->
+                            user.copy(rank = index + 1)
+                        }
+
                     GlobalStatsBoard(
-                        users = userList,
+                        users = distinctUsers,
                         updatedAt = System.currentTimeMillis()
                     )
                 }
@@ -170,6 +184,14 @@ class icebeatsStatsCloudClient {
                             fcmToken = it.optString("fcmToken").takeIf(String::isNotBlank),
                         )
                     }
+                }
+                .groupBy { user ->
+                    user.email?.takeIf { it.isNotBlank() }
+                        ?: user.name.trim().lowercase().takeIf { it.isNotBlank() }
+                        ?: user.id
+                }
+                .map { entry ->
+                    entry.value.maxByOrNull { it.totalListenMs } ?: entry.value.first()
                 }
                 .sortedByDescending { it.totalListenMs }
                 .take(MAX_GLOBAL_USERS)
