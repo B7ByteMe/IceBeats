@@ -49,8 +49,14 @@ object icebeatsStatsCloudSync {
                 .toEpochMilli()
         val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
         val weekSongs = database.mostPlayedSongsStats(weekStart, limit = -1, toTimeStamp = now).first()
-        val totalListenMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
+        val calculatedTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
         val weeklyListenMs = weekSongs.sumOf { it.timeListened?.toLong() ?: 0L }
+        val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        val savedTotalMs = prefs.getLong("saved_max_total_listen_ms", 0L)
+        val totalListenMs = maxOf(calculatedTotalMs, savedTotalMs)
+        if (calculatedTotalMs > savedTotalMs) {
+            prefs.edit().putLong("saved_max_total_listen_ms", calculatedTotalMs).apply()
+        }
         val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
         val profileUrl =

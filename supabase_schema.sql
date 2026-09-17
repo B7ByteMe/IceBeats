@@ -121,6 +121,9 @@ CREATE TABLE IF NOT EXISTS public.user_events (
     CONSTRAINT unique_user_song_event UNIQUE (user_id, song_id, timestamp)
 );
 
+-- Index performa untuk mempercepat restore riwayat dan stats
+CREATE INDEX IF NOT EXISTS idx_user_events_user_timestamp ON public.user_events (user_id, timestamp DESC);
+
 -- Aktifkan Row Level Security (RLS)
 ALTER TABLE public.user_events ENABLE ROW LEVEL SECURITY;
 

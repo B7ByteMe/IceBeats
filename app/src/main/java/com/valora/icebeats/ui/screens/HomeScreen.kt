@@ -17,6 +17,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Spacer
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1016,12 +1022,19 @@ fun ModernHomeTopBarInline(
 
     val currentVersion = BuildConfig.VERSION_NAME
     var showUpdateIcon by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var latestVersionTag by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         try {
             val latestVersion = withContext(Dispatchers.IO) { checkForUpdates() }
-            showUpdateIcon =
-                latestVersion?.let { isNewerVersion(it, currentVersion) } ?: false
+            if (latestVersion != null && isNewerVersion(latestVersion, currentVersion)) {
+                showUpdateIcon = true
+                latestVersionTag = latestVersion
+                showUpdateDialog = true
+            } else {
+                showUpdateIcon = false
+            }
         } catch (_: Exception) {
             showUpdateIcon = false
         }
@@ -1142,7 +1155,13 @@ fun ModernHomeTopBarInline(
                         R.drawable.update
                     else
                         R.drawable.settings,
-                    onClick = { navController.navigate("settings") }
+                    onClick = {
+                        if (showUpdateIcon) {
+                            showUpdateDialog = true
+                        } else {
+                            navController.navigate("settings")
+                        }
+                    }
                 )
             }
         }
@@ -1207,6 +1226,98 @@ fun ModernHomeTopBarInline(
                 }
             }
         }
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.update),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Pembaruan Tersedia!",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Sudah ada versi terbaru, segera update IceBeats untuk menikmati fitur dan peningkatan terbaru.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Versi Anda",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = "v$currentVersion",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_forward),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "Versi Terbaru",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = if (latestVersionTag.startsWith("v")) latestVersionTag else "v$latestVersionTag",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUpdateDialog = false
+                        val updateUrl = "https://icebeats.pages.dev"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Update")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showUpdateDialog = false }
+                ) {
+                    Text("Nanti Dulu")
+                }
+            }
+        )
     }
 }
 

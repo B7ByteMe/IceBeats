@@ -202,7 +202,7 @@ fun OnboardingScreen(
                 database.clearAllLikes()
                 database.clearUserPlaylists()
                 database.clearAllPlaylistSongs()
-                database.clearAllEvents()
+                // Keep local playback events intact; restoreUserData will merge cloud events
                 database.clearAllArtistBookmarks()
                 database.clearAllAlbumBookmarks()
             }

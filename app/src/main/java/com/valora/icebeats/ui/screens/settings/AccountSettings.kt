@@ -50,9 +50,12 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.text.style.TextAlign
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSettings(
@@ -176,13 +179,13 @@ fun AccountSettings(
                     )
                 }
 
-                // Clear any leftover guest residue and restore account data from Supabase
+                // Clear cloud-synced items and restore account data from Supabase without wiping local playback history
                 if (database != null) {
                     withContext(Dispatchers.IO) {
                         database.clearAllLikes()
                         database.clearUserPlaylists()
                         database.clearAllPlaylistSongs()
-                        database.clearAllEvents()
+                        // Keep local playback events intact; restoreUserData will merge any missing cloud events
                         database.clearAllArtistBookmarks()
                         database.clearAllAlbumBookmarks()
                         val res = supabaseClient.restoreUserData(database)
@@ -266,19 +269,29 @@ fun AccountSettings(
     }
 
     var isLoggingOut by remember { mutableStateOf(false) }
+    var logoutStatusText by remember { mutableStateOf("Mencadangkan data ke Cloud...") }
 
     val performLogout: (String) -> Unit = { successMessage ->
         if (!isLoggingOut) {
             isLoggingOut = true
+            logoutStatusText = "Mencadangkan playlist, favorit, dan riwayat ke Cloud..."
             scope.launch {
                 try {
                     withContext(Dispatchers.IO) {
                         if (database != null) {
                             runCatching {
-                                withTimeoutOrNull(7000L) {
-                                    supabaseClient.syncUserData(database)
-                                }
+                                supabaseClient.syncUserData(database)
+                            }.onFailure {
+                                it.printStackTrace()
                             }
+                            runCatching {
+                                com.valora.icebeats.utils.icebeatsStatsCloudSync.syncDaily(context, database, nameManager)
+                            }.onFailure {
+                                it.printStackTrace()
+                            }
+                        }
+                        withContext(Dispatchers.Main) {
+                            logoutStatusText = "Menyelesaikan sesi akun..."
                         }
                         supabaseClient.signOut()
                         supabaseAuthManager.clearSession()
@@ -743,6 +756,46 @@ fun AccountSettings(
                 }
             }
         )
+    }
+
+    if (isLoggingOut) {
+        Dialog(
+            onDismissRequest = { /* Menunggu sampai backup & logout selesai */ },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF1E1E1E),
+                tonalElevation = 8.dp,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "Sedang Logout",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = logoutStatusText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
     }
 
 }

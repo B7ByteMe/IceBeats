@@ -743,7 +743,7 @@ class SupabaseClient(private val context: Context) {
             }
 
             // 3. Sync recent playback events & history from Room DB
-            val recentEvents = runCatching { database.events().first() }.getOrDefault(emptyList()).take(300)
+            val recentEvents = runCatching { database.events().first() }.getOrDefault(emptyList()).take(500)
             val eventsArray = JSONArray()
             recentEvents.forEach { item ->
                 eventsArray.put(JSONObject().apply {
@@ -755,7 +755,7 @@ class SupabaseClient(private val context: Context) {
                     put("thumbnail_url", item.song.thumbnailUrl.orEmpty())
                     put("play_time", item.event.playTime)
                     val tsStr = runCatching {
-                        item.event.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toString()
+                        item.event.timestamp.atZone(java.time.ZoneOffset.UTC).toInstant().toString()
                     }.getOrDefault(item.event.timestamp.toString())
                     put("timestamp", tsStr)
                 })
@@ -995,33 +995,33 @@ class SupabaseClient(private val context: Context) {
                         val existingEvents = runCatching { database.events().first() }.getOrDefault(emptyList())
                         val existingKeys = existingEvents.map { "${it.event.songId}_${it.event.timestamp.toEpochSecond(java.time.ZoneOffset.UTC) / 60}" }.toMutableSet()
 
-                        for (i in 0 until evArr.length()) {
-                            val item = evArr.optJSONObject(i) ?: continue
-                            val songId = item.optString("song_id")
-                            val title = item.optString("title")
-                            val artistName = item.optString("artist_name")
-                            val albumName = item.optString("album_name")
-                            val thumb = item.optString("thumbnail_url")
-                            val playTime = item.optLong("play_time", 0L)
-                            val tsStr = item.optString("timestamp")
-                            val ts = runCatching {
-                                java.time.Instant.parse(tsStr).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
-                            }.getOrElse {
-                                runCatching {
-                                    java.time.OffsetDateTime.parse(tsStr).atZoneSameInstant(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                        database.transaction {
+                            for (i in 0 until evArr.length()) {
+                                val item = evArr.optJSONObject(i) ?: continue
+                                val songId = item.optString("song_id")
+                                val title = item.optString("title")
+                                val artistName = item.optString("artist_name")
+                                val albumName = item.optString("album_name")
+                                val thumb = item.optString("thumbnail_url")
+                                val playTime = item.optLong("play_time", 0L)
+                                val tsStr = item.optString("timestamp")
+                                val ts = runCatching {
+                                    java.time.Instant.parse(tsStr).atZone(java.time.ZoneOffset.UTC).toLocalDateTime()
                                 }.getOrElse {
-                                    runCatching { java.time.LocalDateTime.parse(tsStr) }.getOrDefault(java.time.LocalDateTime.now())
+                                    runCatching {
+                                        java.time.OffsetDateTime.parse(tsStr).atZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime()
+                                    }.getOrElse {
+                                        runCatching { java.time.LocalDateTime.parse(tsStr) }.getOrDefault(java.time.LocalDateTime.now())
+                                    }
                                 }
-                            }
 
-                            val eventKey = "${songId}_${ts.toEpochSecond(java.time.ZoneOffset.UTC) / 60}"
-                            if (eventKey in existingKeys) {
-                                continue
-                            }
-                            existingKeys.add(eventKey)
+                                val eventKey = "${songId}_${ts.toEpochSecond(java.time.ZoneOffset.UTC) / 60}"
+                                if (eventKey in existingKeys) {
+                                    continue
+                                }
+                                existingKeys.add(eventKey)
 
-                            if (songId.isNotBlank()) {
-                                database.transaction {
+                                if (songId.isNotBlank()) {
                                     insert(
                                         SongEntity(
                                             id = songId,
@@ -1035,7 +1035,7 @@ class SupabaseClient(private val context: Context) {
                                         )
                                     )
                                     if (artistName.isNotBlank()) {
-                                        val artistId = ArtistEntity.generateArtistId()
+                                        val artistId = artistByName(artistName)?.id ?: ArtistEntity.generateArtistId()
                                         insert(ArtistEntity(id = artistId, name = artistName))
                                         insert(SongArtistMap(songId = songId, artistId = artistId, position = 0))
                                     }
