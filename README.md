@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/B7ByteMe/IceBeats/refs/heads/main/assets/ic_launcher-playstore.png" width="120" alt="IceBeats Logo" />
+  <img src="https://raw.githubusercontent.com/B7ByteMe/IceBeats/refs/heads/main/assets/icon.png" width="120" alt="IceBeats Logo" />
 </p>
 
 <h1 align="center">IceBeats</h1>
