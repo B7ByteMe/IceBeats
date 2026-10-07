@@ -454,6 +454,13 @@ TO public
 USING (true)
 WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Public can delete conversations" ON public.chat_conversations;
+CREATE POLICY "Public can delete conversations"
+ON public.chat_conversations
+FOR DELETE
+TO public
+USING (true);
+
 
 -- B. TABEL PESAN (MESSAGES) & BERBAGI MUSIK
 CREATE TABLE IF NOT EXISTS public.chat_messages (
@@ -476,6 +483,7 @@ ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public can select messages" ON public.chat_messages;
 DROP POLICY IF EXISTS "Public can insert messages" ON public.chat_messages;
 DROP POLICY IF EXISTS "Public can update messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Public can delete messages" ON public.chat_messages;
 
 CREATE POLICY "Public can select messages"
 ON public.chat_messages
@@ -498,6 +506,12 @@ FOR UPDATE
 TO public
 USING (true)
 WITH CHECK (true);
+
+CREATE POLICY "Public can delete messages"
+ON public.chat_messages
+FOR DELETE
+TO public
+USING (true);
 
 
 -- C. AKTIFKAN SUPABASE REALTIME (AGAR PESAN LANGSUNG MUNCUL TANPA REFRESH)

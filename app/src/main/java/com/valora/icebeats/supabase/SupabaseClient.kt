@@ -1557,6 +1557,38 @@ class SupabaseClient(private val context: Context) {
     }
 
     /**
+     * Hapus percakapan dan seluruh pesan di dalamnya
+     */
+    suspend fun deleteConversation(conversationId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (conversationId.isBlank()) return@runCatching false
+            val token = authManager.accessToken ?: anonKey
+
+            // 1. Hapus seluruh pesan di chat_messages
+            val msgUrl = "$baseUrl/rest/v1/chat_messages?conversation_id=eq.$conversationId"
+            val msgReq = Request.Builder()
+                .url(msgUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .delete()
+                .build()
+            httpClient.newCall(msgReq).execute().close()
+
+            // 2. Hapus percakapan di chat_conversations
+            val convUrl = "$baseUrl/rest/v1/chat_conversations?id=eq.$conversationId"
+            val convReq = Request.Builder()
+                .url(convUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .delete()
+                .build()
+            httpClient.newCall(convReq).execute().use { resp ->
+                resp.isSuccessful
+            }
+        }
+    }
+
+    /**
      * Dapatkan riwayat pesan dalam percakapan
      */
     suspend fun getChatMessages(conversationId: String): Result<List<ChatMessage>> = withContext(Dispatchers.IO) {
