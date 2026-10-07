@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -100,8 +102,8 @@ class BorderPreferenceManager @Inject constructor(
                     put("border_style", style.id)
                 }
 
-                val mediaType = okhttp3.MediaType.Companion.toMediaType("application/json; charset=utf-8")
-                val requestBody = okhttp3.RequestBody.Companion.toRequestBody(bodyJson.toString(), mediaType)
+                val mediaType = "application/json; charset=utf-8".toMediaType()
+                val requestBody = bodyJson.toString().toRequestBody(mediaType)
 
                 val request = okhttp3.Request.Builder()
                     .url(targetUrl)
