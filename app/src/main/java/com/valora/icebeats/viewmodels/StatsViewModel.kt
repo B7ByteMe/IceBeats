@@ -244,9 +244,13 @@ constructor(
                     // Pastikan HP menyimpan rekor skor tertinggi dari server agar tidak ter-reset
                     val myCloudStats = board.users.find { it.id == userId }
                     if (myCloudStats != null) {
-                        val currentSaved = statsPreferences.getLong("saved_max_total_listen_ms", 0L)
+                        val userKey = "saved_max_total_listen_ms_${userId}"
+                        val currentSaved = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
                         if (myCloudStats.totalListenMs > currentSaved) {
-                            statsPreferences.edit().putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs).apply()
+                            statsPreferences.edit()
+                                .putLong(userKey, myCloudStats.totalListenMs)
+                                .putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs)
+                                .apply()
                         }
                     }
                     statsPreferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
@@ -268,9 +272,13 @@ constructor(
                 // Sinkronkan juga skor tertinggi dari cloud jika readBoard dipanggil
                 val myCloudStats = board.users.find { it.id == userId }
                 if (myCloudStats != null) {
-                    val currentSaved = statsPreferences.getLong("saved_max_total_listen_ms", 0L)
+                    val userKey = "saved_max_total_listen_ms_${userId}"
+                    val currentSaved = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
                     if (myCloudStats.totalListenMs > currentSaved) {
-                        statsPreferences.edit().putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs).apply()
+                        statsPreferences.edit()
+                            .putLong(userKey, myCloudStats.totalListenMs)
+                            .putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs)
+                            .apply()
                     }
                 }
                 globalStats.value =
@@ -304,8 +312,10 @@ constructor(
         val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
         val weekSongs = database.mostPlayedSongsStats(weekStart, limit = -1, toTimeStamp = now).first()
         val calculatedTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
-        val savedTotalMs = statsPreferences.getLong("saved_max_total_listen_ms", 0L)
-        val lastLocalAnchorMs = statsPreferences.getLong("last_local_anchor_ms", calculatedTotalMs)
+        val userKey = "saved_max_total_listen_ms_${userId}"
+        val anchorKey = "last_local_anchor_ms_${userId}"
+        val savedTotalMs = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
+        val lastLocalAnchorMs = statsPreferences.getLong(anchorKey, statsPreferences.getLong("last_local_anchor_ms", calculatedTotalMs))
 
         // Hitung selisih waktu mendengarkan baru sejak sinkronisasi terakhir
         val localDeltaMs = if (calculatedTotalMs >= lastLocalAnchorMs) {
@@ -323,7 +333,9 @@ constructor(
 
         // Perbarui rekor dan titik acuan lokal
         statsPreferences.edit()
+            .putLong(userKey, totalListenMs)
             .putLong("saved_max_total_listen_ms", totalListenMs)
+            .putLong(anchorKey, calculatedTotalMs)
             .putLong("last_local_anchor_ms", calculatedTotalMs)
             .apply()
 

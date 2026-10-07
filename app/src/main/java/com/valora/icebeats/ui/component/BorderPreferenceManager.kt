@@ -6,7 +6,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,7 +17,7 @@ enum class MasterBorderStyle(
     val title: String,
     val description: String,
     val drawableResName: String,
-    val scaleMultiplier: Float = 1.90f,
+    val scaleMultiplier: Float = 2.15f,
     val offsetYRatio: Float = 0f
 ) {
     ROYAL_CROWN(
@@ -23,32 +25,32 @@ enum class MasterBorderStyle(
         title = "Royal Crown",
         description = "Mahkota Emas Mewah, Sayap Hitam & Permata",
         drawableResName = "border_royal_crown",
-        scaleMultiplier = 1.95f,
-        offsetYRatio = 0.005f
+        scaleMultiplier = 2.15f,
+        offsetYRatio = 0f
     ),
     CRIMSON_WING(
         id = "crimson_wing",
         title = "Crimson Wings",
         description = "Sayap Emas Elegan & Kristal Rubi Merah",
         drawableResName = "border_crimson_wing",
-        scaleMultiplier = 1.88f,
-        offsetYRatio = -0.015f
+        scaleMultiplier = 2.15f,
+        offsetYRatio = 0f
     ),
     FIRE_FLAME(
         id = "fire_flame",
         title = "Fire Flame Ring",
         description = "Cincin Api Berputar Khas Elemen Membara",
         drawableResName = "border_fire_flame",
-        scaleMultiplier = 1.76f,
-        offsetYRatio = -0.015f
+        scaleMultiplier = 2.20f,
+        offsetYRatio = 0f
     ),
     GOLDEN_SHIELD(
         id = "golden_shield",
         title = "Golden Champion",
         description = "Tameng Sayap Kejuaraan Emas Gagah",
         drawableResName = "border_golden_shield",
-        scaleMultiplier = 1.88f,
-        offsetYRatio = 0.01f
+        scaleMultiplier = 2.15f,
+        offsetYRatio = 0f
     );
 
     companion object {
@@ -75,6 +77,39 @@ class BorderPreferenceManager @Inject constructor(
     suspend fun saveSelectedBorder(style: MasterBorderStyle) {
         context.borderDataStore.edit { prefs ->
             prefs[SELECTED_BORDER_KEY] = style.id
+        }
+
+        // Sinkronkan pilihan border ke server Supabase user_stats agar unik per-akun
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching {
+                val nameManager = NamePreferenceManager(context)
+                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+                val email = nameManager.accountEmail.first().trim()
+                val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
+                val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
+                val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
+                val token = authManager.accessToken ?: anonKey
+
+                val targetUrl = if (email.isNotBlank()) {
+                    "$baseUrl/rest/v1/user_stats?or=(id.eq.$userId,email.eq.$email)"
+                } else {
+                    "$baseUrl/rest/v1/user_stats?id=eq.$userId"
+                }
+
+                val bodyJson = org.json.JSONObject().apply {
+                    put("border_style", style.id)
+                }
+
+                val request = okhttp3.Request.Builder()
+                    .url(targetUrl)
+                    .header("apikey", anonKey)
+                    .header("Authorization", "Bearer $token")
+                    .header("Content-Type", "application/json")
+                    .patch(okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json; charset=utf-8"), bodyJson.toString()))
+                    .build()
+
+                okhttp3.OkHttpClient().newCall(request).execute().close()
+            }
         }
     }
 }

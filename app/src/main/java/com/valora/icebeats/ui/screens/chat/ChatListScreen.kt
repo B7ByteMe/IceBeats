@@ -341,7 +341,8 @@ fun ChatListScreen(
                                     MasterProfileBorder(
                                         avatarSize = 40.dp,
                                         userRank = user.rank,
-                                        totalListenMs = user.totalListenMs
+                                        totalListenMs = user.totalListenMs,
+                                        borderStyle = user.borderStyle?.let { com.valora.icebeats.ui.component.MasterBorderStyle.fromId(it) }
                                     ) {
                                         Box(
                                             modifier = Modifier
@@ -427,7 +428,8 @@ private fun ConversationItem(
         MasterProfileBorder(
             avatarSize = 46.dp,
             userRank = conversation.otherUser.rank,
-            totalListenMs = conversation.otherUser.totalListenMs
+            totalListenMs = conversation.otherUser.totalListenMs,
+            borderStyle = conversation.otherUser.borderStyle?.let { com.valora.icebeats.ui.component.MasterBorderStyle.fromId(it) }
         ) {
             Box(
                 modifier = Modifier

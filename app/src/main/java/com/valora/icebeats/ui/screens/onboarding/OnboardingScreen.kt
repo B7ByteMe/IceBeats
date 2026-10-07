@@ -199,10 +199,15 @@ fun OnboardingScreen(
             }
 
             withContext(Dispatchers.IO) {
+                com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
+                com.valora.icebeats.ui.component.RankPreferenceManager(context).saveDisplayedRank(null)
+                com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(
+                    com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
+                )
                 database.clearAllLikes()
                 database.clearUserPlaylists()
                 database.clearAllPlaylistSongs()
-                // Keep local playback events intact; restoreUserData will merge cloud events
+                database.clearAllEvents()
                 database.clearAllArtistBookmarks()
                 database.clearAllAlbumBookmarks()
             }
@@ -212,6 +217,7 @@ fun OnboardingScreen(
                 continueToHome()
             } else {
                 syncState = SyncState.RESTORING
+                supabaseClient.syncCurrentUserStats(context)
                 val restoreResult = supabaseClient.restoreUserData(database)
                 restoreResult.onFailure { err ->
                     Toast.makeText(context, "Sinkronisasi Cloud: ${err.message}", Toast.LENGTH_SHORT).show()

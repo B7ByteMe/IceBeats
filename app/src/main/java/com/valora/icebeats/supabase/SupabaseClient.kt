@@ -1173,6 +1173,84 @@ class SupabaseClient(private val context: Context) {
     }
 
     /**
+     * Sinkronkan level, total jam dengar, rank badge, dan border terkini pengguna dari server Supabase.
+     * Langsung mengupdate tampilan Settings, Badge profil, dan Border saat diubah di Admin Dashboard.
+     */
+    suspend fun syncCurrentUserStats(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
+            val rankManager = com.valora.icebeats.ui.component.RankPreferenceManager(context)
+            val borderManager = com.valora.icebeats.ui.component.BorderPreferenceManager(context)
+            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+            val email = nameManager.accountEmail.first().trim()
+
+            val token = authManager.accessToken ?: anonKey
+            val queryUrl = if (email.isNotBlank()) {
+                val encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8.name())
+                "$baseUrl/rest/v1/user_stats?or=(id.eq.$userId,email.eq.$encodedEmail)&select=id,name,total_listen_ms,border_style&limit=1"
+            } else {
+                "$baseUrl/rest/v1/user_stats?id=eq.$userId&select=id,name,total_listen_ms,border_style&limit=1"
+            }
+
+            val request = Request.Builder()
+                .url(queryUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use
+                val bodyStr = response.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use
+                val prefs = context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                val userKey = "saved_max_total_listen_ms_${userId}"
+                val anchorKey = "last_local_anchor_ms_${userId}"
+
+                if (arr.length() == 0) {
+                    // Akun baru belum punya data di cloud: set 0 jam & reset rank dan border
+                    prefs.edit()
+                        .putLong(userKey, 0L)
+                        .putLong("saved_max_total_listen_ms", 0L)
+                        .putLong(anchorKey, 0L)
+                        .putLong("last_local_anchor_ms", 0L)
+                        .apply()
+                    rankManager.saveDisplayedRank(null)
+                    borderManager.saveSelectedBorder(com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
+                    return@use
+                }
+
+                val obj = arr.getJSONObject(0)
+                val serverMs = obj.optLong("total_listen_ms", 0L)
+                val serverHours = (serverMs / (1000 * 3600)).toInt()
+                val serverBorder = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
+
+                // Simpan jam dengar server khusus akun ini
+                prefs.edit()
+                    .putLong(userKey, serverMs)
+                    .putLong("saved_max_total_listen_ms", serverMs)
+                    .putLong(anchorKey, 0L)
+                    .putLong("last_local_anchor_ms", 0L)
+                    .apply()
+
+                // Hitung dan simpan rank baru dari server sesuai jam akun ini
+                val newRank = if (serverHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(serverHours) else null
+                rankManager.saveDisplayedRank(newRank)
+
+                // Simpan border yang dipilih di server jika ada, atau default jika belum ada
+                val style = if (serverBorder != null) {
+                    com.valora.icebeats.ui.component.MasterBorderStyle.fromId(serverBorder)
+                } else {
+                    com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
+                }
+                borderManager.saveSelectedBorder(style)
+            }
+        }
+    }
+
+    /**
      * Upload backup zip/db file to Supabase Storage bucket
      */
     suspend fun uploadCloudBackup(backupFile: File): Result<Boolean> = withContext(Dispatchers.IO) {
@@ -1286,10 +1364,10 @@ class SupabaseClient(private val context: Context) {
             val token = authManager.accessToken ?: anonKey
             val trimmed = query.trim()
             val url = if (trimmed.isBlank()) {
-                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms&order=total_listen_ms.desc&limit=30"
+                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms,border_style&order=total_listen_ms.desc&limit=30"
             } else {
                 val encoded = URLEncoder.encode(trimmed, StandardCharsets.UTF_8.name())
-                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms&or=(name.ilike.*$encoded*,email.ilike.*$encoded*)&order=total_listen_ms.desc&limit=30"
+                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms,border_style&or=(name.ilike.*$encoded*,email.ilike.*$encoded*)&order=total_listen_ms.desc&limit=30"
             }
 
             val request = Request.Builder()
@@ -1316,6 +1394,7 @@ class SupabaseClient(private val context: Context) {
                     val totalMs = obj.optLong("total_listen_ms", 0L)
                     val totalHours = (totalMs / (1000 * 3600)).toInt()
                     val rank = if (totalHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours) else null
+                    val bStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
 
                     result.add(
                         ChatUser(
@@ -1323,7 +1402,8 @@ class SupabaseClient(private val context: Context) {
                             name = name,
                             profileUrl = profileUrl,
                             totalListenMs = totalMs,
-                            rank = rank
+                            rank = rank,
+                            borderStyle = bStyle
                         )
                     )
                 }
@@ -1375,7 +1455,7 @@ class SupabaseClient(private val context: Context) {
             val userMap = mutableMapOf<String, ChatUser>()
             for (batch in otherUserIds.chunked(20)) {
                 val inQuery = batch.joinToString(",")
-                val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms"
+                val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style"
                 val userReq = Request.Builder()
                     .url(userUrl)
                     .header("apikey", anonKey)
@@ -1394,7 +1474,8 @@ class SupabaseClient(private val context: Context) {
                                 val ms = uObj.optLong("total_listen_ms", 0L)
                                 val hours = (ms / (1000 * 3600)).toInt()
                                 val rank = if (hours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(hours) else null
-                                userMap[uid] = ChatUser(uid, name, profile, ms, rank)
+                                val bStyle = uObj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
+                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, bStyle)
                             }
                         }
                     }
@@ -1690,7 +1771,8 @@ data class ChatUser(
     val name: String,
     val profileUrl: String? = null,
     val totalListenMs: Long = 0L,
-    val rank: com.valora.icebeats.ui.component.icebeatsRank? = null
+    val rank: com.valora.icebeats.ui.component.icebeatsRank? = null,
+    val borderStyle: String? = null
 )
 
 data class ChatSharedMedia(

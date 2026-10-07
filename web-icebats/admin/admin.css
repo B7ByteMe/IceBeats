@@ -72,6 +72,7 @@ body {
 }
 
 .master-border-wrapper .avatar-inner {
+  position: relative;
   border-radius: 9999px;
   object-fit: cover;
   z-index: 1;
@@ -83,7 +84,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  z-index: 2;
+  z-index: 10;
   animation: pulse-glow 2.4s ease-in-out infinite alternate;
 }
 

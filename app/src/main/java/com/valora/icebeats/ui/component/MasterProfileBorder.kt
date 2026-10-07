@@ -1,17 +1,15 @@
 package com.valora.icebeats.ui.component
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -22,13 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 
 /**
  * Komponen Border Profil Khusus Level Master v7.0.9
@@ -96,95 +93,45 @@ fun MasterProfileBorder(
         label = "pulseGlow"
     )
 
-    val shimmerRotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 18000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmerRotation"
-    )
-
-    // Skala dimensi presisi
+    // Skala dimensi presisi sesuai diameter lingkaran cutout
     val borderOverlaySize = avatarSize * activeStyle.scaleMultiplier
-    val offsetY = avatarSize * activeStyle.offsetYRatio
-    val borderWidth = (avatarSize.value * 0.045f).coerceIn(1.5f, 3.dp.value).dp
 
     Box(
         modifier = modifier.size(avatarSize),
         contentAlignment = Alignment.Center
     ) {
-        // 1. AURA AMBIENT GLOW DI BELAKANG AVATAR
-        val auraBrush = remember(activeStyle) {
-            when (activeStyle) {
-                MasterBorderStyle.FIRE_FLAME -> Brush.sweepGradient(
-                    listOf(
-                        Color(0xFFFF4500).copy(alpha = 0.6f),
-                        Color(0xFFFFD700).copy(alpha = 0.3f),
-                        Color(0xFFFF0000).copy(alpha = 0.7f),
-                        Color(0xFFFF8C00).copy(alpha = 0.4f),
-                        Color(0xFFFF4500).copy(alpha = 0.6f)
-                    )
-                )
-                MasterBorderStyle.CRIMSON_WING -> Brush.sweepGradient(
-                    listOf(
-                        Color(0xFFDC143C).copy(alpha = 0.6f),
-                        Color(0xFFFFD700).copy(alpha = 0.4f),
-                        Color(0xFF8B0000).copy(alpha = 0.7f),
-                        Color(0xFFFFA500).copy(alpha = 0.3f),
-                        Color(0xFFDC143C).copy(alpha = 0.6f)
-                    )
-                )
-                else -> Brush.sweepGradient(
-                    listOf(
-                        Color(0xFFFFD700).copy(alpha = 0.6f),
-                        Color(0xFFFF8C00).copy(alpha = 0.3f),
-                        Color(0xFFFFA500).copy(alpha = 0.7f),
-                        Color(0xFFFFD700).copy(alpha = 0.2f),
-                        Color(0xFFFF8C00).copy(alpha = 0.5f),
-                        Color(0xFFFFD700).copy(alpha = 0.6f)
-                    )
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .size(avatarSize * 1.05f)
-                .rotate(shimmerRotation)
-                .alpha(pulseGlow * 0.4f)
-                .clip(CircleShape)
-                .border(borderWidth, auraBrush, CircleShape)
-        )
-
-        // 2. FOTO PROFIL / AVATAR PENGGUNA (DI BAWAH BORDER)
+        // 1. LAYER BAWAH (z-index: 1): FOTO PROFIL / AVATAR PENGGUNA
+        // Berada di belakang ornamen, terlihat melalui lubang lingkaran transparan di tengah border
         Box(
             modifier = Modifier
                 .size(avatarSize)
-                .clip(CircleShape),
+                .clip(CircleShape)
+                .zIndex(1f),
             contentAlignment = Alignment.Center
         ) {
             content()
         }
 
-        // 3. BORDER OVERLAY (DI ATAS FOTO PROFIL - Z-INDEX TERATAS)
+        // 2. LAYER ATAS (z-index: 10): BORDER / ORNAMEN OVERLAY
+        // Ornamen berada di layer paling atas mengelilingi dan menutupi tepi avatar
         if (borderResId != null) {
             Image(
                 painter = painterResource(borderResId),
                 contentDescription = activeStyle.title,
                 modifier = Modifier
-                    .size(borderOverlaySize)
-                    .offset(y = offsetY)
+                    .requiredSize(borderOverlaySize)
+                    .zIndex(10f)
                     .alpha(pulseGlow)
             )
         } else {
-            // Fallback elegan cincin emas jika PNG tidak ditemukan
+            // Fallback cincin emas tipis di atas avatar jika aset PNG belum dimuat
+            val borderWidth = (avatarSize.value * 0.05f).coerceIn(1.5f, 3.dp.value).dp
             Box(
                 modifier = Modifier
-                    .size(avatarSize * 1.04f)
+                    .size(avatarSize)
                     .clip(CircleShape)
-                    .border(borderWidth * 1.2f, Color(0xFFFFD700).copy(alpha = pulseGlow), CircleShape)
+                    .border(borderWidth, Color(0xFFFFD700).copy(alpha = pulseGlow), CircleShape)
+                    .zIndex(10f)
             )
         }
     }

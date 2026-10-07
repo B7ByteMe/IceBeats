@@ -241,7 +241,8 @@ CREATE TABLE IF NOT EXISTS public.user_stats (
     total_listen_ms BIGINT DEFAULT 0,
     weekly_listen_ms BIGINT DEFAULT 0,
     last_updated_at BIGINT DEFAULT 0,
-    fcm_token TEXT
+    fcm_token TEXT,
+    border_style TEXT DEFAULT 'royal_crown'
 );
 
 -- Pastikan semua kolom tersedia jika tabel dibuat di versi terdahulu
@@ -251,6 +252,7 @@ ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS total_listen_ms BIGINT DE
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS weekly_listen_ms BIGINT DEFAULT 0;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS last_updated_at BIGINT DEFAULT 0;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS fcm_token TEXT;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS border_style TEXT DEFAULT 'royal_crown';
 
 -- Validasi Constraint Keamanan (Anti-Injeksi dan Nilai Positif)
 ALTER TABLE public.user_stats 

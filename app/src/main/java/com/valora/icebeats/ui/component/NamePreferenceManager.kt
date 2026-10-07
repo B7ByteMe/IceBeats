@@ -65,6 +65,16 @@ class NamePreferenceManager @Inject constructor(
         }
     }
 
+    suspend fun clearUser() {
+        context.nameDataStore.edit { preferences ->
+            preferences.remove(USER_NAME_KEY)
+            preferences[NAME_SET_KEY] = "false"
+            preferences.remove(ACCOUNT_EMAIL_KEY)
+            preferences.remove(PREVIOUS_GOOGLE_LOGIN_KEY)
+            preferences.remove(PREVIOUS_GOOGLE_EMAIL_KEY)
+        }
+    }
+
     suspend fun canUseGoogleEmail(email: String): Boolean = true
 
     suspend fun clearGoogleLoginLock() {

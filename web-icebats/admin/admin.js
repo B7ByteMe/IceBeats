@@ -402,6 +402,16 @@ function renderUsersTable() {
 
     const isMasterPlus = hours >= 150;
 
+    const borderLabels = {
+      'royal_crown': '👑 Royal Crown',
+      'crimson_wing': '🪽 Crimson Wings',
+      'fire_flame': '🔥 Fire Flame',
+      'golden_shield': '🛡️ Golden Champion'
+    };
+    const userBorderBadge = isMasterPlus
+      ? `<div class="text-[10px] text-amber-300/90 font-medium mt-0.5">${borderLabels[u.border_style] || '👑 Royal Crown'}</div>`
+      : '';
+
     return `
       <tr class="hover:bg-gray-700/40 transition-colors border-b border-gray-700/60">
         <td class="px-4 py-3.5 text-center font-bold text-gray-400">
@@ -419,7 +429,7 @@ function renderUsersTable() {
             </div>
           </div>
         </td>
-        <td class="px-4 py-3.5">${badgeHtml}</td>
+        <td class="px-4 py-3.5">${badgeHtml}${userBorderBadge}</td>
         <td class="px-4 py-3.5 font-bold text-white">${formatHours(u.total_listen_ms)}</td>
         <td class="px-4 py-3.5 text-gray-300 text-xs">${formatHours(u.weekly_listen_ms)}</td>
         <td class="px-4 py-3.5 text-xs text-gray-400">${escapeHtml(u.email || '-')}</td>
@@ -465,6 +475,8 @@ function openAddUserModal() {
   document.getElementById('editTotalHours').value = '0';
   document.getElementById('editWeeklyHours').value = '0';
   document.getElementById('editProfileUrl').value = '';
+  const borderEl = document.getElementById('editBorderStyle');
+  if (borderEl) borderEl.value = 'royal_crown';
   openModal('userModal');
 }
 
@@ -479,6 +491,8 @@ function openEditUserModal(userId) {
   document.getElementById('editTotalHours').value = msToHoursNumber(user.total_listen_ms);
   document.getElementById('editWeeklyHours').value = msToHoursNumber(user.weekly_listen_ms);
   document.getElementById('editProfileUrl').value = user.profile_url || '';
+  const borderEl = document.getElementById('editBorderStyle');
+  if (borderEl) borderEl.value = user.border_style || 'royal_crown';
   openModal('userModal');
 }
 
@@ -489,6 +503,7 @@ async function saveUserChanges() {
   const totalHours = parseFloat(document.getElementById('editTotalHours').value) || 0;
   const weeklyHours = parseFloat(document.getElementById('editWeeklyHours').value) || 0;
   const profileUrl = document.getElementById('editProfileUrl').value.trim();
+  const borderStyle = document.getElementById('editBorderStyle')?.value || 'royal_crown';
 
   if (!name) {
     showToast('Nama pengguna tidak boleh kosong', 'error');
@@ -502,6 +517,7 @@ async function saveUserChanges() {
     total_listen_ms: hoursToMs(totalHours),
     weekly_listen_ms: hoursToMs(weeklyHours),
     profile_url: profileUrl || null,
+    border_style: borderStyle,
     last_updated_at: Date.now()
   };
 
@@ -596,6 +612,7 @@ async function executeBoostTop1() {
     const payload = {
       total_listen_ms: newTargetMs,
       weekly_listen_ms: Math.max(Number(user.weekly_listen_ms) || 0, hoursToMs(marginHours * 0.5)),
+      border_style: user.border_style || 'royal_crown',
       last_updated_at: Date.now()
     };
 

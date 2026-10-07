@@ -96,6 +96,10 @@ fun AccountSettings(
     val lastSyncTime by supabaseAuthManager.lastSyncTime.collectAsState()
     var isSyncing by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        supabaseClient.syncCurrentUserStats(context)
+    }
+
     val isLoggedIn = remember(innerTubeCookie) {
         innerTubeCookie.isNotEmpty() &&
                 "SAPISID" in parseCookieString(innerTubeCookie)
@@ -322,6 +326,7 @@ fun AccountSettings(
                         }
 
                         forgetAccount(context)
+                        playerConnection?.player?.stop()
                     }
 
                     onInnerTubeCookieChange("")
@@ -331,13 +336,18 @@ fun AccountSettings(
                     onVisitorDataChange("")
                     onDataSyncIdChange("")
                     nameManager.clearGoogleLoginLock()
-                    nameManager.saveUserName("Hai, selamat datang di IceBeats")
-                    nameManager.saveAccountEmail("")
+                    nameManager.clearUser()
                     avatarManager.saveAvatarSelection(AvatarSelection.Default)
                     RankPreferenceManager(context).saveDisplayedRank(null)
-                    com.valora.icebeats.utils.icebeatsStatsCloudSync.clearCachedUserId(context)
+                    com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(
+                        com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
+                    )
+                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
 
                     Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                    navController.navigate("onboarding") {
+                        popUpTo(0) { inclusive = true }
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -474,10 +484,11 @@ fun AccountSettings(
                                         if (!isSyncing) {
                                             isSyncing = true
                                             scope.launch {
+                                                supabaseClient.syncCurrentUserStats(context)
                                                 val res = supabaseClient.syncUserData(database)
                                                 isSyncing = false
                                                 res.onSuccess { msg ->
-                                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                                    Toast.makeText(context, "$msg (Level & Rank tersinkron)", Toast.LENGTH_LONG).show()
                                                 }.onFailure { err ->
                                                     Toast.makeText(context, "Gagal sinkron: ${err.message}", Toast.LENGTH_SHORT).show()
                                                 }
@@ -538,23 +549,81 @@ fun AccountSettings(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // 🏆 LEVEL & RANK BADGE PENGGUNA (v7.0.9)
+                val rankPrefManager = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
+                val currentRank by rankPrefManager.displayedRank.collectAsState(initial = null)
+                val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE) }
+                val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
+                val savedListenMs = remember(currentRank, currentAccountEmail, isSupabaseLoggedIn) {
+                    val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
+                    statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
+                }
+                val totalHours = remember(savedListenMs) { (savedListenMs / (1000 * 3600)).toInt() }
+                val isMaster = (currentRank != null && currentRank.ordinal >= com.valora.icebeats.ui.component.icebeatsRank.Master.ordinal) || totalHours >= 150
+
+                SettingsGeneralCategory(
+                    title = "Level & Badge Akun (v${com.valora.icebeats.BuildConfig.VERSION_NAME})",
+                    items = listOf(
+                        {
+                            PreferenceEntry(
+                                title = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Tier: ${currentRank?.name ?: "Echo"}")
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        com.valora.icebeats.ui.component.RankBadge(
+                                            rank = currentRank ?: com.valora.icebeats.ui.component.icebeatsRank.Echo,
+                                            displayedRank = currentRank,
+                                            size = 22.dp
+                                        )
+                                    }
+                                },
+                                description = if (isMaster) "$totalHours Jam Mendengarkan • Level Master Aktif 👑"
+                                else "$totalHours Jam Mendengarkan • Butuh ${maxOf(0, 150 - totalHours)} jam lagi untuk Level Master",
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.auto_awesome),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingContent = {
+                                    Text(
+                                        text = if (isMaster) "👑 MASTER" else "#LEVEL",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isMaster) Color(0xFFFFD700) else MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            )
+                        }
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // 👑 BORDER PROFIL MASTER (v7.0.9)
                 val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
                 val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
                 var showBorderSelectorSheet by remember { mutableStateOf(false) }
 
                 SettingsGeneralCategory(
-                    title = "Border Profil Master (v7.0.9)",
+                    title = "Border Profil Master (v${com.valora.icebeats.BuildConfig.VERSION_NAME})",
                     items = listOf(
                         {
                             PreferenceEntry(
-                                title = { Text("Gaya Border: ${selectedBorder.title}") },
-                                description = selectedBorder.description,
+                                title = {
+                                    Text(
+                                        if (isMaster) "Gaya Border: ${selectedBorder.title}"
+                                        else "🔒 Border Profil Master (Terkunci)"
+                                    )
+                                },
+                                description = if (isMaster) selectedBorder.description
+                                else "Capai Level Master (150 Jam) untuk membuka 4 pilihan border mahkota & sayap!",
                                 icon = {
                                     Icon(
-                                        painter = painterResource(R.drawable.star),
+                                        painter = painterResource(if (isMaster) R.drawable.star else R.drawable.lock),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = if (isMaster) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 },
                                 trailingContent = {
@@ -564,7 +633,7 @@ fun AccountSettings(
                                     ) {
                                         com.valora.icebeats.ui.component.MasterProfileBorder(
                                             avatarSize = 28.dp,
-                                            forceShowMaster = true,
+                                            forceShowMaster = isMaster,
                                             borderStyle = selectedBorder
                                         ) {
                                             com.valora.icebeats.ui.component.AvatarDisplay(
@@ -574,7 +643,7 @@ fun AccountSettings(
                                         }
                                     }
                                 },
-                                onClick = { showBorderSelectorSheet = true }
+                                onClick = if (isMaster) ({ showBorderSelectorSheet = true }) else null
                             )
                         }
                     )
@@ -582,7 +651,9 @@ fun AccountSettings(
 
                 if (showBorderSelectorSheet) {
                     com.valora.icebeats.ui.component.MasterBorderSelectorSheet(
-                        onDismiss = { showBorderSelectorSheet = false }
+                        onDismiss = { showBorderSelectorSheet = false },
+                        userRank = currentRank,
+                        totalListenMs = savedListenMs
                     )
                 }
 

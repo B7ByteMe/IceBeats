@@ -55,10 +55,14 @@ object icebeatsStatsCloudSync {
         val calculatedTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
         val weeklyListenMs = weekSongs.sumOf { it.timeListened?.toLong() ?: 0L }
         val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-        val savedTotalMs = prefs.getLong("saved_max_total_listen_ms", 0L)
+        val userSpecificKey = "saved_max_total_listen_ms_${userId}"
+        val savedTotalMs = prefs.getLong(userSpecificKey, prefs.getLong("saved_max_total_listen_ms", 0L))
         val totalListenMs = maxOf(calculatedTotalMs, savedTotalMs)
         if (calculatedTotalMs > savedTotalMs) {
-            prefs.edit().putLong("saved_max_total_listen_ms", calculatedTotalMs).apply()
+            prefs.edit()
+                .putLong(userSpecificKey, calculatedTotalMs)
+                .putLong("saved_max_total_listen_ms", calculatedTotalMs)
+                .apply()
         }
         val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
@@ -122,9 +126,33 @@ object icebeatsStatsCloudSync {
         return stableUserId(preferences)
     }
 
-    fun clearCachedUserId(context: Context) {
+    fun clearUserSessionStats(context: Context) {
         val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-        preferences.edit().remove(KEY_USER_ID).remove(KEY_LAST_UPLOAD_DAY).apply()
+        preferences.edit()
+            .remove(KEY_USER_ID)
+            .remove(KEY_LAST_UPLOAD_DAY)
+            .remove("saved_max_total_listen_ms")
+            .remove("last_local_anchor_ms")
+            .remove(KEY_LAST_WEEKLY_POPUP)
+            .apply()
+    }
+
+    fun clearCachedUserId(context: Context) {
+        clearUserSessionStats(context)
+    }
+
+    fun resolveStableUserIdBlocking(context: Context, namePreferenceManager: NamePreferenceManager): String {
+        val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        val supabaseUid = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).userId.value.trim()
+        if (supabaseUid.isNotBlank()) {
+            preferences.edit().putString(KEY_USER_ID, supabaseUid).apply()
+            return supabaseUid
+        }
+        val existing = preferences.getString(KEY_USER_ID, null)
+        if (!existing.isNullOrBlank() && !existing.startsWith("device-")) {
+            return existing
+        }
+        return stableUserId(preferences)
     }
 
     private fun stableUserId(preferences: android.content.SharedPreferences): String {

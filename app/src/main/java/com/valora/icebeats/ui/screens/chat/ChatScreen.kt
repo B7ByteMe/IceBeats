@@ -62,6 +62,7 @@ import com.valora.icebeats.supabase.ChatUser
 import com.valora.icebeats.supabase.SupabaseClient
 import com.valora.icebeats.ui.component.ChatMusicCard
 import com.valora.icebeats.ui.component.MasterProfileBorder
+import com.valora.icebeats.ui.component.MasterBorderStyle
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import com.valora.icebeats.ui.component.RankBadge
 import androidx.compose.material.icons.Icons
@@ -162,7 +163,8 @@ fun ChatScreen(
                 MasterProfileBorder(
                     avatarSize = 40.dp,
                     userRank = otherUser?.rank,
-                    totalListenMs = otherUser?.totalListenMs
+                    totalListenMs = otherUser?.totalListenMs,
+                    borderStyle = otherUser?.borderStyle?.let { MasterBorderStyle.fromId(it) }
                 ) {
                     Box(
                         modifier = Modifier

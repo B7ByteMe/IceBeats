@@ -369,9 +369,9 @@
           
           <!-- Border 1 -->
           <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
-            <div class="w-24 h-24 relative flex items-center justify-center my-3">
-              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover">
-              <img src="../../app/src/main/res/drawable/border_royal_crown.png" class="absolute w-24 h-24 pointer-events-none drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">
+            <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
+              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
+              <img src="../../app/src/main/res/drawable/border_royal_crown.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" style="z-index: 10;">
             </div>
             <h4 class="font-bold text-white text-sm mt-2">Royal Crown</h4>
             <p class="text-xs text-gray-400 mt-1">Mahkota emas megah dengan sayap hitam & kristal hati</p>
@@ -380,9 +380,9 @@
 
           <!-- Border 2 -->
           <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
-            <div class="w-24 h-24 relative flex items-center justify-center my-3">
-              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover">
-              <img src="../../app/src/main/res/drawable/border_crimson_wing.png" class="absolute w-24 h-24 pointer-events-none drop-shadow-[0_0_8px_rgba(220,20,60,0.6)]">
+            <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
+              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
+              <img src="../../app/src/main/res/drawable/border_crimson_wing.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(220,20,60,0.6)]" style="z-index: 10;">
             </div>
             <h4 class="font-bold text-white text-sm mt-2">Crimson Wings</h4>
             <p class="text-xs text-gray-400 mt-1">Sayap emas anggun dengan kristal batu rubi merah</p>
@@ -391,9 +391,9 @@
 
           <!-- Border 3 -->
           <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
-            <div class="w-24 h-24 relative flex items-center justify-center my-3">
-              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover">
-              <img src="../../app/src/main/res/drawable/border_fire_flame.png" class="absolute w-24 h-24 pointer-events-none drop-shadow-[0_0_8px_rgba(255,69,0,0.6)]">
+            <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
+              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
+              <img src="../../app/src/main/res/drawable/border_fire_flame.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(255,69,0,0.6)]" style="z-index: 10;">
             </div>
             <h4 class="font-bold text-white text-sm mt-2">Fire Flame Ring</h4>
             <p class="text-xs text-gray-400 mt-1">Cincin pusaran api elemen membara khas jawara</p>
@@ -402,9 +402,9 @@
 
           <!-- Border 4 -->
           <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
-            <div class="w-24 h-24 relative flex items-center justify-center my-3">
-              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover">
-              <img src="../../app/src/main/res/drawable/border_golden_shield.png" class="absolute w-24 h-24 pointer-events-none drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">
+            <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
+              <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
+              <img src="../../app/src/main/res/drawable/border_golden_shield.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" style="z-index: 10;">
             </div>
             <h4 class="font-bold text-white text-sm mt-2">Golden Champion</h4>
             <p class="text-xs text-gray-400 mt-1">Tameng sayap emas pelindung sang pemuncak klasemen</p>
@@ -534,6 +534,16 @@
           <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Target Badge / Tier Otomatis:</label>
           <select id="editBadgeSelect" onchange="syncHoursFromBadge()" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm">
             <option value="">-- Hitung Otomatis Berdasarkan Jam --</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Gaya Border Profil Master:</label>
+          <select id="editBorderStyle" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm">
+            <option value="royal_crown">👑 Royal Crown (Mahkota Emas & Permata)</option>
+            <option value="crimson_wing">🪽 Crimson Wings (Sayap Emas & Batu Rubi)</option>
+            <option value="fire_flame">🔥 Fire Flame Ring (Cincin Pusaran Api)</option>
+            <option value="golden_shield">🛡️ Golden Champion (Tameng Sayap Kejuaraan)</option>
           </select>
         </div>
 

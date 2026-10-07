@@ -477,6 +477,20 @@ class MainActivity : ComponentActivity() {
             val isNameSet by namePreferenceManager.isNameSet.collectAsState(initial = null)
             var showSplash by remember { mutableStateOf(true) }
 
+            LaunchedEffect(Unit) {
+                val migrationPrefs = getSharedPreferences("icebeats_migration", Context.MODE_PRIVATE)
+                val migratedV709 = migrationPrefs.getBoolean("migrated_v709_logout", false)
+                if (!migratedV709) {
+                    // Otomatis logout bersih satu kali untuk update versi 7.0.9
+                    namePreferenceManager.clearUser()
+                    com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(this@MainActivity).clearSession()
+                    com.valora.icebeats.supabase.SupabaseClient.getInstance().signOut()
+                    com.valora.icebeats.utils.icebeatsStatsCloudSync.clearCachedUserId(this@MainActivity)
+                    playerConnection?.player?.stop()
+                    migrationPrefs.edit().putBoolean("migrated_v709_logout", true).apply()
+                }
+            }
+
             LaunchedEffect(isNameSet) {
                 if (isNameSet != null) {
                     delay(1500)
@@ -567,12 +581,20 @@ class MainActivity : ComponentActivity() {
             ) {
                 val rankPrefMgr = remember { RankPreferenceManager(this@MainActivity) }
                 val lastSeenRank by rankPrefMgr.lastSeenRank.collectAsState(initial = null)
+                val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
                 val statsViewModel = com.valora.icebeats.ui.utils.safeHiltViewModel<StatsViewModel>()
                 val totalHours by (statsViewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
-                val currentRank = remember(totalHours) {
-                    if (totalHours >= 1.0) icebeatsRank.fromHours(totalHours.toInt()) else null
+                val currentRank = remember(totalHours, displayedRank) {
+                    displayedRank ?: if (totalHours >= 1.0) icebeatsRank.fromHours(totalHours.toInt()) else null
                 }
                 var activeRankUpPopup by remember { mutableStateOf<icebeatsRank?>(null) }
+
+                val currentEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
+                LaunchedEffect(currentEmail, isNameSet) {
+                    if (isNameSet == true) {
+                        com.valora.icebeats.supabase.SupabaseClient(this@MainActivity).syncCurrentUserStats(this@MainActivity)
+                    }
+                }
 
                 LaunchedEffect(currentRank, lastSeenRank) {
                     if (currentRank != null && lastSeenRank != currentRank) {
@@ -732,11 +754,17 @@ class MainActivity : ComponentActivity() {
                                 remember(
                                     bottomInset,
                                     shouldShowNavigationBar,
-                                    playerBottomSheetState.isDismissed
+                                    playerBottomSheetState.isDismissed,
+                                    navBackStackEntry?.destination?.route,
+                                    isNameSet
                                 ) {
+                                    val route = navBackStackEntry?.destination?.route
+                                    val isChat = route?.startsWith("chat") == true
+                                    val isAuth = route == "onboarding" || route == "login" || route == "guest_profile_setup" || route == "discord_login" || isNameSet == false
+
                                     var bottom = bottomInset
-                                    if (shouldShowNavigationBar) bottom += NavigationBarHeight - 16.dp
-                                    if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                                    if (shouldShowNavigationBar && !isChat && !isAuth) bottom += NavigationBarHeight - 16.dp
+                                    if (!playerBottomSheetState.isDismissed && !isChat && !isAuth) bottom += MiniPlayerHeight
                                     windowsInsets
                                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
@@ -1193,9 +1221,26 @@ class MainActivity : ComponentActivity() {
 
                                             val isPlayfulHome = (currentRoute == Screens.Home.route || currentRoute == Screens.Library.route || currentRoute == Screens.Explore.route) && homeScreenStyle == HomeScreenStyle.PLAYFUL
 
-                                            val isAuthScreen = currentRoute == "onboarding" || currentRoute == "guest_profile_setup" || currentRoute == "discord_login"
+                                            val isChatScreen = currentRoute?.startsWith("chat") == true
 
-                                            if (!isAuthScreen && (!isPlayfulHome || !playerBottomSheetState.isCollapsed)) {
+                                            val isAuthScreen = isNameSet == false ||
+                                                    currentRoute == "onboarding" ||
+                                                    currentRoute == "login" ||
+                                                    currentRoute == "guest_profile_setup" ||
+                                                    currentRoute == "discord_login" ||
+                                                    currentRoute?.startsWith("onboarding") == true ||
+                                                    currentRoute?.startsWith("login") == true
+
+                                            LaunchedEffect(currentRoute, isAuthScreen) {
+                                                if (isAuthScreen) {
+                                                    if (!playerBottomSheetState.isDismissed) {
+                                                        playerBottomSheetState.dismiss()
+                                                    }
+                                                    playerConnection?.player?.stop()
+                                                }
+                                            }
+
+                                            if (!isAuthScreen && !isChatScreen && (!isPlayfulHome || !playerBottomSheetState.isCollapsed)) {
                                                 BottomSheetPlayer(
                                                     state = playerBottomSheetState,
                                                     navController = navController,
