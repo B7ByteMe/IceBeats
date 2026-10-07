@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -37,27 +37,37 @@ fun AvatarDisplay(
     borderColor: Color = MaterialTheme.colorScheme.primary,
     borderWidth: Dp = 2.dp,
     modifier: Modifier = Modifier,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    userRank: icebeatsRank? = null,
+    totalListenMs: Long? = null,
+    forceShowMaster: Boolean = false
 ) {
     val context = LocalContext.current
     val avatarManager = remember { AvatarPreferenceManager(context) }
     val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
 
-    val displayModifier = if (showBorder) {
-        modifier
-            .size(size)
-            .clip(CircleShape)
-            .border(borderWidth, borderColor, CircleShape)
-    } else {
-        modifier
-            .size(size)
-            .clip(CircleShape)
-    }
-
-    Box(
-        modifier = displayModifier,
-        contentAlignment = Alignment.Center
+    MasterProfileBorder(
+        avatarSize = size,
+        modifier = modifier,
+        userRank = userRank,
+        totalListenMs = totalListenMs,
+        forceShowMaster = forceShowMaster
     ) {
+        val displayModifier = if (showBorder) {
+            Modifier
+                .size(size)
+                .clip(CircleShape)
+                .border(borderWidth, borderColor, CircleShape)
+        } else {
+            Modifier
+                .size(size)
+                .clip(CircleShape)
+        }
+
+        Box(
+            modifier = displayModifier,
+            contentAlignment = Alignment.Center
+        ) {
         when (currentSelection) {
             is AvatarSelection.Custom -> {
                 AsyncImage(
@@ -93,6 +103,7 @@ fun AvatarDisplay(
             }
         }
     }
+}
 }
 
 /** Variante peque•a para usar en listas o elementos compactos */

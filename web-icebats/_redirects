@@ -1,0 +1,3 @@
+/login           /auth/login           302
+/callback        /auth/callback        302
+/auth            /auth/login           302

@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IceBeats - Advanced YouTube Music Client</title>
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="IceBeats is an advanced YouTube Music client built with Material Design 3 for Android, Windows, Linux & macOS. Experience high-quality audio streaming, custom theme controls, and playlist sync.">
+    <meta name="keywords"
+        content="IceBeats, YouTube Music client, Material Design 3, Android, Windows, Linux, macOS, MacBook, music player, free music streaming, open source music player">
+    <meta name="author" content="Valora, ZyxOne">
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lacquer&family=Permanent+Marker&family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css?v=11.0">
+</head>
+
+<body>
+
+    <!-- Navigation Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <a href="#" class="logo-area">
+                <img src="icebeats_logo.png" alt="IceBeats Logo" class="app-logo">
+                <span class="logo-text">Ice<span style="color:#b3ff00">Beats</span></span>
+            </a>
+
+            <nav class="nav-menu" id="navMenu">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#screenshots" class="nav-link">Screenshots</a>
+                <a href="#downloads" class="nav-link">Downloads</a>
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="nav-link">GitHub</a>
+            </nav>
+
+            <div class="header-actions">
+                <!-- Language Selector -->
+                <div class="lang-selector" id="langSelector">
+                    <button class="lang-btn" aria-label="Select Language">
+                        <span class="material-symbols-outlined">language</span>
+                        <span class="lang-text">EN</span>
+                        <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                    </button>
+                    <div class="lang-dropdown">
+                        <button class="lang-opt active" data-lang="en">English (EN)</button>
+                        <button class="lang-opt" data-lang="id">Indonesia (ID)</button>
+                        <button class="lang-opt" data-lang="pt">PortuguÃƒÂªs (PT)</button>
+                    </div>
+                </div>
+
+                <!-- Primary Download Button -->
+                <a href="#downloads" class="btn btn-download-primary">
+                    <span class="material-symbols-outlined">download</span>
+                    <span>Download</span>
+                </a>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Menu">
+                    <span class="hamburger-box">
+                        <span class="hamburger-inner"></span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-bg-glow"></div>
+        <div class="hero-container">
+            <div class="hero-content">
+                <!-- Developer Badge -->
+                <div class="dev-badge">
+                    <span class="material-symbols-outlined">code</span>
+                    <span>Dev By <span class="valora-font">Valora</span>, ZyxOne</span>
+                </div>
+
+                <h1 class="hero-title">Ice<span class="title-accent">Beats</span></h1>
+                <p class="hero-description">
+                    An advanced YouTube Music client built with Material Design 3 for Android, Windows, Linux & Mac.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#downloads" class="btn btn-primary">
+                        <span class="material-symbols-outlined">download</span>
+                        <span>Download App</span>
+                    </a>
+                    <button class="btn btn-secondary" id="viewDemoBtn">
+                        <span class="material-symbols-outlined">play_circle</span>
+                        <span>View Demo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hero Graphics: Phone Mockups -->
+            <div class="hero-graphics">
+                <div class="mockups-wrapper">
+                    <!-- Back Glow -->
+                    <div class="mockup-glow"></div>
+
+                    <!-- Mockup 1: Library/Home Screen (Left) -->
+                    <div class="phone-mockup phone-left">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen screen-home">
+                            <img src="screenshot_home.png" alt="IceBeats Home Screen" class="mockup-img">
+                        </div>
+                    </div>
+
+                    <!-- Mockup 2: Immersive Player (Center) -->
+                    <div class="phone-mockup phone-center">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen screen-player">
+                            <img src="screenshot_player.png" alt="IceBeats Player Screen" class="mockup-img">
+                        </div>
+                    </div>
+
+                    <!-- Mockup 3: Settings Screen (Right) -->
+                    <div class="phone-mockup phone-right">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen screen-settings">
+                            <img src="screenshot_settings.png" alt="IceBeats Settings Screen" class="mockup-img">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="section-header-container">
+            <h2 class="section-title">Features</h2>
+            <p class="section-subtitle">Discover all the powerful capabilities that make IceBeats the ultimate music
+                client.</p>
+        </div>
+
+        <div class="features-grid">
+            <!-- Feature Card 1 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">music_note</span>
+                </div>
+                <h3 class="card-title">YouTube Music Engine</h3>
+                <p class="card-description">Offers a modern and elegant YouTube Music experience on Android and Windows
+                    with an intuitive interface.</p>
+            </div>
+
+            <!-- Feature Card 2 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">palette</span>
+                </div>
+                <h3 class="card-title">Material Design 3 UI</h3>
+                <p class="card-description">Built on Material Design 3, featuring dynamic colors, modern typography, and
+                    fluid transitions.</p>
+            </div>
+
+            <!-- Feature Card 3 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">settings</span>
+                </div>
+                <h3 class="card-title">Intuitive & Customizable</h3>
+                <p class="card-description">Streamlined interface for quick access to all playback features and custom
+                    theme controls.</p>
+            </div>
+
+            <!-- Feature Card 4 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">search</span>
+                </div>
+                <h3 class="card-title">Explore & Discover Music</h3>
+                <p class="card-description">Access an expansive music catalog with advanced search and intelligent
+                    recommendations.</p>
+            </div>
+
+            <!-- Feature Card 5 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">volume_up</span>
+                </div>
+                <h3 class="card-title">High-Quality Audio</h3>
+                <p class="card-description">High-fidelity audio streaming optimized for diverse devices and network
+                    conditions.</p>
+            </div>
+
+            <!-- Feature Card 6 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">playlist_add_check</span>
+                </div>
+                <h3 class="card-title">Playlists & Offline Cache</h3>
+                <p class="card-description">Create and manage custom playlists, and download tracks for offline
+                    listening anytime.</p>
+            </div>
+
+            <!-- Feature Card 7 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">sync</span>
+                </div>
+                <h3 class="card-title">YouTube Music Sync</h3>
+                <p class="card-description">Sync your YouTube Music account to access personal libraries, playlists, and
+                    notifications.</p>
+            </div>
+
+            <!-- Feature Card 8 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">build</span>
+                </div>
+                <h3 class="card-title">10-Band Equalizer & DSP</h3>
+                <p class="card-description">Playback controls, 10-band audio equalizer, gestures, and
+                    Chromecast/Bluetooth support.</p>
+            </div>
+
+            <!-- Feature Card 9 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">folder_open</span>
+                </div>
+                <h3 class="card-title">Smart Library Manager</h3>
+                <p class="card-description">Organize your music collection with advanced filtering, sorting, and
+                    categorization.</p>
+            </div>
+
+            <!-- Feature Card 10 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">translate</span>
+                </div>
+                <h3 class="card-title">Multilingual Localization</h3>
+                <p class="card-description">Available in multiple languages with accurate translations and community
+                    support.</p>
+            </div>
+
+            <!-- Feature Card 11 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">update</span>
+                </div>
+                <h3 class="card-title">Continuous Updates</h3>
+                <p class="card-description">Regular releases with new feature enhancements, security patches, and
+                    optimizations.</p>
+            </div>
+
+            <!-- Feature Card 12 -->
+            <div class="feature-card">
+                <div class="card-icon-wrapper">
+                    <span class="material-symbols-outlined">headphones</span>
+                </div>
+                <h3 class="card-title">Optimized UX Experience</h3>
+                <p class="card-description">Fluid navigation, lightning performance, and user-friendly interface
+                    designed for music lovers.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Interface Showcase Section -->
+    <section class="interface-section" id="screenshots">
+        <div class="interface-header-wrapper">
+            <div class="section-header-container">
+                <h2 class="section-title">The Interface</h2>
+                <p class="section-subtitle">A glimpse into the Material Design 3 experience of IceBeats.</p>
+            </div>
+            <span class="material-symbols-outlined section-collapse-icon">expand_less</span>
+        </div>
+
+        <div class="showcase-container">
+            <!-- Main Showcase Card (Left) -->
+            <div class="showcase-display">
+                <div class="showcase-content-area">
+                    <div class="badge-expressive">
+                        <span class="material-symbols-outlined">grid_view</span>
+                        <span id="showcaseBadgeText">Material 3 Expressive</span>
+                    </div>
+
+                    <h3 class="showcase-view-title" id="showcaseTitle">Immersive Player</h3>
+                    <p class="showcase-view-description" id="showcaseDescription">
+                        Album artwork focus, expanded controls, and a visual hierarchy focused on the music.
+                    </p>
+
+                    <!-- Large Showcase Mockup Screen inside Showcase Card -->
+                    <div class="showcase-mockup-wrapper">
+                        <button class="nav-arrow prev-arrow" id="prevShowcaseBtn" aria-label="Previous View">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+
+                        <div class="showcase-phone">
+                            <div class="phone-notch"></div>
+                            <div class="phone-screen" id="showcaseScreen">
+                                <!-- Dynamically populated via JS depending on active view -->
+                            </div>
+                        </div>
+
+                        <button class="nav-arrow next-arrow" id="nextShowcaseBtn" aria-label="Next View">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+
+                    <!-- Slide Indicator Dots -->
+                    <div class="slide-dots">
+                        <span class="dot active" data-index="0"></span>
+                        <span class="dot" data-index="1"></span>
+                        <span class="dot" data-index="2"></span>
+                    </div>
+
+                    <p class="swipe-hint">Swipe or click controls to switch views.</p>
+                </div>
+            </div>
+
+            <!-- Tabs Column (Right) -->
+            <div class="showcase-controls">
+                <div class="active-view-indicator">
+                    <span class="indicator-label">Active View</span>
+                    <span class="indicator-number" id="activeViewNum">01</span>
+                </div>
+
+                <div class="showcase-tabs-list">
+                    <!-- Tab 1 -->
+                    <div class="showcase-tab-item active" data-index="0">
+                        <div class="tab-thumbnail mini-player-thumb">
+                            <div class="vinyl-art-mini"></div>
+                        </div>
+                        <div class="tab-text-info">
+                            <h4 class="tab-title">Immersive Player</h4>
+                            <p class="tab-desc">Playback focused experience.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2 -->
+                    <div class="showcase-tab-item" data-index="1">
+                        <div class="tab-thumbnail mini-library-thumb">
+                            <span class="material-symbols-outlined">library_music</span>
+                        </div>
+                        <div class="tab-text-info">
+                            <h4 class="tab-title">Smart Library</h4>
+                            <p class="tab-desc">Clear access to playlists & artists.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3 -->
+                    <div class="showcase-tab-item" data-index="2">
+                        <div class="tab-thumbnail mini-settings-thumb">
+                            <span class="material-symbols-outlined">settings</span>
+                        </div>
+                        <div class="tab-text-info">
+                            <h4 class="tab-title">Advanced Settings</h4>
+                            <p class="tab-desc">Deep customization controls.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Downloads Section -->
+    <section class="downloads-section" id="downloads">
+        <div class="section-header-container">
+            <h2 class="section-title">Downloads</h2>
+            <p class="section-subtitle">Download the latest official release of IceBeats for your operating system.</p>
+        </div>
+
+        <div class="downloads-container">
+            <!-- 1. Android Download Card -->
+            <div class="download-card">
+                <div class="dl-card-header">
+                    <div class="platform-icon android-icon">
+                        <span class="material-symbols-outlined">android</span>
+                    </div>
+                    <div class="platform-meta">
+                        <h3>Android</h3>
+                        <p>Download the latest stable Android build for phones and tablets.</p>
+                    </div>
+                </div>
+
+                <div class="dl-badges">
+                    <span class="dl-badge primary-badge">Stable Build</span>
+                    <span id="badge_android" class="dl-badge secondary-badge">v7.0.9</span>
+                </div>
+
+                <div class="dl-links">
+                    <button type="button" class="dl-sub-link" onclick="showChangelog('android')">
+                        <span class="material-symbols-outlined">article</span>
+                        <span>Changelog</span>
+                    </button>
+                    <button type="button" class="dl-sub-link" onclick="showVersions('android')">
+                        <span class="material-symbols-outlined">history</span>
+                        <span>Versions</span>
+                    </button>
+                    <a href="https://github.com/B7ByteMe/IceBeats/releases" target="_blank" rel="noopener noreferrer" class="dl-sub-link">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                        <span>GitHub Release</span>
+                    </a>
+                </div>
+
+                <!-- Package / Architecture Selector -->
+                <div class="dl-arch-selector" id="archSelectorContainer_android" style="margin: 15px 0;">
+                    <label class="dl-arch-label" for="archSelect_android"
+                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">memory</span>
+                        <span>Package / Architecture</span>
+                    </label>
+                    <select id="archSelect_android" class="dl-select"></select>
+                </div>
+
+                <hr class="card-divider">
+
+                <div class="dl-action-area">
+                    <button id="btnDownloadAndroid" class="btn btn-download-card" onclick="handlePlatformDownload('android')">
+                        <span class="material-symbols-outlined">download</span>
+                        <span id="btnDownloadAndroidText">Download APK</span>
+                    </button>
+                    <span class="dl-requirement">Requires Android 6.0+</span>
+                </div>
+            </div>
+
+            <!-- 2. Windows Download Card -->
+            <div class="download-card">
+                <div class="dl-card-header">
+                    <div class="platform-icon windows-icon">
+                        <svg class="platform-svg" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill="currentColor" d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.951"/>
+                        </svg>
+                    </div>
+                    <div class="platform-meta">
+                        <h3>Windows</h3>
+                        <p>Download the installer or portable build for Windows PC.</p>
+                    </div>
+                </div>
+
+                <div class="dl-badges">
+                    <span class="dl-badge primary-badge">Windows Build</span>
+                    <span id="badge_windows" class="dl-badge secondary-badge">v0.0.6</span>
+                </div>
+
+                <div class="dl-links">
+                    <button type="button" class="dl-sub-link" onclick="showChangelog('desktop')">
+                        <span class="material-symbols-outlined">article</span>
+                        <span>Changelog</span>
+                    </button>
+                    <button type="button" class="dl-sub-link" onclick="showVersions('desktop')">
+                        <span class="material-symbols-outlined">history</span>
+                        <span>Versions</span>
+                    </button>
+                    <a href="https://github.com/B7ByteMe/IceBeats-Desktop/releases" target="_blank" rel="noopener noreferrer" class="dl-sub-link">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                        <span>GitHub Release</span>
+                    </a>
+                </div>
+
+                <!-- Package / Architecture Selector -->
+                <div class="dl-arch-selector" id="archSelectorContainer_windows" style="margin: 15px 0;">
+                    <label class="dl-arch-label" for="archSelect_windows"
+                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">memory</span>
+                        <span>Package Type</span>
+                    </label>
+                    <select id="archSelect_windows" class="dl-select"></select>
+                </div>
+
+                <hr class="card-divider">
+
+                <div class="dl-action-area">
+                    <button id="btnDownloadWindows" class="btn btn-download-card" onclick="handlePlatformDownload('windows')">
+                        <span class="material-symbols-outlined">download</span>
+                        <span id="btnDownloadWindowsText">Download (.exe)</span>
+                    </button>
+                    <span class="dl-requirement">Requires Windows 10/11</span>
+                </div>
+            </div>
+
+            <!-- 3. Linux Download Card -->
+            <div class="download-card">
+                <div class="dl-card-header">
+                    <div class="platform-icon linux-icon">
+                        <svg class="platform-svg" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill="currentColor" d="M12 2C9.5 2 7.7 3.8 7.7 6.3c0 .8.2 1.6.5 2.3C6.7 9.3 5.5 11 5.5 13.5c0 2.1 1.2 4 3 5 .2 1.5 1.2 2.7 2.7 3.3-.4.6-.9 1.2-1.5 1.2-.5 0-.9-.3-1.5-.7-.4-.3-.8-.3-1.1 0-.3.3-.2.8.2 1.1 1 .8 1.8 1.1 2.5 1.1 1.6 0 2.6-1.2 3.2-2.3.6 1.1 1.6 2.3 3.2 2.3.7 0 1.5-.3 2.5-1.1.4-.3.5-.8.2-1.1-.3-.3-.7-.3-1.1 0-.6.4-1 .7-1.5.7-.6 0-1.1-.6-1.5-1.2 1.5-.6 2.5-1.8 2.7-3.3 1.8-1 3-2.9 3-5 0-2.5-1.2-4.2-2.7-4.9.3-.7.5-1.5.5-2.3C16.3 3.8 14.5 2 12 2zm-1.5 5c.4 0 .8.4.8.9s-.4.9-.8.9-.8-.4-.8-.9.4-.9.8-.9zm3 0c.4 0 .8.4.8.9s-.4.9-.8.9-.8-.4-.8-.9.4-.9.8-.9zm-1.5 1.8c.8 0 1.5.4 1.5.8s-.7.8-1.5.8-1.5-.4-1.5-.8.7-.8 1.5-.8z"/>
+                        </svg>
+                    </div>
+                    <div class="platform-meta">
+                        <h3>Linux</h3>
+                        <p>Standalone AppImage and Debian package for Linux distributions.</p>
+                    </div>
+                </div>
+
+                <div class="dl-badges">
+                    <span class="dl-badge primary-badge">Linux Build</span>
+                    <span id="badge_linux" class="dl-badge secondary-badge">v0.0.6</span>
+                </div>
+
+                <div class="dl-links">
+                    <button type="button" class="dl-sub-link" onclick="showChangelog('desktop')">
+                        <span class="material-symbols-outlined">article</span>
+                        <span>Changelog</span>
+                    </button>
+                    <button type="button" class="dl-sub-link" onclick="showVersions('desktop')">
+                        <span class="material-symbols-outlined">history</span>
+                        <span>Versions</span>
+                    </button>
+                    <a href="https://github.com/B7ByteMe/IceBeats-Desktop/releases" target="_blank" rel="noopener noreferrer" class="dl-sub-link">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                        <span>GitHub Release</span>
+                    </a>
+                </div>
+
+                <!-- Package / Architecture Selector -->
+                <div class="dl-arch-selector" id="archSelectorContainer_linux" style="margin: 15px 0;">
+                    <label class="dl-arch-label" for="archSelect_linux"
+                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">memory</span>
+                        <span>Package Format</span>
+                    </label>
+                    <select id="archSelect_linux" class="dl-select"></select>
+                </div>
+
+                <hr class="card-divider">
+
+                <div class="dl-action-area">
+                    <button id="btnDownloadLinux" class="btn btn-download-card" onclick="handlePlatformDownload('linux')">
+                        <span class="material-symbols-outlined">download</span>
+                        <span id="btnDownloadLinuxText">Download (.AppImage)</span>
+                    </button>
+                    <span class="dl-requirement">Ubuntu, Debian, Fedora, Arch</span>
+                </div>
+            </div>
+
+            <!-- 4. MacBook / macOS Download Card -->
+            <div class="download-card">
+                <div class="dl-card-header">
+                    <div class="platform-icon mac-icon">
+                        <svg class="platform-svg" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.35-.58.67-1.09 1.74-.95 2.78 1.01.08 2.06-.53 2.68-1.28z"/>
+                        </svg>
+                    </div>
+                    <div class="platform-meta">
+                        <h3>MacBook / macOS</h3>
+                        <p>Apple Disk Image (.dmg) for MacBook and Mac computers.</p>
+                    </div>
+                </div>
+
+                <div class="dl-badges">
+                    <span class="dl-badge primary-badge">macOS Build</span>
+                    <span id="badge_mac" class="dl-badge secondary-badge">v0.0.6</span>
+                </div>
+
+                <div class="dl-links">
+                    <button type="button" class="dl-sub-link" onclick="showChangelog('desktop')">
+                        <span class="material-symbols-outlined">article</span>
+                        <span>Changelog</span>
+                    </button>
+                    <button type="button" class="dl-sub-link" onclick="showVersions('desktop')">
+                        <span class="material-symbols-outlined">history</span>
+                        <span>Versions</span>
+                    </button>
+                    <a href="https://github.com/B7ByteMe/IceBeats-Desktop/releases" target="_blank" rel="noopener noreferrer" class="dl-sub-link">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                        <span>GitHub Release</span>
+                    </a>
+                </div>
+
+                <!-- Package / Architecture Selector -->
+                <div class="dl-arch-selector" id="archSelectorContainer_mac" style="margin: 15px 0;">
+                    <label class="dl-arch-label" for="archSelect_mac"
+                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">memory</span>
+                        <span>Package Format</span>
+                    </label>
+                    <select id="archSelect_mac" class="dl-select"></select>
+                </div>
+
+                <hr class="card-divider">
+
+                <div class="dl-action-area">
+                    <button id="btnDownloadMac" class="btn btn-download-card" onclick="handlePlatformDownload('mac')">
+                        <span class="material-symbols-outlined">download</span>
+                        <span id="btnDownloadMacText">Download (.dmg)</span>
+                    </button>
+                    <span class="dl-requirement">Requires macOS 11.0+</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a href="#" class="logo-area">
+                        <img src="icebeats_logo.png" alt="IceBeats Logo" class="app-logo">
+                        <span class="logo-text">Ice<span style="color:#b3ff00">Beats</span></span>
+                    </a>
+                    <p class="copyright-text">&copy; 2026 <span class="highlight-dev valora-font">Valora</span> &amp;
+                        <span class="highlight-dev">ZyxOne</span>. All Rights Reserved.</p>
+                </div>
+
+                <div class="footer-links-grid">
+                    <div class="footer-link-pill">
+                        <span class="material-symbols-outlined">person</span>
+                        <span>Dev</span>
+                    </div>
+                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="footer-link-pill">
+                        <span class="material-symbols-outlined">code</span>
+                        <span>Source Code</span>
+                    </a>
+                    <a href="#" class="footer-link-pill">
+                        <span class="material-symbols-outlined">assignment</span>
+                        <span>License</span>
+                    </a>
+                    <a href="#" class="footer-link-pill">
+                        <span class="material-symbols-outlined">send</span>
+                        <span>Telegram</span>
+                    </a>
+                    <a href="#" class="footer-link-pill">
+                        <span class="material-symbols-outlined">translate</span>
+                        <span>Crowdin</span>
+                    </a>
+                    <a href="#" class="footer-link-pill">
+                        <span class="material-symbols-outlined">volunteer_activism</span>
+                        <span>Support</span>
+                    </a>
+                </div>
+            </div>
+
+            <hr class="footer-divider">
+
+            <div class="footer-bottom">
+                <span class="license-notice">Licensed under GNU General Public License v3.0 Open Source License.</span>
+                <div class="footer-nav">
+                    <a href="#features">Features</a>
+                    <a href="#downloads">Downloads</a>
+                    <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- View Demo Video/Audio Interactive Modal -->
+    <div class="demo-modal" id="demoModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>IceBeats Interactive Demo</h3>
+                <button class="modal-close" id="closeDemoBtn">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="demo-player-container">
+                    <div class="demo-album-art">
+                        <div class="demo-vinyl"></div>
+                        <div class="music-wave" id="visualizer">
+                            <span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="demo-track-info">
+                        <h4 id="demoTrackName">ESSE CARA!</h4>
+                        <p id="demoTrackArtist">Sayfalse, Scythermane, TRXSHBX</p>
+                    </div>
+                    <div class="demo-audio-player">
+                        <button class="btn-play-demo" id="demoPlayBtn">
+                            <span class="material-symbols-outlined" id="demoPlayIcon">play_arrow</span>
+                            <span>Play Demo Music</span>
+                        </button>
+                        <div class="volume-control">
+                            <span class="material-symbols-outlined">volume_up</span>
+                            <input type="range" min="0" max="1" step="0.1" value="0.5" id="demoVolumeRange">
+                        </div>
+                        <p class="demo-explanation">Click play to simulate music streaming with a web-synthesizer
+                            visualizer!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="info-modal" id="changelogModal">
+        <div class="modal-backdrop" id="changelogBackdrop"></div>
+        <div class="modal-card info-modal-card">
+            <div class="modal-header">
+                <h3 id="changelogModalTitle">What's New</h3>
+                <button class="modal-close" id="closeChangelogBtn">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body info-modal-body" id="changelogModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Versions Modal -->
+    <div class="info-modal" id="versionsModal">
+        <div class="modal-backdrop" id="versionsBackdrop"></div>
+        <div class="modal-card info-modal-card">
+            <div class="modal-header">
+                <div class="modal-header-group">
+                    <h3>Previous Versions</h3>
+                    <span class="modal-header-hint">Uses selected architecture from Downloads</span>
+                </div>
+                <button class="modal-close" id="closeVersionsBtn">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body info-modal-body" id="versionsModalBody"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

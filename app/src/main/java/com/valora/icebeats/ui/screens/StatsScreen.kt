@@ -892,7 +892,15 @@ private fun GlobalUserRankRow(
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.bodyMedium,
         )
-        ProfileBubble(user.profileUrl, user.name)
+        val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
+        val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
+        com.valora.icebeats.ui.component.MasterProfileBorder(
+            avatarSize = 34.dp,
+            userRank = userRank,
+            totalListenMs = user.totalListenMs
+        ) {
+            ProfileBubble(user.profileUrl, user.name)
+        }
         Spacer(modifier = Modifier.width(10.dp))
         Row(
             modifier = Modifier.weight(1f),
@@ -906,8 +914,6 @@ private fun GlobalUserRankRow(
                 fontWeight = if (isCurrentUser) FontWeight.Black else FontWeight.SemiBold,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
-            val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
             userRank?.let { rank ->
                 Spacer(modifier = Modifier.width(6.dp))
                 RankBadge(rank = rank, displayedRank = null, size = 18.dp)
@@ -984,6 +990,16 @@ private fun WeeklyGlobalStatsSheet(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                             )
+                            val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
+                            val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
+                            com.valora.icebeats.ui.component.MasterProfileBorder(
+                                avatarSize = 34.dp,
+                                userRank = userRank,
+                                totalListenMs = user.totalListenMs
+                            ) {
+                                ProfileBubble(user.profileUrl, user.name)
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
                             Row(
                                 modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically
@@ -994,8 +1010,6 @@ private fun WeeklyGlobalStatsSheet(
                                     overflow = TextOverflow.Ellipsis,
                                     fontWeight = FontWeight.Bold,
                                 )
-                                val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
-                                val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
                                 userRank?.let { rank ->
                                     Spacer(modifier = Modifier.width(6.dp))
                                     RankBadge(rank = rank, displayedRank = null, size = 18.dp)

@@ -3,37 +3,40 @@ package com.valora.icebeats.ui.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.valora.icebeats.ui.screens.Screens
 
-import com.valora.icebeats.R
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppleNavigationBar(
     modifier: Modifier = Modifier,
@@ -46,114 +49,76 @@ fun AppleNavigationBar(
     val luminanceAnimation = remember { Animatable(0.3f) }
 
     val themeContrastColor by animateColorAsState(
-        targetValue = Color.White,
-        animationSpec = tween(500),
+        targetValue = Color.White.copy(alpha = 0.75f),
+        animationSpec = tween(300),
         label = "ContrastColor"
     )
 
     val itemBgColor by animateColorAsState(
-        targetValue = Color.White.copy(alpha = 0.2f),
-        animationSpec = tween(500),
+        targetValue = Color.White.copy(alpha = 0.18f),
+        animationSpec = tween(300),
         label = "ItemBgColor"
     )
 
-    Row(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentSize(),
-        verticalAlignment = Alignment.CenterVertically
+            .drawBackdropCustomShape(
+                backdrop = backdrop,
+                layer = layer,
+                luminanceAnimation = luminanceAnimation.value,
+                shape = CircleShape
+            ),
+        shape = CircleShape,
+        color = Color(0xFF1E1E1E).copy(alpha = 0.55f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
-        HorizontalFloatingToolbar(
+        Row(
             modifier = Modifier
-                .drawBackdropCustomShape(
-                    backdrop = backdrop,
-                    layer = layer,
-                    luminanceAnimation = luminanceAnimation.value,
-                    shape = CircleShape
-                )
-                .wrapContentSize(),
-            colors = androidx.compose.material3.FloatingToolbarDefaults.standardFloatingToolbarColors()
-                .copy(toolbarContainerColor = Color.Transparent),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp),
-            expanded = true
+                .fillMaxSize()
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            val searchItemIndex = items.indexOfFirst { it.titleId == R.string.search }
-            val hasSearch = searchItemIndex != -1
-            
-            val toolbarItems = if (hasSearch) {
-                items.filterIndexed { index, _ -> index != searchItemIndex }
-            } else {
-                items.dropLast(1)
-            }
-
-            toolbarItems.forEach { item ->
-                val actualIndex = items.indexOf(item)
-                val isSelected = selectedIndex == actualIndex
-                Button(
-                    onClick = { onItemSelected(actualIndex) },
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors().copy(
-                        containerColor = if (isSelected) itemBgColor else Color.Transparent,
-                        contentColor = if (isSelected) Color(0xFFFA233B) else themeContrastColor
-                    ),
-                    modifier = Modifier.padding(horizontal = 0.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp, vertical = 4.dp)
+            items.forEachIndexed { index, item ->
+                val isSelected = selectedIndex == index
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(if (isSelected) itemBgColor else Color.Transparent)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            onItemSelected(index)
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Icon(
                             painter = painterResource(id = if (isSelected) item.iconActive else item.iconInactive),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
+                            contentDescription = stringResource(id = item.titleId),
+                            tint = if (isSelected) Color(0xFFFA233B) else themeContrastColor,
+                            modifier = Modifier.size(22.dp)
                         )
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(2.dp))
-                        androidx.compose.material3.Text(
-                            text = androidx.compose.ui.res.stringResource(id = item.titleId),
-                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            maxLines = 1
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = stringResource(id = item.titleId),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) Color(0xFFFA233B) else themeContrastColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        val searchItemIndex = items.indexOfFirst { it.titleId == R.string.search }
-        val hasSearch = searchItemIndex != -1
-        val fabItemIndex = if (hasSearch) searchItemIndex else items.size - 1
-        val fabItem = items[fabItemIndex]
-        val isFabSelected = selectedIndex == fabItemIndex
-
-        FloatingActionButton(
-            modifier = Modifier
-                .drawBackdropCustomShape(
-                    backdrop = backdrop,
-                    layer = layer,
-                    luminanceAnimation = luminanceAnimation.value,
-                    shape = CircleShape
-                ),
-            onClick = { onItemSelected(fabItemIndex) },
-            shape = CircleShape,
-            containerColor = Color.Transparent,
-            elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
-        ) {
-            androidx.compose.foundation.layout.Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = if (isFabSelected) fabItem.iconActive else fabItem.iconInactive),
-                    contentDescription = null,
-                    tint = if (isFabSelected) Color(0xFFFA233B) else themeContrastColor,
-                    modifier = Modifier.size(24.dp)
-                )
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(2.dp))
-                androidx.compose.material3.Text(
-                    text = androidx.compose.ui.res.stringResource(id = fabItem.titleId),
-                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                    color = if (isFabSelected) Color(0xFFFA233B) else themeContrastColor,
-                    maxLines = 1
-                )
             }
         }
     }

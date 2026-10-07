@@ -467,6 +467,23 @@ fun NavGraphBuilder.navigationBuilder(
         val username = backStackEntry.arguments?.getString("username") ?: return@composable
         ContributorProfileScreen(navController, username)
     }
+    composable("chats") {
+        com.valora.icebeats.ui.screens.chat.ChatListScreen(navController)
+    }
+    composable("chat/{conversationId}/{otherUserId}/{otherUserName}") { backStackEntry ->
+        val convId = backStackEntry.arguments?.getString("conversationId").orEmpty()
+        val otherUserId = backStackEntry.arguments?.getString("otherUserId").orEmpty()
+        val rawName = backStackEntry.arguments?.getString("otherUserName").orEmpty()
+        val otherUserName = runCatching {
+            java.net.URLDecoder.decode(rawName, java.nio.charset.StandardCharsets.UTF_8.name())
+        }.getOrDefault(rawName)
+        com.valora.icebeats.ui.screens.chat.ChatScreen(
+            navController = navController,
+            conversationId = convId,
+            otherUserId = otherUserId,
+            otherUserName = otherUserName
+        )
+    }
     dialog(
         route = "always_on_display",
         dialogProperties = DialogProperties(

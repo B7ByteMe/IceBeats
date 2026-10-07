@@ -1057,6 +1057,9 @@ fun ModernHomeTopBarInline(
         ) {
 
             // Avatar and animated ring
+            val rankPreferenceManager = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
+            val currentRank by rankPreferenceManager.displayedRank.collectAsState(initial = null)
+
             Box(
                 modifier = Modifier.size(72.dp),
                 contentAlignment = Alignment.Center
@@ -1078,55 +1081,60 @@ fun ModernHomeTopBarInline(
                     modifier = Modifier.matchParentSize()
                 )
 
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .combinedClickable {
-                            navController.navigate("settings/account")
-                        },
-                    contentAlignment = Alignment.Center
+                com.valora.icebeats.ui.component.MasterProfileBorder(
+                    avatarSize = 60.dp,
+                    userRank = currentRank
                 ) {
-                    when (currentSelection) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .combinedClickable {
+                                navController.navigate("settings/account")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when (currentSelection) {
 
-                        is AvatarSelection.Custom -> {
-                            AsyncImage(
-                                model = (currentSelection as AvatarSelection.Custom).uri.toUri(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        is AvatarSelection.DiceBear -> {
-                            AsyncImage(
-                                model = (currentSelection as AvatarSelection.DiceBear).url,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        else -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(
-                                                Color(0xFF8E2DE2),
-                                                Color(0xFF4A00E0)
-                                            )
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.person),
+                            is AvatarSelection.Custom -> {
+                                AsyncImage(
+                                    model = (currentSelection as AvatarSelection.Custom).uri.toUri(),
                                     contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
+                            }
+
+                            is AvatarSelection.DiceBear -> {
+                                AsyncImage(
+                                    model = (currentSelection as AvatarSelection.DiceBear).url,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+
+                            else -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    Color(0xFF8E2DE2),
+                                                    Color(0xFF4A00E0)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.person),
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -1139,6 +1147,11 @@ fun ModernHomeTopBarInline(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
+                CircleIconButton(
+                    icon = R.drawable.chat,
+                    onClick = { navController.navigate("chats") }
+                )
 
                 CircleIconButton(
                     icon = R.drawable.notification_on,

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback
+package com.valora.icebeats.playback
 
 import android.content.Context
 import android.content.Intent
@@ -401,7 +401,9 @@ class PlayerConnection(
             Log.d(TAG, "Seeking to next track")
             if (player.hasNextMediaItem()) {
                 player.seekToNext()
-                player.prepare()
+                if (player.playbackState == Player.STATE_IDLE) {
+                    player.prepare()
+                }
                 player.playWhenReady = true
             }
         } catch (e: Exception) {
@@ -415,7 +417,9 @@ class PlayerConnection(
             Log.d(TAG, "Seeking to previous track")
             if (player.hasPreviousMediaItem() || player.currentPosition > 3000) {
                 player.seekToPrevious()
-                player.prepare()
+                if (player.playbackState == Player.STATE_IDLE) {
+                    player.prepare()
+                }
                 player.playWhenReady = true
             }
         } catch (e: Exception) {

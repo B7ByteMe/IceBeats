@@ -240,6 +240,14 @@ constructor(
                 val uploadResult = cloudClient.uploadDaily(upload)
                 if (uploadResult.isSuccess) {
                     val board = uploadResult.getOrThrow()
+                    // Pastikan HP menyimpan rekor skor tertinggi dari server agar tidak ter-reset
+                    val myCloudStats = board.users.find { it.id == userId }
+                    if (myCloudStats != null) {
+                        val currentSaved = statsPreferences.getLong("saved_max_total_listen_ms", 0L)
+                        if (myCloudStats.totalListenMs > currentSaved) {
+                            statsPreferences.edit().putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs).apply()
+                        }
+                    }
                     statsPreferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
                     globalStats.value =
                         GlobalStatsUiState(
@@ -256,6 +264,14 @@ constructor(
         cloudClient
             .readBoard()
             .onSuccess { board ->
+                // Sinkronkan juga skor tertinggi dari cloud jika readBoard dipanggil
+                val myCloudStats = board.users.find { it.id == userId }
+                if (myCloudStats != null) {
+                    val currentSaved = statsPreferences.getLong("saved_max_total_listen_ms", 0L)
+                    if (myCloudStats.totalListenMs > currentSaved) {
+                        statsPreferences.edit().putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs).apply()
+                    }
+                }
                 globalStats.value =
                     GlobalStatsUiState(
                         isLoading = false,
@@ -286,7 +302,30 @@ constructor(
                 .toEpochMilli()
         val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
         val weekSongs = database.mostPlayedSongsStats(weekStart, limit = -1, toTimeStamp = now).first()
-        val totalListenMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
+        val calculatedTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
+        val savedTotalMs = statsPreferences.getLong("saved_max_total_listen_ms", 0L)
+        val lastLocalAnchorMs = statsPreferences.getLong("last_local_anchor_ms", calculatedTotalMs)
+
+        // Hitung selisih waktu mendengarkan baru sejak sinkronisasi terakhir
+        val localDeltaMs = if (calculatedTotalMs >= lastLocalAnchorMs) {
+            calculatedTotalMs - lastLocalAnchorMs
+        } else {
+            0L
+        }
+
+        // Skor akhir: nilai tertinggi (dari server/boost) DITAMBAH waktu lagu yang baru diputar di HP
+        val totalListenMs = if (savedTotalMs > calculatedTotalMs) {
+            savedTotalMs + localDeltaMs
+        } else {
+            calculatedTotalMs
+        }
+
+        // Perbarui rekor dan titik acuan lokal
+        statsPreferences.edit()
+            .putLong("saved_max_total_listen_ms", totalListenMs)
+            .putLong("last_local_anchor_ms", calculatedTotalMs)
+            .apply()
+
         val weeklyListenMs = weekSongs.sumOf { it.timeListened?.toLong() ?: 0L }
         val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
         val email = namePreferenceManager.accountEmail.first().trim().lowercase().takeIf { it.isNotBlank() }

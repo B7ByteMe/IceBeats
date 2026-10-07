@@ -191,7 +191,7 @@ fun NewClassicBottomNavigationBar(
                             text = { Text("Library") },
                             onClick = {
                                 overflowExpanded = false
-                                val libraryIndex = items.indexOfFirst { it.titleId == R.string.library }
+                                val libraryIndex = items.indexOfFirst { it.titleId == R.string.filter_library || it.titleId == R.string.library }
                                 if (libraryIndex != -1) onItemSelected(libraryIndex) else onNavigateRoute("library")
                             },
                             leadingIcon = {

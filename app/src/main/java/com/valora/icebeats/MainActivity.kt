@@ -323,21 +323,31 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         com.valora.icebeats.playback.AppForegroundTracker.isForeground = true
-        startService(Intent(this, MusicService::class.java))
+        runCatching {
+            startService(Intent(this, MusicService::class.java))
+        }.onFailure { e ->
+            android.util.Log.w("MainActivity", "startService MusicService skipped or restricted in background: ${e.message}")
+        }
         if (!isServiceBound) {
-            bindService(
-                Intent(this, MusicService::class.java),
-                serviceConnection,
-                Context.BIND_AUTO_CREATE
-            )
-            isServiceBound = true
+            runCatching {
+                bindService(
+                    Intent(this, MusicService::class.java),
+                    serviceConnection,
+                    Context.BIND_AUTO_CREATE
+                )
+                isServiceBound = true
+            }.onFailure { e ->
+                android.util.Log.e("MainActivity", "Failed to bind MusicService: ${e.message}")
+            }
         }
     }
 
     override fun onStop() {
         com.valora.icebeats.playback.AppForegroundTracker.isForeground = false
         if (isServiceBound) {
-            unbindService(serviceConnection)
+            runCatching {
+                unbindService(serviceConnection)
+            }
             isServiceBound = false
         }
         super.onStop()
@@ -1289,6 +1299,11 @@ class MainActivity : ComponentActivity() {
                                                             if (navBarStyle == NavBarStyle.SPOTIFY || navBarStyle == NavBarStyle.NEON) {
                                                                 Modifier.fillMaxWidth()
                                                                     .height(NavigationBarHeight - 16.dp + bottomInset)
+                                                            } else if (navBarStyle == NavBarStyle.APPLE) {
+                                                                Modifier
+                                                                    .padding(bottom = 6.dp, start = 12.dp, end = 12.dp)
+                                                                    .fillMaxWidth()
+                                                                    .height(NavigationBarHeight - 12.dp)
                                                             } else {
                                                                 Modifier
                                                                     .padding(bottom = 6.dp)
@@ -1344,48 +1359,19 @@ class MainActivity : ComponentActivity() {
                                                         navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
                                                     }.takeIf { it >= 0 } ?: 0
 
-                                                    var lastTapTime by remember { mutableLongStateOf(0L) }
-                                                    var lastTappedIcon by remember { mutableStateOf<Int?>(null) }
-                                                    var navigateToExplore by remember { mutableStateOf(false) }
-
                                                     val onItemSelectedAction: (Int) -> Unit = { index ->
-                                                         val screen = navigationItems[index]
-                                                         val isSelected = index == selectedIndex
+                                                        val screen = navigationItems.getOrNull(index) ?: return@onItemSelectedAction
+                                                        val isSelected = index == selectedIndex
 
-                                                         val currentTapTime = System.currentTimeMillis()
-                                                         val timeSinceLastTap = currentTapTime - lastTapTime
-                                                         val isDoubleTap =
-                                                             screen.titleId == R.string.explore &&
-                                                                     lastTappedIcon == R.string.explore &&
-                                                                     timeSinceLastTap < 300L
-
-                                                         lastTapTime = currentTapTime
-                                                         lastTappedIcon = screen.titleId
-
-                                                         if (screen.titleId == R.string.explore) {
-                                                             if (isDoubleTap) {
-                                                                 onActiveChange(true)
-                                                                 navigateToExplore = false
-                                                             } else {
-                                                                 navigateToExplore = true
-                                                                 coroutineScope.launch {
-                                                                     delay(300L)
-                                                                     if (navigateToExplore) {
-                                                                         navigateToScreen(navController, screen)
-                                                                     }
-                                                                 }
-                                                             }
-                                                         } else {
-                                                             if (isSelected) {
-                                                                 navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                                                 coroutineScope.launch {
-                                                                     searchBarScrollBehavior.state.resetHeightOffset()
-                                                                 }
-                                                             } else {
-                                                                 navigateToScreen(navController, screen)
-                                                             }
-                                                         }
-                                                     }
+                                                        if (isSelected) {
+                                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                                            coroutineScope.launch {
+                                                                searchBarScrollBehavior.state.resetHeightOffset()
+                                                            }
+                                                        } else {
+                                                            navigateToScreen(navController, screen)
+                                                        }
+                                                    }
 
                                                      if (navBarStyle == NavBarStyle.NEW_CLASSIC) {
                                                          com.valora.icebeats.ui.component.NewClassicBottomNavigationBar(

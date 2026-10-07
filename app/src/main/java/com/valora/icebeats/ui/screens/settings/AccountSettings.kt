@@ -190,12 +190,28 @@ fun AccountSettings(
                         database.clearAllAlbumBookmarks()
                         val res = supabaseClient.restoreUserData(database)
                         res.onSuccess { count ->
+                            // Setelah restore events dari cloud selesai, perbarui saved_max_total_listen_ms
+                            // agar stats tidak kembali ke nol pada upload berikutnya
+                            runCatching {
+                                val now = System.currentTimeMillis()
+                                val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
+                                val restoredTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
+                                val prefs = context.getSharedPreferences(
+                                    com.valora.icebeats.utils.icebeatsStatsCloudSync.PREFERENCES_NAME,
+                                    android.content.Context.MODE_PRIVATE
+                                )
+                                val savedTotalMs = prefs.getLong("saved_max_total_listen_ms", 0L)
+                                if (restoredTotalMs > savedTotalMs) {
+                                    prefs.edit().putLong("saved_max_total_listen_ms", restoredTotalMs).apply()
+                                }
+                            }
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(context, "Berhasil memulihkan $count data akun dari Cloud!", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(
@@ -470,9 +486,105 @@ fun AccountSettings(
                                     }
                                 )
                             }
+                        } else null,
+                        if (isSupabaseLoggedIn) {
+                            {
+                                PreferenceEntry(
+                                    title = { Text("Tautkan ke Windows Desktop") },
+                                    description = "Pindai kode QR di layar laptop/PC Windows",
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.sync),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onClick = {
+                                        val scanner = com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(context)
+                                        scanner.startScan()
+                                            .addOnSuccessListener { barcode ->
+                                                val raw = barcode.rawValue.orEmpty()
+                                                val token = if (raw.contains("token")) {
+                                                    try {
+                                                        val json = org.json.JSONObject(raw)
+                                                        json.optString("token", raw)
+                                                    } catch (e: Exception) {
+                                                        if (raw.contains("token=")) {
+                                                            raw.substringAfter("token=").substringBefore("&")
+                                                        } else raw
+                                                    }
+                                                } else raw
+
+                                                if (token.isNotBlank()) {
+                                                    scope.launch {
+                                                        val res = supabaseClient.approveDesktopQrSession(token)
+                                                        if (res.isSuccess) {
+                                                            Toast.makeText(context, "Berhasil masuk ke IceBeats Desktop!", Toast.LENGTH_LONG).show()
+                                                        } else {
+                                                            Toast.makeText(context, "Gagal menautkan: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "Pemindaian dibatalkan: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                    }
+                                )
+                            }
                         } else null
                     )
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 👑 BORDER PROFIL MASTER (v7.0.9)
+                val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
+                val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
+                var showBorderSelectorSheet by remember { mutableStateOf(false) }
+
+                SettingsGeneralCategory(
+                    title = "Border Profil Master (v7.0.9)",
+                    items = listOf(
+                        {
+                            PreferenceEntry(
+                                title = { Text("Gaya Border: ${selectedBorder.title}") },
+                                description = selectedBorder.description,
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.star),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingContent = {
+                                    Box(
+                                        modifier = Modifier.size(50.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        com.valora.icebeats.ui.component.MasterProfileBorder(
+                                            avatarSize = 28.dp,
+                                            forceShowMaster = true,
+                                            borderStyle = selectedBorder
+                                        ) {
+                                            com.valora.icebeats.ui.component.AvatarDisplay(
+                                                size = 28.dp,
+                                                showBorder = false
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = { showBorderSelectorSheet = true }
+                            )
+                        }
+                    )
+                )
+
+                if (showBorderSelectorSheet) {
+                    com.valora.icebeats.ui.component.MasterBorderSelectorSheet(
+                        onDismiss = { showBorderSelectorSheet = false }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

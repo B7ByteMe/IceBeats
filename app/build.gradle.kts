@@ -36,8 +36,8 @@ android {
         applicationId = "com.valora.icebeats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 176
-        versionName = "7.0.7"
+        versionCode = 178
+        versionName = "7.0.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_API_KEY", googleApiKey.asBuildConfigString())
         buildConfigField("String", "STATS_API_KEY", statsApiKey.asBuildConfigString())
@@ -50,15 +50,12 @@ android {
 
     splits {
         abi {
-            isEnable = false
+            isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true // Also generate a universal one just in case, or false if strictly reducing size. Let's use false as user wants smaller size.
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
         }
     }
-    
-    // Disable universal APK to save space on github releases
-    splits.abi.isUniversalApk = false
 
     buildTypes {
         release {
@@ -143,6 +140,7 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     implementation("dev.chrisbanes.haze:haze:0.7.3")

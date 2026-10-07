@@ -677,7 +677,7 @@ class MusicService :
          * To prevent a "runaway diesel engine" scenario, force the user to take action after
          * too many errors come up too quickly. Pause to show player "stopped" state
          */
-        consecutivePlaybackErr += 2
+        consecutivePlaybackErr++
         val nextWindowIndex = player.nextMediaItemIndex
 
         if (consecutivePlaybackErr <= MAX_CONSECUTIVE_ERR && nextWindowIndex != C.INDEX_UNSET) {
@@ -1321,6 +1321,9 @@ class MusicService :
         ) {
             val isBufferingOrReady =
                 player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
+            if (player.playbackState == Player.STATE_READY) {
+                consecutivePlaybackErr = 0
+            }
             if (isBufferingOrReady && player.playWhenReady) {
                 val focusGranted = requestAudioFocus()
                 if (focusGranted) {
@@ -1408,6 +1411,23 @@ class MusicService :
 
         Log.e(TAG, "Player error: ${error.errorCodeName}, message: ${error.message}", error)
 
+        // Ignore cancellation / socket closed errors caused by rapid skipping or seeks
+        val cause = error.cause
+        val isCancelled = cause is java.io.InterruptedIOException ||
+                cause is java.util.concurrent.CancellationException ||
+                (cause is java.io.IOException && cause.message?.contains("cancel", ignoreCase = true) == true) ||
+                (cause is java.net.SocketException && (cause.message?.contains("closed", ignoreCase = true) == true || cause.message?.contains("reset", ignoreCase = true) == true)) ||
+                error.message?.contains("cancel", ignoreCase = true) == true ||
+                error.message?.contains("abort", ignoreCase = true) == true
+
+        if (isCancelled) {
+            Log.w(TAG, "Ignoring cancelled/interrupted stream from rapid skip")
+            if (player.playbackState == Player.STATE_IDLE && player.playWhenReady) {
+                player.prepare()
+            }
+            return
+        }
+
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
                 (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
 
@@ -1416,7 +1436,7 @@ class MusicService :
             return
         }
 
-        if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+        if (dataStore.get(AutoSkipNextOnErrorKey, true) || player.hasNextMediaItem()) {
             skipOnError()
         } else {
             stopOnError()

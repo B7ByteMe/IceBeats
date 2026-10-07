@@ -1,0 +1,61 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "Memulihkan google-services.json dari GitHub Secrets..."
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          elif [ -f "app/google-services.json" ]; then
+            echo "Menggunakan app/google-services.json yang ada di repositori."
+          else
+            echo "::warning::File app/google-services.json tidak ditemukan dan Secret GOOGLE_SERVICES_JSON kosong."
+          fi
+
+      - name: Setup Signing Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Memulihkan debug.keystore dari GitHub Secrets..."
+            mkdir -p ~/.android
+            echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+          else
+            echo "Menggunakan keystore bawaan GitHub runner."
+          fi
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload All APK Variants
+        uses: actions/upload-artifact@v4
+        with:
+          name: IceBeats-v7.0.9-Multi-Arch-APKs
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14

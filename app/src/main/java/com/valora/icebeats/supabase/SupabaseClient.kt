@@ -1221,4 +1221,503 @@ class SupabaseClient(private val context: Context) {
             }
         }
     }
+    /**
+     * Menyetujui sesi login QR Code di IceBeats Windows Desktop
+     */
+    suspend fun approveDesktopQrSession(qrToken: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (!authManager.isLoggedIn.value) {
+                throw Exception("Silakan login di aplikasi terlebih dahulu.")
+            }
+            val uid = authManager.userId.value
+            val email = authManager.userEmail.value
+            val name = authManager.userName.value
+            val token = authManager.accessToken ?: anonKey
+
+            val payload = JSONObject().apply {
+                put("id", qrToken)
+                put("status", "approved")
+                put("user_id", uid)
+                put("user_email", email)
+                put("user_name", name)
+                put("auth_token", token)
+            }
+
+            // 1. Upload ke storage bucket public backups/qr_sessions/.json
+            val storageUrl = "$baseUrl/storage/v1/object/backups/qr_sessions/$qrToken.json"
+            val storageReq = Request.Builder()
+                .url(storageUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("x-upsert", "true")
+                .post(payload.toString().toByteArray().toRequestBody(jsonMediaType))
+                .build()
+            runCatching {
+                httpClient.newCall(storageReq).execute().close()
+            }
+
+            // 2. Update tabel auth_qr_sessions (jika tabel SQL sudah dibuat)
+            val tableUrl = "$baseUrl/rest/v1/auth_qr_sessions?id=eq.$qrToken"
+            val tableReq = Request.Builder()
+                .url(tableUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .header("Prefer", "return=minimal")
+                .patch(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+            runCatching {
+                httpClient.newCall(tableReq).execute().close()
+            }
+
+            true
+        }
+    }
+
+    // ==============================================================================
+    // FITUR CHAT & BERBAGI MUSIK (v7.0.9)
+    // ==============================================================================
+
+    /**
+     * Cari pengguna lain untuk memulai obrolan
+     */
+    suspend fun searchChatUsers(query: String, currentUserId: String): Result<List<ChatUser>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val token = authManager.accessToken ?: anonKey
+            val trimmed = query.trim()
+            val url = if (trimmed.isBlank()) {
+                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms&order=total_listen_ms.desc&limit=30"
+            } else {
+                val encoded = URLEncoder.encode(trimmed, StandardCharsets.UTF_8.name())
+                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms&or=(name.ilike.*$encoded*,email.ilike.*$encoded*)&order=total_listen_ms.desc&limit=30"
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use emptyList()
+                val bodyStr = response.body?.string().orEmpty()
+                val jsonArr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
+                val result = mutableListOf<ChatUser>()
+
+                for (i in 0 until jsonArr.length()) {
+                    val obj = jsonArr.optJSONObject(i) ?: continue
+                    val id = obj.optString("id").ifBlank { obj.optString("uuid") }
+                    if (id.isBlank() || id == currentUserId) continue
+
+                    val name = obj.optString("name", "User IceBeats")
+                    val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
+                    val totalMs = obj.optLong("total_listen_ms", 0L)
+                    val totalHours = (totalMs / (1000 * 3600)).toInt()
+                    val rank = if (totalHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours) else null
+
+                    result.add(
+                        ChatUser(
+                            id = id,
+                            name = name,
+                            profileUrl = profileUrl,
+                            totalListenMs = totalMs,
+                            rank = rank
+                        )
+                    )
+                }
+                result
+            }
+        }
+    }
+
+    /**
+     * Dapatkan daftar percakapan aktif untuk pengguna saat ini
+     */
+    suspend fun getChatConversations(currentUserId: String): Result<List<ChatConversation>> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (currentUserId.isBlank()) return@runCatching emptyList()
+            val token = authManager.accessToken ?: anonKey
+
+            val convUrl = "$baseUrl/rest/v1/chat_conversations?or=(user1_id.eq.$currentUserId,user2_id.eq.$currentUserId)&order=last_message_at.desc&limit=50"
+            val convReq = Request.Builder()
+                .url(convUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            val rawConversations = mutableListOf<Triple<String, String, String>>() // convId, otherUserId, lastMsg
+            httpClient.newCall(convReq).execute().use { response ->
+                if (!response.isSuccessful) return@use
+                val bodyStr = response.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val id = obj.optString("id")
+                    val u1 = obj.optString("user1_id")
+                    val u2 = obj.optString("user2_id")
+                    val otherId = if (u1 == currentUserId) u2 else u1
+                    val lastMsg = obj.optString("last_message")
+                    val lastMsgAt = obj.optString("last_message_at")
+                    if (id.isNotBlank() && otherId.isNotBlank()) {
+                        rawConversations.add(Triple(id, otherId, lastMsg))
+                    }
+                }
+            }
+
+            if (rawConversations.isEmpty()) return@runCatching emptyList()
+
+            // Ambil info profil user lain
+            val otherUserIds = rawConversations.map { it.second }.distinct()
+            val userMap = mutableMapOf<String, ChatUser>()
+            for (batch in otherUserIds.chunked(20)) {
+                val inQuery = batch.joinToString(",")
+                val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms"
+                val userReq = Request.Builder()
+                    .url(userUrl)
+                    .header("apikey", anonKey)
+                    .header("Authorization", "Bearer $token")
+                    .get()
+                    .build()
+                httpClient.newCall(userReq).execute().use { uResp ->
+                    if (uResp.isSuccessful) {
+                        val uArr = runCatching { JSONArray(uResp.body?.string().orEmpty()) }.getOrNull()
+                        if (uArr != null) {
+                            for (j in 0 until uArr.length()) {
+                                val uObj = uArr.optJSONObject(j) ?: continue
+                                val uid = uObj.optString("id")
+                                val name = uObj.optString("name", "User")
+                                val profile = uObj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
+                                val ms = uObj.optLong("total_listen_ms", 0L)
+                                val hours = (ms / (1000 * 3600)).toInt()
+                                val rank = if (hours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(hours) else null
+                                userMap[uid] = ChatUser(uid, name, profile, ms, rank)
+                            }
+                        }
+                    }
+                }
+            }
+
+            rawConversations.map { (convId, otherId, lastMsg) ->
+                val other = userMap[otherId] ?: ChatUser(otherId, "User")
+                ChatConversation(
+                    id = convId,
+                    otherUser = other,
+                    lastMessage = lastMsg
+                )
+            }
+        }
+    }
+
+    /**
+     * Dapatkan atau buat ID percakapan antar dua pengguna
+     */
+    suspend fun getOrCreateConversation(currentUserId: String, otherUserId: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (currentUserId.isBlank() || otherUserId.isBlank()) throw IllegalArgumentException("User ID tidak valid")
+            val token = authManager.accessToken ?: anonKey
+
+            val (u1, u2) = if (currentUserId < otherUserId) currentUserId to otherUserId else otherUserId to currentUserId
+
+            // Cek apakah percakapan sudah ada
+            val findUrl = "$baseUrl/rest/v1/chat_conversations?user1_id=eq.$u1&user2_id=eq.$u2&select=id"
+            val findReq = Request.Builder()
+                .url(findUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+
+            var existingId: String? = null
+            httpClient.newCall(findReq).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    val arr = runCatching { JSONArray(resp.body?.string().orEmpty()) }.getOrNull()
+                    if (arr != null && arr.length() > 0) {
+                        existingId = arr.optJSONObject(0)?.optString("id")
+                    }
+                }
+            }
+
+            if (!existingId.isNullOrBlank()) {
+                return@runCatching existingId!!
+            }
+
+            // Buat percakapan baru
+            val insertUrl = "$baseUrl/rest/v1/chat_conversations"
+            val payload = JSONObject().apply {
+                put("user1_id", u1)
+                put("user2_id", u2)
+                put("last_message", "")
+            }
+
+            val insertReq = Request.Builder()
+                .url(insertUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .header("Prefer", "return=representation")
+                .post(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(insertReq).execute().use { resp ->
+                val resBody = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) {
+                    throw Exception("Gagal membuat percakapan: HTTP ${resp.code}")
+                }
+                val arr = runCatching { JSONArray(resBody) }.getOrNull()
+                val createdId = arr?.optJSONObject(0)?.optString("id")
+                    ?: throw Exception("ID percakapan kosong")
+                createdId
+            }
+        }
+    }
+
+    /**
+     * Dapatkan riwayat pesan dalam percakapan
+     */
+    suspend fun getChatMessages(conversationId: String): Result<List<ChatMessage>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/chat_messages?conversation_id=eq.$conversationId&order=created_at.asc&limit=100"
+
+            val request = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use emptyList()
+                val bodyStr = response.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
+                val list = mutableListOf<ChatMessage>()
+
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val id = obj.optString("id")
+                    val convId = obj.optString("conversation_id")
+                    val senderId = obj.optString("sender_id")
+                    val receiverId = obj.optString("receiver_id")
+                    val type = obj.optString("message_type", "text")
+                    val content = obj.optString("content")
+                    val isRead = obj.optBoolean("is_read", false)
+                    val createdAt = obj.optString("created_at")
+
+                    var media: ChatSharedMedia? = null
+                    val mediaObj = obj.optJSONObject("media_data")
+                    if (mediaObj != null) {
+                        media = ChatSharedMedia(
+                            songId = mediaObj.optString("song_id"),
+                            title = mediaObj.optString("title"),
+                            artistName = mediaObj.optString("artist_name"),
+                            albumName = mediaObj.optString("album_name").takeIf { it.isNotBlank() },
+                            thumbnailUrl = mediaObj.optString("thumbnail_url").takeIf { it.isNotBlank() },
+                            duration = mediaObj.optInt("duration", 0)
+                        )
+                    }
+
+                    list.add(
+                        ChatMessage(
+                            id = id,
+                            conversationId = convId,
+                            senderId = senderId,
+                            receiverId = receiverId,
+                            messageType = type,
+                            content = content,
+                            mediaData = media,
+                            isRead = isRead,
+                            createdAt = createdAt
+                        )
+                    )
+                }
+                list
+            }
+        }
+    }
+
+    /**
+     * Kirim pesan teks
+     */
+    suspend fun sendChatMessage(
+        conversationId: String,
+        senderId: String,
+        receiverId: String,
+        content: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val sanitized = content.trim()
+            if (sanitized.isEmpty()) throw IllegalArgumentException("Pesan tidak boleh kosong")
+            val token = authManager.accessToken ?: anonKey
+
+            val payload = JSONObject().apply {
+                put("conversation_id", conversationId)
+                put("sender_id", senderId)
+                put("receiver_id", receiverId)
+                put("message_type", "text")
+                put("content", sanitized)
+                put("is_read", false)
+            }
+
+            val request = Request.Builder()
+                .url("$baseUrl/rest/v1/chat_messages")
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .header("Prefer", "return=minimal")
+                .post(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) throw Exception("Gagal mengirim pesan: HTTP ${resp.code}")
+            }
+
+            // Update status percakapan terakhir
+            val updatePayload = JSONObject().apply {
+                put("last_message", sanitized)
+                put("last_message_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US).format(Date()))
+            }
+            val updateReq = Request.Builder()
+                .url("$baseUrl/rest/v1/chat_conversations?id=eq.$conversationId")
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .patch(updatePayload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            runCatching { httpClient.newCall(updateReq).execute().close() }
+            true
+        }
+    }
+
+    /**
+     * Kirim pesan berbagi lagu (Music Card)
+     */
+    suspend fun sendSharedMusic(
+        conversationId: String,
+        senderId: String,
+        receiverId: String,
+        media: ChatSharedMedia,
+        note: String = ""
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val token = authManager.accessToken ?: anonKey
+            val displayNote = note.trim().ifEmpty { "🎵 Berbagi lagu: ${media.title} - ${media.artistName}" }
+
+            val mediaJson = JSONObject().apply {
+                put("song_id", media.songId)
+                put("title", media.title)
+                put("artist_name", media.artistName)
+                put("album_name", media.albumName ?: "")
+                put("thumbnail_url", media.thumbnailUrl ?: "")
+                put("duration", media.duration)
+            }
+
+            val payload = JSONObject().apply {
+                put("conversation_id", conversationId)
+                put("sender_id", senderId)
+                put("receiver_id", receiverId)
+                put("message_type", "music")
+                put("content", displayNote)
+                put("media_data", mediaJson)
+                put("is_read", false)
+            }
+
+            val request = Request.Builder()
+                .url("$baseUrl/rest/v1/chat_messages")
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .header("Prefer", "return=minimal")
+                .post(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) throw Exception("Gagal berbagi lagu: HTTP ${resp.code}")
+            }
+
+            // Update status percakapan terakhir
+            val updatePayload = JSONObject().apply {
+                put("last_message", "🎵 ${media.title}")
+                put("last_message_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US).format(Date()))
+            }
+            val updateReq = Request.Builder()
+                .url("$baseUrl/rest/v1/chat_conversations?id=eq.$conversationId")
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .patch(updatePayload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            runCatching { httpClient.newCall(updateReq).execute().close() }
+            true
+        }
+    }
+
+    /**
+     * Tandai pesan sebagai telah dibaca
+     */
+    suspend fun markChatAsRead(conversationId: String, currentUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val token = authManager.accessToken ?: anonKey
+            val updatePayload = JSONObject().apply {
+                put("is_read", true)
+            }
+            val req = Request.Builder()
+                .url("$baseUrl/rest/v1/chat_messages?conversation_id=eq.$conversationId&receiver_id=eq.$currentUserId&is_read=eq.false")
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .patch(updatePayload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            runCatching { httpClient.newCall(req).execute().close() }
+            true
+        }
+    }
 }
+
+// ==============================================================================
+// DATA CLASSES UNTUK CHAT & BERBAGI MUSIK
+// ==============================================================================
+
+data class ChatUser(
+    val id: String,
+    val name: String,
+    val profileUrl: String? = null,
+    val totalListenMs: Long = 0L,
+    val rank: com.valora.icebeats.ui.component.icebeatsRank? = null
+)
+
+data class ChatSharedMedia(
+    val songId: String,
+    val title: String,
+    val artistName: String,
+    val albumName: String? = null,
+    val thumbnailUrl: String? = null,
+    val duration: Int = 0
+)
+
+data class ChatMessage(
+    val id: String,
+    val conversationId: String,
+    val senderId: String,
+    val receiverId: String,
+    val messageType: String, // "text" atau "music"
+    val content: String,
+    val mediaData: ChatSharedMedia? = null,
+    val isRead: Boolean = false,
+    val createdAt: String = ""
+)
+
+data class ChatConversation(
+    val id: String,
+    val otherUser: ChatUser,
+    val lastMessage: String = "",
+    val lastMessageAt: String = "",
+    val unreadCount: Int = 0
+)

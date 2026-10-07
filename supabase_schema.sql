@@ -1,7 +1,12 @@
 -- ==============================================================================
--- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES
+-- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.0.9)
 -- Jalankan skrip ini di: Supabase Dashboard -> SQL Editor -> New Query -> Run
+-- Aman dijalankan berulang kali (Idempotent & Anti-Crash)
 -- ==============================================================================
+
+-- Aktifkan ekstensi UUID & Kriptografi
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 1. TABEL LAGU FAVORIT (USER FAVORITES)
 CREATE TABLE IF NOT EXISTS public.user_favorites (
@@ -239,12 +244,32 @@ CREATE TABLE IF NOT EXISTS public.user_stats (
     fcm_token TEXT
 );
 
--- Validasi Constraint Keamanan (Anti-Injeksi dan Nilai Tidak Masuk Akal)
+-- Pastikan semua kolom tersedia jika tabel dibuat di versi terdahulu
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS profile_url TEXT;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS total_listen_ms BIGINT DEFAULT 0;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS weekly_listen_ms BIGINT DEFAULT 0;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS last_updated_at BIGINT DEFAULT 0;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS fcm_token TEXT;
+
+-- Validasi Constraint Keamanan (Anti-Injeksi dan Nilai Positif)
 ALTER TABLE public.user_stats 
     DROP CONSTRAINT IF EXISTS check_name_length,
     DROP CONSTRAINT IF EXISTS check_name_no_xss,
     DROP CONSTRAINT IF EXISTS check_total_listen_ms_positive,
     DROP CONSTRAINT IF EXISTS check_weekly_listen_ms_positive;
+
+-- Sanitasi baris lama agar tidak memicu error saat penambahan constraint
+UPDATE public.user_stats 
+SET name = SUBSTRING(REGEXP_REPLACE(COALESCE(name, 'Pengguna IceBeats'), '[<>;]', '', 'g') FROM 1 FOR 50) 
+WHERE name LIKE '%<%' OR name LIKE '%>%' OR name LIKE '%;%' OR char_length(name) > 50;
+
+UPDATE public.user_stats 
+SET name = 'Pengguna IceBeats' 
+WHERE name IS NULL OR char_length(trim(name)) = 0;
+
+UPDATE public.user_stats SET total_listen_ms = 0 WHERE total_listen_ms IS NULL OR total_listen_ms < 0;
+UPDATE public.user_stats SET weekly_listen_ms = 0 WHERE weekly_listen_ms IS NULL OR weekly_listen_ms < 0;
 
 ALTER TABLE public.user_stats
     ADD CONSTRAINT check_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 50),
@@ -293,22 +318,21 @@ WITH CHECK (
     AND weekly_listen_ms >= 0
 );
 
--- CATATAN: Operasi DELETE sengaja TIDAK diizinkan untuk publik/anonim
--- guna mencegah penghapusan massal papan peringkat oleh penyerang.
-
-
 -- ==============================================================================
 -- 5. SKRIP PEMBERSIHAN DATA DUPLIKAT & PENCEGAHAN (RUN SECARA BERKALA / SEKALI)
 -- ==============================================================================
 
--- A. Bersihkan duplikat di user_stats:
--- Hapus entri lama jika ada nama atau email yang sama, sisakan hanya yang total_listen_ms terbesar
+-- A. Bersihkan duplikat di user_stats berdasarkan email:
+-- Hapus entri lama jika ada email yang sama, sisakan hanya yang total_listen_ms terbesar (dan id terbesar jika seri)
 DELETE FROM public.user_stats a
 USING public.user_stats b
 WHERE a.id <> b.id
+  AND a.email IS NOT NULL 
+  AND a.email <> '' 
+  AND a.email = b.email 
   AND (
-    (a.email IS NOT NULL AND a.email <> '' AND a.email = b.email AND a.total_listen_ms <= b.total_listen_ms)
-    OR (a.name = b.name AND a.total_listen_ms < b.total_listen_ms)
+    a.total_listen_ms < b.total_listen_ms 
+    OR (a.total_listen_ms = b.total_listen_ms AND a.id < b.id)
   );
 
 -- Buat Unique Index untuk Email di user_stats (1 email hanya punya 1 baris rank)
@@ -324,5 +348,170 @@ WHERE a.id > b.id
   AND a.user_id = b.user_id
   AND a.song_id = b.song_id
   AND DATE_TRUNC('minute', a.timestamp) = DATE_TRUNC('minute', b.timestamp);
+
+
+
+-- ==============================================================================
+-- 6. TABEL SESI QR LOGIN DESKTOP (DESKTOP QR AUTH SESSIONS)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.auth_qr_sessions (
+    id TEXT PRIMARY KEY,
+    status TEXT NOT NULL DEFAULT 'pending',
+    user_id UUID,
+    user_email TEXT,
+    user_name TEXT,
+    user_avatar TEXT,
+    auth_token TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '5 minutes')
+);
+
+ALTER TABLE public.auth_qr_sessions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public access to auth_qr_sessions" ON public.auth_qr_sessions;
+CREATE POLICY "Public access to auth_qr_sessions"
+ON public.auth_qr_sessions
+FOR ALL
+TO public
+USING (true)
+WITH CHECK (true);
+
+
+-- ==============================================================================
+-- 7. IZIN HAPUS & PENGUNCI SKOR TERTINGGI (ANTI-RESET DARI HP)
+-- ==============================================================================
+
+-- A. Izinkan operasi DELETE untuk publik/admin
+DROP POLICY IF EXISTS "Public can delete user_stats" ON public.user_stats;
+CREATE POLICY "Public can delete user_stats"
+ON public.user_stats
+FOR DELETE
+TO public
+USING (true);
+
+-- B. Trigger Pengunci Skor: Mencegah APK HP menimpa/me-reset jam dengar yang sudah tinggi
+CREATE OR REPLACE FUNCTION public.protect_user_stats_highscore()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Jika nilai total_listen_ms yang baru LEBIH KECIL dari yang sudah ada di database,
+    -- jangan turunkan! Tetap pertahankan nilai yang tertinggi dari server.
+    IF NEW.total_listen_ms < OLD.total_listen_ms THEN
+        NEW.total_listen_ms := OLD.total_listen_ms;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_user_stats ON public.user_stats;
+CREATE TRIGGER trg_protect_user_stats
+BEFORE UPDATE ON public.user_stats
+FOR EACH ROW
+EXECUTE FUNCTION public.protect_user_stats_highscore();
+
+
+-- ==============================================================================
+-- 8. FITUR CHAT ANTAR PENGGUNA & BERBAGI MUSIK (v7.0.9)
+-- ==============================================================================
+
+-- A. TABEL PERCAKAPAN (CONVERSATIONS)
+CREATE TABLE IF NOT EXISTS public.chat_conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user1_id TEXT NOT NULL,
+    user2_id TEXT NOT NULL,
+    last_message TEXT DEFAULT '',
+    last_message_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_conversation_users UNIQUE (user1_id, user2_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_user1 ON public.chat_conversations(user1_id, last_message_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_user2 ON public.chat_conversations(user2_id, last_message_at DESC);
+
+ALTER TABLE public.chat_conversations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can select conversations" ON public.chat_conversations;
+DROP POLICY IF EXISTS "Public can insert conversations" ON public.chat_conversations;
+DROP POLICY IF EXISTS "Public can update conversations" ON public.chat_conversations;
+
+CREATE POLICY "Public can select conversations"
+ON public.chat_conversations
+FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Public can insert conversations"
+ON public.chat_conversations
+FOR INSERT
+TO public
+WITH CHECK (true);
+
+CREATE POLICY "Public can update conversations"
+ON public.chat_conversations
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+
+-- B. TABEL PESAN (MESSAGES) & BERBAGI MUSIK
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID NOT NULL REFERENCES public.chat_conversations(id) ON DELETE CASCADE,
+    sender_id TEXT NOT NULL,
+    receiver_id TEXT NOT NULL,
+    message_type TEXT NOT NULL DEFAULT 'text', -- 'text' atau 'music'
+    content TEXT NOT NULL,
+    media_data JSONB, -- { song_id, title, artist_name, thumbnail_url, duration }
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON public.chat_messages(conversation_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_receiver ON public.chat_messages(receiver_id, is_read);
+
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can select messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Public can insert messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Public can update messages" ON public.chat_messages;
+
+CREATE POLICY "Public can select messages"
+ON public.chat_messages
+FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Public can insert messages"
+ON public.chat_messages
+FOR INSERT
+TO public
+WITH CHECK (
+    char_length(content) >= 1
+    AND char_length(content) <= 3000
+);
+
+CREATE POLICY "Public can update messages"
+ON public.chat_messages
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+
+-- C. AKTIFKAN SUPABASE REALTIME (AGAR PESAN LANGSUNG MUNCUL TANPA REFRESH)
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_conversations;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
 
 

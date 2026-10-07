@@ -1,0 +1,104 @@
+/* ==============================================================================
+   ICEBEATS ADMIN DASHBOARD - FLOWBITE STYLES
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --gold-color: #fbbf24;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.8);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 1);
+}
+
+/* Rank Tier Badges */
+.badge-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.tier-eternal { background: linear-gradient(135deg, rgba(242, 113, 33, 0.25), rgba(233, 64, 87, 0.25)); color: #ff7e5f; border: 1px solid rgba(242, 113, 33, 0.5); }
+.tier-universal { background: linear-gradient(135deg, rgba(0, 114, 255, 0.25), rgba(0, 198, 255, 0.25)); color: #38bdf8; border: 1px solid rgba(0, 114, 255, 0.5); }
+.tier-godlike { background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 165, 0, 0.25)); color: #fde047; border: 1px solid rgba(255, 215, 0, 0.5); }
+.tier-celestial { background: linear-gradient(135deg, rgba(225, 0, 255, 0.25), rgba(127, 0, 255, 0.25)); color: #e879f9; border: 1px solid rgba(225, 0, 255, 0.5); }
+.tier-nova { background: linear-gradient(135deg, rgba(255, 75, 43, 0.25), rgba(255, 65, 108, 0.25)); color: #fb7185; border: 1px solid rgba(255, 75, 43, 0.5); }
+.tier-cosmic { background: linear-gradient(135deg, rgba(233, 69, 96, 0.25), rgba(15, 52, 96, 0.25)); color: #f43f5e; border: 1px solid rgba(233, 69, 96, 0.5); }
+.tier-immortal { background: linear-gradient(135deg, rgba(146, 141, 171, 0.25), rgba(71, 75, 82, 0.25)); color: #cbd5e1; border: 1px solid rgba(146, 141, 171, 0.5); }
+.tier-mythic { background: linear-gradient(135deg, rgba(0, 242, 96, 0.25), rgba(5, 117, 230, 0.25)); color: #4ade80; border: 1px solid rgba(0, 242, 96, 0.5); }
+.tier-legend { background: linear-gradient(135deg, rgba(245, 175, 25, 0.25), rgba(241, 39, 17, 0.25)); color: #fbbf24; border: 1px solid rgba(245, 175, 25, 0.5); }
+.tier-master { background: linear-gradient(135deg, rgba(255, 94, 98, 0.25), rgba(255, 153, 102, 0.25)); color: #f87171; border: 1px solid rgba(255, 94, 98, 0.5); }
+.tier-elite { background: linear-gradient(135deg, rgba(142, 45, 226, 0.25), rgba(74, 0, 224, 0.25)); color: #c084fc; border: 1px solid rgba(142, 45, 226, 0.5); }
+.tier-diamond { background: rgba(155, 81, 224, 0.2); color: #c084fc; border: 1px solid rgba(155, 81, 224, 0.4); }
+.tier-platinum { background: rgba(176, 196, 222, 0.2); color: #94a3b8; border: 1px solid rgba(176, 196, 222, 0.4); }
+.tier-gold { background: rgba(255, 215, 0, 0.2); color: #facc15; border: 1px solid rgba(255, 215, 0, 0.4); }
+.tier-silver { background: rgba(189, 195, 199, 0.2); color: #94a3b8; border: 1px solid rgba(189, 195, 199, 0.4); }
+.tier-bronze { background: rgba(202, 115, 69, 0.2); color: #ea580c; border: 1px solid rgba(202, 115, 69, 0.4); }
+.tier-pulse { background: rgba(0, 255, 135, 0.2); color: #2dd4bf; border: 1px solid rgba(0, 255, 135, 0.4); }
+.tier-echo { background: rgba(0, 242, 254, 0.2); color: #38bdf8; border: 1px solid rgba(0, 242, 254, 0.4); }
+
+/* Master Profile Border Preview Wrapper */
+.master-border-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.master-border-wrapper .avatar-inner {
+  border-radius: 9999px;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.master-border-wrapper .border-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+  animation: pulse-glow 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 0.88; filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3)); }
+  100% { opacity: 1.0; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.65)); }
+}
+
+/* Toast Container */
+#toastContainer {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

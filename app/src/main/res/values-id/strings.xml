@@ -1,8 +1,9 @@
-﻿<resources>
+<resources>
     <!-- Bottom navigation -->
     <string name="home">Rumah</string>
     <string name="songs">Lagu</string>
     <string name="artists">Seniman</string>
+    <string name="artist">Artis</string>
     <string name="albums">Album</string>
     <string name="playlists">Daftar putar</string>
 

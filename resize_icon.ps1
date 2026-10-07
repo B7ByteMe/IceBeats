@@ -1,6 +1,6 @@
-﻿Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Drawing
 $srcPath = "C:\Users\robot\.gemini\antigravity-ide\brain\13022482-d8ec-4df9-8a22-39e512ddbc07\media__1785807384810.png"
-$resDir = "d:\IceStream\AirBeats-main\app\src\main\res"
+$resDir = Join-Path -Path $PSScriptRoot -ChildPath "app\src\main\res"
 
 try {
     $img = [System.Drawing.Image]::FromFile($srcPath)
