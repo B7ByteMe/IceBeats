@@ -51,6 +51,7 @@ jobs:
             echo "Memulihkan debug.keystore dari GitHub Secrets..."
             mkdir -p ~/.android
             echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+            echo "$KEYSTORE_BASE64" | base64 -d > app/debug.keystore
           else
             echo "Menggunakan keystore bawaan GitHub runner."
           fi
