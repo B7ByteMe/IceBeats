@@ -132,3 +132,6 @@ object icebeatsStatsCloudSync {
     const val KEY_LAST_UPLOAD_DAY = "last_global_stats_upload_day"
     const val KEY_LAST_WEEKLY_POPUP = "last_weekly_global_popup"
 }
+
+typealias IceBeatsStatsCloudSync = icebeatsStatsCloudSync
+

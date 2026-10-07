@@ -64,6 +64,9 @@ import com.valora.icebeats.ui.component.ChatMusicCard
 import com.valora.icebeats.ui.component.MasterProfileBorder
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import com.valora.icebeats.ui.component.RankBadge
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
+import com.valora.icebeats.utils.icebeatsStatsCloudSync
 import com.valora.icebeats.utils.IceBeatsStatsCloudSync
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -574,7 +577,7 @@ private fun ChatBubbleItem(
                 modifier = Modifier.padding(end = 4.dp)
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.done_all),
+                    imageVector = Icons.Default.Done,
                     contentDescription = if (message.isRead) "Dibaca" else "Terkirim",
                     tint = if (message.isRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(13.dp)

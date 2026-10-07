@@ -1360,16 +1360,17 @@ class MainActivity : ComponentActivity() {
                                                     }.takeIf { it >= 0 } ?: 0
 
                                                     val onItemSelectedAction: (Int) -> Unit = { index ->
-                                                        val screen = navigationItems.getOrNull(index) ?: return@onItemSelectedAction
-                                                        val isSelected = index == selectedIndex
-
-                                                        if (isSelected) {
-                                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                                            coroutineScope.launch {
-                                                                searchBarScrollBehavior.state.resetHeightOffset()
+                                                        val screen = navigationItems.getOrNull(index)
+                                                        if (screen != null) {
+                                                            val isSelected = index == selectedIndex
+                                                            if (isSelected) {
+                                                                navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                                                coroutineScope.launch {
+                                                                    searchBarScrollBehavior.state.resetHeightOffset()
+                                                                }
+                                                            } else {
+                                                                navigateToScreen(navController, screen)
                                                             }
-                                                        } else {
-                                                            navigateToScreen(navController, screen)
                                                         }
                                                     }
 

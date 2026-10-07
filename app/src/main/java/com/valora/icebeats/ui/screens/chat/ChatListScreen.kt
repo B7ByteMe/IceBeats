@@ -56,6 +56,7 @@ import com.valora.icebeats.supabase.SupabaseClient
 import com.valora.icebeats.ui.component.MasterProfileBorder
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import com.valora.icebeats.ui.component.RankBadge
+import com.valora.icebeats.utils.icebeatsStatsCloudSync
 import com.valora.icebeats.utils.IceBeatsStatsCloudSync
 import kotlinx.coroutines.launch
 import java.net.URLEncoder

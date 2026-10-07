@@ -170,17 +170,14 @@ fun MasterProfileBorder(
 
         // 3. BORDER OVERLAY (DI ATAS FOTO PROFIL - Z-INDEX TERATAS)
         if (borderResId != null) {
-            val painterResult = runCatching { painterResource(borderResId) }
-            if (painterResult.isSuccess) {
-                Image(
-                    painter = painterResult.getOrThrow(),
-                    contentDescription = activeStyle.title,
-                    modifier = Modifier
-                        .size(borderOverlaySize)
-                        .offset(y = offsetY)
-                        .alpha(pulseGlow)
-                )
-            }
+            Image(
+                painter = painterResource(borderResId),
+                contentDescription = activeStyle.title,
+                modifier = Modifier
+                    .size(borderOverlaySize)
+                    .offset(y = offsetY)
+                    .alpha(pulseGlow)
+            )
         } else {
             // Fallback elegan cincin emas jika PNG tidak ditemukan
             Box(
