@@ -55,13 +55,13 @@ jobs:
             echo "Menggunakan keystore bawaan GitHub runner."
           fi
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Prepare and Name APKs for Release
         run: |
           mkdir -p release-apks
-          for file in app/build/outputs/apk/debug/*.apk; do
+          for file in app/build/outputs/apk/release/*.apk; do
             filename=$(basename "$file")
             if [[ "$filename" == *"universal"* ]]; then
               cp "$file" "release-apks/IceBeats-v7.0.9-universal.apk"
