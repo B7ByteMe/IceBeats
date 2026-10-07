@@ -1,11 +1,16 @@
-name: Build Android APK
+name: Build Android APK & Release
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -53,9 +58,55 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      - name: Prepare and Name APKs for Release
+        run: |
+          mkdir -p release-apks
+          for file in app/build/outputs/apk/debug/*.apk; do
+            filename=$(basename "$file")
+            if [[ "$filename" == *"universal"* ]]; then
+              cp "$file" "release-apks/IceBeats-v7.0.9-universal.apk"
+              cp "$file" "release-apks/IceBeats-v7.0.9.apk"
+            elif [[ "$filename" == *"arm64-v8a"* ]]; then
+              cp "$file" "release-apks/IceBeats-v7.0.9-arm64-v8a.apk"
+            elif [[ "$filename" == *"armeabi-v7a"* ]]; then
+              cp "$file" "release-apks/IceBeats-v7.0.9-armeabi-v7a.apk"
+            elif [[ "$filename" == *"x86_64"* ]]; then
+              cp "$file" "release-apks/IceBeats-v7.0.9-x86_64.apk"
+            else
+              cp "$file" "release-apks/$filename"
+            fi
+          done
+          echo "Daftar APK yang siap dirilis:"
+          ls -la release-apks/
+
       - name: Upload All APK Variants
         uses: actions/upload-artifact@v4
         with:
           name: IceBeats-v7.0.9-Multi-Arch-APKs
-          path: app/build/outputs/apk/debug/*.apk
+          path: release-apks/*.apk
           retention-days: 14
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.0.9' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.0.9' }}
+          body: |
+            ## 🎵 IceBeats v7.0.9
+            
+            ### ✨ Apa yang baru di v7.0.9:
+            - **👑 4 Pilihan Master Profile Border**: Royal Crown, Crimson Wing, Fire Flame, Golden Shield (dengan posisi presisi & overlay z-index).
+            - **📱 Multi-Architecture Support**:
+              - `IceBeats-v7.0.9.apk` & `IceBeats-v7.0.9-universal.apk`: Universal untuk semua HP Android.
+              - `IceBeats-v7.0.9-arm64-v8a.apk`: Khusus HP 64-bit modern (performa maksimal).
+              - `IceBeats-v7.0.9-armeabi-v7a.apk`: Khusus HP 32-bit.
+              - `IceBeats-v7.0.9-x86_64.apk`: Untuk Emulator Android PC.
+            - **🛡️ Leaderboard Highscore Protection**: Jam dengar tidak akan pernah berkurang atau reset.
+            - **💬 Live Chat & Berbagi Lagu**: Berkirim pesan dan berbagi lagu antar-pengguna secara real-time.
+            - **⚡ Stabilitas**: Perbaikan freeze saat skip cepat dan navigasi menu anti-tabrak.
+          files: release-apks/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
