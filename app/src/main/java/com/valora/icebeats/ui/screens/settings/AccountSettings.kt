@@ -552,14 +552,15 @@ fun AccountSettings(
                 // 🏆 LEVEL & RANK BADGE PENGGUNA (v7.0.9)
                 val rankPrefManager = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
                 val currentRank by rankPrefManager.displayedRank.collectAsState(initial = null)
-                val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE) }
+                val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
                 val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
                 val savedListenMs = remember(currentRank, currentAccountEmail, isSupabaseLoggedIn) {
                     val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
                     statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
                 }
                 val totalHours = remember(savedListenMs) { (savedListenMs / (1000 * 3600)).toInt() }
-                val isMaster = (currentRank != null && currentRank.ordinal >= com.valora.icebeats.ui.component.icebeatsRank.Master.ordinal) || totalHours >= 150
+                val activeRank = currentRank
+                val isMaster = (activeRank != null && activeRank.ordinal >= com.valora.icebeats.ui.component.icebeatsRank.Master.ordinal) || totalHours >= 150
 
                 SettingsGeneralCategory(
                     title = "Level & Badge Akun (v${com.valora.icebeats.BuildConfig.VERSION_NAME})",
