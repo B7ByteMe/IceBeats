@@ -60,6 +60,7 @@ import com.valora.icebeats.constants.SongSortType
 import com.valora.icebeats.supabase.ChatMessage
 import com.valora.icebeats.supabase.ChatSharedMedia
 import com.valora.icebeats.supabase.ChatUser
+import com.valora.icebeats.supabase.FriendshipStatus
 import com.valora.icebeats.supabase.SupabaseClient
 import com.valora.icebeats.ui.component.ChatMusicCard
 import com.valora.icebeats.ui.component.MasterProfileBorder

@@ -62,7 +62,9 @@ import com.valora.icebeats.ui.component.MasterBorderStyle
 import com.valora.icebeats.ui.component.MasterProfileBorder
 import com.valora.icebeats.ui.component.RankBadge
 import com.valora.icebeats.ui.component.icebeatsRank
-import kotlinx.coroutines.flow.firstOrNull
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -93,7 +95,7 @@ fun UserProfileSheet(
 
     // Hitung jam dengar & rank
     val totalHours = (targetUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
-    val userRank = targetUser.rank ?: com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(targetUser.totalListenMs)
+    val userRank = targetUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
     val borderStyle = MasterBorderStyle.fromId(targetUser.borderStyle)
 
     // Muat data status pertemanan & playlist
@@ -108,17 +110,14 @@ fun UserProfileSheet(
             isLoadingPlaylists = true
             scope.launch {
                 runCatching {
-                    val localPlaylists = database.playlists(PlaylistSortType.CREATE_DATE, true)
-                    // Ambil first emit dari flow
-                    kotlinx.coroutines.flow.firstOrNull(localPlaylists)?.let { list ->
-                        playlists = list.map {
-                            UserPublicPlaylist(
-                                playlistId = it.id,
-                                name = it.playlist.name,
-                                songCount = it.songCount,
-                                updatedAt = ""
-                            )
-                        }
+                    val localPlaylists = database.playlistsByNameAsc().first()
+                    playlists = localPlaylists.map {
+                        UserPublicPlaylist(
+                            playlistId = it.id,
+                            name = it.playlist.name,
+                            songCount = it.songCount,
+                            updatedAt = ""
+                        )
                     }
                 }
                 isLoadingPlaylists = false
@@ -279,7 +278,7 @@ fun UserProfileSheet(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.trophy),
+                                imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 tint = Color(0xFFFFD700),
                                 modifier = Modifier.size(22.dp)
@@ -316,7 +315,7 @@ fun UserProfileSheet(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.sparkles),
+                                imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )

@@ -72,6 +72,7 @@ import com.valora.icebeats.ui.component.MasterProfileBorder
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import com.valora.icebeats.ui.component.RankBadge
 import com.valora.icebeats.ui.component.RankPreferenceManager
+import com.valora.icebeats.ui.component.icebeatsRank
 import com.valora.icebeats.utils.IceBeatsStatsCloudSync
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -91,7 +92,7 @@ fun ChatListScreen(
 
     val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = MasterBorderStyle.ROYAL_CROWN)
     val myRank by rankPrefManager.displayedRank.collectAsState(initial = null)
-    val myName by namePreferenceManager.customName.collectAsState(initial = "")
+    val myName by namePreferenceManager.userName.collectAsState(initial = "")
     val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
 
     var currentUserId by remember { mutableStateOf("") }
@@ -123,7 +124,7 @@ fun ChatListScreen(
             name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
             profileUrl = null,
             totalListenMs = myListenMs,
-            rank = myRank ?: RankPreferenceManager.calculateRank(myListenMs),
+            rank = myRank ?: icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
             borderStyle = selectedBorder.id
         )
     }
