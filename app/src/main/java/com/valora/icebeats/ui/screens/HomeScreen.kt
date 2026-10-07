@@ -1040,6 +1040,8 @@ fun ModernHomeTopBarInline(
         }
     }
 
+    var showMyProfileSheet by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1089,9 +1091,10 @@ fun ModernHomeTopBarInline(
                         modifier = Modifier
                             .size(60.dp)
                             .clip(CircleShape)
-                            .combinedClickable {
-                                navController.navigate("settings/account")
-                            },
+                            .combinedClickable(
+                                onClick = { showMyProfileSheet = true },
+                                onLongClick = { navController.navigate("settings/account") }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         when (currentSelection) {
@@ -1239,6 +1242,41 @@ fun ModernHomeTopBarInline(
                 }
             }
         }
+    }
+
+    if (showMyProfileSheet) {
+        val namePreferenceManager = remember { com.valora.icebeats.ui.component.NamePreferenceManager(context) }
+        val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
+        val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
+        val myName by namePreferenceManager.customName.collectAsState(initial = "")
+        val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
+        val currentUserId = remember { com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager) }
+        val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
+        val myListenMs = remember(currentUserId, myName, myEmail) {
+            statsPrefs.getLong("saved_max_total_listen_ms_$currentUserId", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
+        }
+
+        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, selectedBorder) {
+            com.valora.icebeats.supabase.ChatUser(
+                id = currentUserId,
+                name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
+                profileUrl = null,
+                totalListenMs = myListenMs,
+                rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(myListenMs),
+                borderStyle = selectedBorder.id
+            )
+        }
+
+        com.valora.icebeats.ui.screens.chat.UserProfileSheet(
+            targetUser = myChatUser,
+            currentUserId = currentUserId,
+            isSelf = true,
+            onDismiss = { showMyProfileSheet = false },
+            onOpenAccountSettings = {
+                showMyProfileSheet = false
+                navController.navigate("settings/account")
+            }
+        )
     }
 
     if (showUpdateDialog) {

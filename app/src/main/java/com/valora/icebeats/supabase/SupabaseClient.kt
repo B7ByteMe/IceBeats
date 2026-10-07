@@ -1760,11 +1760,320 @@ class SupabaseClient(private val context: Context) {
             true
         }
     }
+
+    /**
+     * Dapatkan status pertemanan antara 2 user
+     */
+    suspend fun getFriendshipStatus(myUserId: String, targetUserId: String): Result<FriendshipStatus> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (myUserId.isBlank() || targetUserId.isBlank() || myUserId == targetUserId) {
+                return@runCatching FriendshipStatus.NONE
+            }
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/chat_friendships?or=(and(sender_id.eq.$myUserId,receiver_id.eq.$targetUserId),and(sender_id.eq.$targetUserId,receiver_id.eq.$myUserId))&limit=1"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use FriendshipStatus.NONE
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use FriendshipStatus.NONE
+                if (arr.length() == 0) return@use FriendshipStatus.NONE
+                val obj = arr.optJSONObject(0) ?: return@use FriendshipStatus.NONE
+                val senderId = obj.optString("sender_id")
+                val status = obj.optString("status")
+                when {
+                    status == "accepted" -> FriendshipStatus.FRIENDS
+                    senderId == myUserId && status == "pending" -> FriendshipStatus.PENDING_SENT
+                    senderId == targetUserId && status == "pending" -> FriendshipStatus.PENDING_RECEIVED
+                    else -> FriendshipStatus.NONE
+                }
+            }
+        }
+    }
+
+    /**
+     * Kirim permintaan pertemanan
+     */
+    suspend fun sendFriendRequest(myUserId: String, targetUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (myUserId.isBlank() || targetUserId.isBlank() || myUserId == targetUserId) return@runCatching false
+            val token = authManager.accessToken ?: anonKey
+            val payload = JSONObject().apply {
+                put("sender_id", myUserId)
+                put("receiver_id", targetUserId)
+                put("status", "pending")
+            }
+            val req = Request.Builder()
+                .url("$baseUrl/rest/v1/chat_friendships")
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .header("Prefer", "resolution=merge-duplicates")
+                .post(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                resp.isSuccessful
+            }
+        }
+    }
+
+    /**
+     * Terima permintaan pertemanan
+     */
+    suspend fun acceptFriendRequest(myUserId: String, targetUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (myUserId.isBlank() || targetUserId.isBlank()) return@runCatching false
+            val token = authManager.accessToken ?: anonKey
+            val payload = JSONObject().apply {
+                put("status", "accepted")
+            }
+            val url = "$baseUrl/rest/v1/chat_friendships?or=(and(sender_id.eq.$myUserId,receiver_id.eq.$targetUserId),and(sender_id.eq.$targetUserId,receiver_id.eq.$myUserId))"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .patch(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                resp.isSuccessful
+            }
+        }
+    }
+
+    /**
+     * Tolak atau batalkan pertemanan
+     */
+    suspend fun rejectOrRemoveFriend(myUserId: String, targetUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (myUserId.isBlank() || targetUserId.isBlank()) return@runCatching false
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/chat_friendships?or=(and(sender_id.eq.$myUserId,receiver_id.eq.$targetUserId),and(sender_id.eq.$targetUserId,receiver_id.eq.$myUserId))"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .delete()
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                resp.isSuccessful
+            }
+        }
+    }
+
+    /**
+     * Dapatkan daftar permintaan pertemanan masuk (Pending requests)
+     */
+    suspend fun getPendingFriendRequests(myUserId: String): Result<List<ChatUser>> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (myUserId.isBlank()) return@runCatching emptyList()
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/chat_friendships?receiver_id=eq.$myUserId&status=eq.pending&order=created_at.desc&limit=50"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            val senderIds = mutableListOf<String>()
+            httpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use
+                for (i in 0 until arr.length()) {
+                    val sid = arr.optJSONObject(i)?.optString("sender_id").orEmpty()
+                    if (sid.isNotBlank()) senderIds.add(sid)
+                }
+            }
+
+            if (senderIds.isEmpty()) return@runCatching emptyList()
+
+            val inQuery = senderIds.distinct().joinToString(",")
+            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style"
+            val userReq = Request.Builder()
+                .url(userUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(userReq).execute().use { resp ->
+                if (!resp.isSuccessful) return@use emptyList()
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
+                val result = mutableListOf<ChatUser>()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val id = obj.optString("id")
+                    val name = obj.optString("name", "IceBeats User")
+                    val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
+                    val totalMs = obj.optLong("total_listen_ms", 0L)
+                    val rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(totalMs)
+                    val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
+                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle))
+                }
+                result
+            }
+        }
+    }
+
+    /**
+     * Dapatkan daftar teman yang sudah disetujui (Friends)
+     */
+    suspend fun getFriendsList(myUserId: String): Result<List<ChatUser>> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (myUserId.isBlank()) return@runCatching emptyList()
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/chat_friendships?or=(sender_id.eq.$myUserId,receiver_id.eq.$myUserId)&status=eq.accepted&order=updated_at.desc&limit=100"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            val friendIds = mutableListOf<String>()
+            httpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val sId = obj.optString("sender_id")
+                    val rId = obj.optString("receiver_id")
+                    val other = if (sId == myUserId) rId else sId
+                    if (other.isNotBlank() && other != myUserId) friendIds.add(other)
+                }
+            }
+
+            if (friendIds.isEmpty()) return@runCatching emptyList()
+
+            val inQuery = friendIds.distinct().joinToString(",")
+            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style"
+            val userReq = Request.Builder()
+                .url(userUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(userReq).execute().use { resp ->
+                if (!resp.isSuccessful) return@use emptyList()
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
+                val result = mutableListOf<ChatUser>()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val id = obj.optString("id")
+                    val name = obj.optString("name", "IceBeats User")
+                    val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
+                    val totalMs = obj.optLong("total_listen_ms", 0L)
+                    val rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(totalMs)
+                    val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
+                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle))
+                }
+                result
+            }
+        }
+    }
+
+    /**
+     * Dapatkan detail profil user dari user_stats
+     */
+    suspend fun getUserProfile(userId: String): Result<ChatUser> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (userId.isBlank()) throw IllegalArgumentException("User ID kosong")
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/user_stats?id=eq.$userId&select=id,name,profile_url,total_listen_ms,border_style&limit=1"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull()
+                val obj = arr?.optJSONObject(0) ?: throw Exception("User tidak ditemukan")
+                val id = obj.optString("id")
+                val name = obj.optString("name", "IceBeats User")
+                val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
+                val totalMs = obj.optLong("total_listen_ms", 0L)
+                val rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(totalMs)
+                val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
+                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle)
+            }
+        }
+    }
+
+    /**
+     * Dapatkan daftar playlist publik dari user_playlists
+     */
+    suspend fun getUserPublicPlaylists(userId: String): Result<List<UserPublicPlaylist>> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (userId.isBlank()) return@runCatching emptyList()
+            val token = authManager.accessToken ?: anonKey
+            val url = "$baseUrl/rest/v1/user_playlists?user_id=eq.$userId&order=updated_at.desc&limit=20"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+
+            httpClient.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use emptyList()
+                val bodyStr = resp.body?.string().orEmpty()
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
+                val list = mutableListOf<UserPublicPlaylist>()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val pid = obj.optString("playlist_id", obj.optString("id"))
+                    val name = obj.optString("name", "Playlist")
+                    val songCount = obj.optInt("song_count", 0)
+                    val updatedAt = obj.optString("updated_at", "")
+                    list.add(UserPublicPlaylist(playlistId = pid, name = name, songCount = songCount, updatedAt = updatedAt))
+                }
+                list
+            }
+        }
+    }
 }
 
 // ==============================================================================
-// DATA CLASSES UNTUK CHAT & BERBAGI MUSIK
+// DATA CLASSES UNTUK CHAT, TEMAN & BERBAGI MUSIK
 // ==============================================================================
+
+enum class FriendshipStatus {
+    NONE,            // Belum berteman
+    PENDING_SENT,    // Permintaan pertemanan terkirim oleh saya, menunggu respon
+    PENDING_RECEIVED,// Ada permintaan pertemanan dari pengguna ini untuk saya
+    FRIENDS          // Resmi berteman
+}
+
+data class UserPublicPlaylist(
+    val playlistId: String,
+    val name: String,
+    val songCount: Int = 0,
+    val updatedAt: String = ""
+)
 
 data class ChatUser(
     val id: String,

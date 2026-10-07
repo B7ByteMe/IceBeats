@@ -20,6 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -27,13 +31,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,22 +51,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.valora.icebeats.R
 import com.valora.icebeats.supabase.ChatConversation
 import com.valora.icebeats.supabase.ChatUser
 import com.valora.icebeats.supabase.SupabaseClient
+import com.valora.icebeats.ui.component.BorderPreferenceManager
+import com.valora.icebeats.ui.component.MasterBorderStyle
 import com.valora.icebeats.ui.component.MasterProfileBorder
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import com.valora.icebeats.ui.component.RankBadge
-import com.valora.icebeats.utils.icebeatsStatsCloudSync
+import com.valora.icebeats.ui.component.RankPreferenceManager
 import com.valora.icebeats.utils.IceBeatsStatsCloudSync
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -71,22 +86,59 @@ fun ChatListScreen(
     val scope = rememberCoroutineScope()
     val supabaseClient = remember { SupabaseClient(context) }
     val namePreferenceManager = remember { NamePreferenceManager(context) }
+    val borderPrefManager = remember { BorderPreferenceManager(context) }
+    val rankPrefManager = remember { RankPreferenceManager(context) }
+
+    val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = MasterBorderStyle.ROYAL_CROWN)
+    val myRank by rankPrefManager.displayedRank.collectAsState(initial = null)
+    val myName by namePreferenceManager.customName.collectAsState(initial = "")
+    val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
 
     var currentUserId by remember { mutableStateOf("") }
     var conversations by remember { mutableStateOf<List<ChatConversation>>(emptyList()) }
+    var friendsList by remember { mutableStateOf<List<ChatUser>>(emptyList()) }
+    var pendingRequests by remember { mutableStateOf<List<ChatUser>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Obrolan, 1 = Teman & Permintaan
 
     var showSearchSheet by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<ChatUser>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
 
-    // Inisialisasi User & Obrolan
-    fun refreshConversations(uid: String) {
+    var selectedUserForProfile by remember { mutableStateOf<ChatUser?>(null) }
+    var showMyProfileSheet by remember { mutableStateOf(false) }
+
+    // Hitung data profil saya sendiri
+    val statsPrefs = remember { context.getSharedPreferences(IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
+    val myListenMs = remember(currentUserId, myName, myEmail) {
+        if (currentUserId.isNotBlank()) {
+            statsPrefs.getLong("saved_max_total_listen_ms_$currentUserId", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
+        } else 0L
+    }
+
+    val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, myRank, selectedBorder) {
+        ChatUser(
+            id = currentUserId,
+            name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
+            profileUrl = null,
+            totalListenMs = myListenMs,
+            rank = myRank ?: RankPreferenceManager.calculateRank(myListenMs),
+            borderStyle = selectedBorder.id
+        )
+    }
+
+    // Refresh semua data
+    fun refreshData(uid: String) {
+        if (uid.isBlank()) return
         scope.launch {
             isLoading = true
-            val list = supabaseClient.getChatConversations(uid).getOrNull() ?: emptyList()
-            conversations = list
+            val convs = supabaseClient.getChatConversations(uid).getOrDefault(emptyList())
+            val friends = supabaseClient.getFriendsList(uid).getOrDefault(emptyList())
+            val reqs = supabaseClient.getPendingFriendRequests(uid).getOrDefault(emptyList())
+            conversations = convs
+            friendsList = friends
+            pendingRequests = reqs
             isLoading = false
         }
     }
@@ -94,7 +146,7 @@ fun ChatListScreen(
     LaunchedEffect(Unit) {
         val uid = IceBeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager)
         currentUserId = uid
-        refreshConversations(uid)
+        refreshData(uid)
     }
 
     // Auto-search user saat query berubah di Search Sheet
@@ -129,16 +181,60 @@ fun ChatListScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Text(
-                    text = "Obrolan / Chat",
+                    text = "IceBeats Chat",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
 
+                // Tombol Profil Saya
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { showMyProfileSheet = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        MasterProfileBorder(
+                            avatarSize = 24.dp,
+                            userRank = myChatUser.rank,
+                            totalListenMs = myChatUser.totalListenMs,
+                            borderStyle = selectedBorder
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = myChatUser.name.take(1).uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Profil Saya",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Tombol Cari Pengguna
                 IconButton(
                     onClick = { showSearchSheet = true },
                     modifier = Modifier
@@ -155,7 +251,55 @@ fun ChatListScreen(
                 }
             }
 
-            // Konten Percakapan
+            // Tabs: Obrolan vs Teman & Permintaan
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            text = "Obrolan (${conversations.size})",
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                )
+
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Teman (${friendsList.size})",
+                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                            )
+                            if (pendingRequests.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = "${pendingRequests.size}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Konten Sesuai Tab
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -163,72 +307,312 @@ fun ChatListScreen(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-            } else if (conversations.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+            } else if (selectedTab == 0) {
+                // TAB 0: DAFTAR OBROLAN
+                if (conversations.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.chat),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Belum Ada Percakapan",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Cari teman atau pendengar lain untuk mulai mengobrol & berbagi musik favorit!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(18.dp))
-                        androidx.compose.material3.Button(
-                            onClick = { showSearchSheet = true },
-                            shape = RoundedCornerShape(12.dp)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.search),
+                                painter = painterResource(R.drawable.chat),
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(64.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Cari Teman Sekarang")
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Belum Ada Percakapan",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Ajak teman untuk mulai mengobrol & berbagi musik favorit!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(18.dp))
+                            Button(
+                                onClick = { showSearchSheet = true },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.search),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cari Teman Sekarang")
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(conversations, key = { it.id }) { conv ->
+                            ConversationItem(
+                                conversation = conv,
+                                onClick = {
+                                    val encodedName = URLEncoder.encode(conv.otherUser.name, StandardCharsets.UTF_8.name())
+                                    navController.navigate("chat/${conv.id}/${conv.otherUser.id}/$encodedName")
+                                },
+                                onAvatarClick = {
+                                    selectedUserForProfile = conv.otherUser
+                                }
+                            )
                         }
                     }
                 }
             } else {
+                // TAB 1: DAFTAR TEMAN & PERMINTAAN PERTEMANAN
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(conversations, key = { it.id }) { conv ->
-                        ConversationItem(
-                            conversation = conv,
-                            onClick = {
-                                val encodedName = URLEncoder.encode(conv.otherUser.name, StandardCharsets.UTF_8.name())
-                                navController.navigate("chat/${conv.id}/${conv.otherUser.id}/$encodedName")
+                    // Bagian Permintaan Pertemanan Masuk
+                    if (pendingRequests.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Permintaan Pertemanan Masuk (${pendingRequests.size})",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+
+                        items(pendingRequests, key = { "req_${it.id}" }) { reqUser ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    MasterProfileBorder(
+                                        avatarSize = 44.dp,
+                                        userRank = reqUser.rank,
+                                        totalListenMs = reqUser.totalListenMs,
+                                        borderStyle = reqUser.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            modifier = Modifier.size(44.dp)
+                                        ) {
+                                            if (!reqUser.profileUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = reqUser.profileUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = reqUser.name.take(1).uppercase(),
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedUserForProfile = reqUser }
+                                    ) {
+                                        Text(
+                                            text = reqUser.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "Level ${reqUser.rank?.name ?: "Echo"} • Ketuk untuk lihat profil",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                supabaseClient.acceptFriendRequest(currentUserId, reqUser.id)
+                                                refreshData(currentUserId)
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text("Terima", style = MaterialTheme.typography.labelSmall)
+                                    }
+
+                                    Spacer(modifier = Modifier.width(4.dp))
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            scope.launch {
+                                                supabaseClient.rejectOrRemoveFriend(currentUserId, reqUser.id)
+                                                refreshData(currentUserId)
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text("Tolak", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
                             }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                    }
+
+                    // Bagian Daftar Teman
+                    item {
+                        Text(
+                            text = "Semua Teman (${friendsList.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(vertical = 4.dp)
                         )
+                    }
+
+                    if (friendsList.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Belum memiliki teman. Gunakan fitur pencarian untuk mengajak teman!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        items(friendsList, key = { "friend_${it.id}" }) { friend ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedUserForProfile = friend }
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    MasterProfileBorder(
+                                        avatarSize = 44.dp,
+                                        userRank = friend.rank,
+                                        totalListenMs = friend.totalListenMs,
+                                        borderStyle = friend.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            modifier = Modifier.size(44.dp)
+                                        ) {
+                                            if (!friend.profileUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = friend.profileUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = friend.name.take(1).uppercase(),
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = friend.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            friend.rank?.let { r ->
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                RankBadge(rank = r, displayedRank = null, size = 16.dp)
+                                            }
+                                        }
+                                        Text(
+                                            text = "${(friend.totalListenMs / 3600000)} Jam didengar • Ketuk profil",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            scope.launch {
+                                                val convId = supabaseClient.getOrCreateConversation(currentUserId, friend.id).getOrNull()
+                                                if (!convId.isNullOrBlank()) {
+                                                    val encodedName = URLEncoder.encode(friend.name, StandardCharsets.UTF_8.name())
+                                                    navController.navigate("chat/$convId/${friend.id}/$encodedName")
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.chat),
+                                            contentDescription = "Chat",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Floating Action Button: Mulai Chat Baru
+        // Floating Action Button: Mulai Chat / Cari Teman Baru
         FloatingActionButton(
             onClick = { showSearchSheet = true },
             modifier = Modifier
@@ -245,7 +629,7 @@ fun ChatListScreen(
             )
         }
 
-        // Modal Bottom Sheet: Pencarian Pengguna
+        // Modal Bottom Sheet: Pencarian Pengguna & Profil
         if (showSearchSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showSearchSheet = false },
@@ -317,95 +701,129 @@ fun ChatListScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(searchResults, key = { it.id }) { user ->
-                                Row(
+                                Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                                         .clickable {
-                                            showSearchSheet = false
-                                            scope.launch {
-                                                val convId = supabaseClient
-                                                    .getOrCreateConversation(currentUserId, user.id)
-                                                    .getOrNull()
-                                                if (!convId.isNullOrBlank()) {
-                                                    val encodedName = URLEncoder.encode(user.name, StandardCharsets.UTF_8.name())
-                                                    navController.navigate("chat/$convId/${user.id}/$encodedName")
+                                            selectedUserForProfile = user
+                                        },
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        MasterProfileBorder(
+                                            avatarSize = 40.dp,
+                                            userRank = user.rank,
+                                            totalListenMs = user.totalListenMs,
+                                            borderStyle = user.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                        ) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                modifier = Modifier.size(40.dp)
+                                            ) {
+                                                if (!user.profileUrl.isNullOrBlank()) {
+                                                    AsyncImage(
+                                                        model = user.profileUrl,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                } else {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Text(
+                                                            text = user.name.take(1).uppercase(),
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Avatar dengan Master Profile Border
-                                    MasterProfileBorder(
-                                        avatarSize = 40.dp,
-                                        userRank = user.rank,
-                                        totalListenMs = user.totalListenMs,
-                                        borderStyle = user.borderStyle?.let { com.valora.icebeats.ui.component.MasterBorderStyle.fromId(it) }
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (!user.profileUrl.isNullOrBlank()) {
-                                                AsyncImage(
-                                                    model = user.profileUrl,
-                                                    contentDescription = user.name,
-                                                    modifier = Modifier.size(40.dp),
-                                                    contentScale = ContentScale.Crop
-                                                )
-                                            } else {
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
-                                                    text = user.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    text = user.name,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
+                                                user.rank?.let { r ->
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    RankBadge(rank = r, displayedRank = null, size = 16.dp)
+                                                }
                                             }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
-                                                text = user.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                text = "${(user.totalListenMs / 3600000)} Jam didengar • Ketuk lihat profil",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            user.rank?.let { rank ->
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                RankBadge(rank = rank, displayedRank = null, size = 16.dp)
-                                            }
                                         }
-                                        val hours = (user.totalListenMs / (1000 * 3600)).toInt()
-                                        Text(
-                                            text = "$hours jam mendengarkan",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
 
-                                    Icon(
-                                        painter = painterResource(R.drawable.arrow_forward),
-                                        contentDescription = "Mulai Chat",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                        Button(
+                                            onClick = {
+                                                selectedUserForProfile = user
+                                            },
+                                            shape = RoundedCornerShape(10.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text("Profil", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+        }
+
+        // Tampilan Profil Pengguna Lain
+        if (selectedUserForProfile != null) {
+            UserProfileSheet(
+                targetUser = selectedUserForProfile!!,
+                currentUserId = currentUserId,
+                isSelf = false,
+                onDismiss = {
+                    selectedUserForProfile = null
+                    refreshData(currentUserId)
+                },
+                onStartChat = { u ->
+                    selectedUserForProfile = null
+                    showSearchSheet = false
+                    scope.launch {
+                        val convId = supabaseClient.getOrCreateConversation(currentUserId, u.id).getOrNull()
+                        if (!convId.isNullOrBlank()) {
+                            val encodedName = URLEncoder.encode(u.name, StandardCharsets.UTF_8.name())
+                            navController.navigate("chat/$convId/${u.id}/$encodedName")
+                        }
+                    }
+                }
+            )
+        }
+
+        // Tampilan Profil Saya Sendiri
+        if (showMyProfileSheet) {
+            UserProfileSheet(
+                targetUser = myChatUser,
+                currentUserId = currentUserId,
+                isSelf = true,
+                onDismiss = { showMyProfileSheet = false },
+                onOpenAccountSettings = {
+                    showMyProfileSheet = false
+                    navController.navigate("settings/account")
+                }
+            )
         }
     }
 }
@@ -413,83 +831,103 @@ fun ChatListScreen(
 @Composable
 private fun ConversationItem(
     conversation: ChatConversation,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onAvatarClick: (() -> Unit)? = null
 ) {
+    val other = conversation.otherUser
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar dengan Master Profile Border
-        MasterProfileBorder(
-            avatarSize = 46.dp,
-            userRank = conversation.otherUser.rank,
-            totalListenMs = conversation.otherUser.totalListenMs,
-            borderStyle = conversation.otherUser.borderStyle?.let { com.valora.icebeats.ui.component.MasterBorderStyle.fromId(it) }
+        Box(
+            modifier = Modifier.clickable { onAvatarClick?.invoke() }
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center
+            MasterProfileBorder(
+                avatarSize = 50.dp,
+                userRank = other.rank,
+                totalListenMs = other.totalListenMs,
+                borderStyle = other.borderStyle?.let { MasterBorderStyle.fromId(it) }
             ) {
-                if (!conversation.otherUser.profileUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = conversation.otherUser.profileUrl,
-                        contentDescription = conversation.otherUser.name,
-                        modifier = Modifier.size(46.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text(
-                        text = conversation.otherUser.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    if (!other.profileUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = other.profileUrl,
+                            contentDescription = other.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = other.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = conversation.otherUser.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    text = other.name,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
-                conversation.otherUser.rank?.let { rank ->
+                other.rank?.let { rank ->
                     Spacer(modifier = Modifier.width(6.dp))
-                    RankBadge(rank = rank, displayedRank = null, size = 16.dp)
+                    RankBadge(rank = rank, displayedRank = null, size = 18.dp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = conversation.lastMessage.ifBlank { "Mulai percakapan baru..." },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = conversation.lastMessage.ifBlank { "Mulai obrolan..." },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (conversation.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (conversation.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        Icon(
-            painter = painterResource(R.drawable.arrow_forward),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-            modifier = Modifier.size(16.dp)
-        )
+        if (conversation.unreadCount > 0) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "${conversation.unreadCount}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+        }
     }
 }

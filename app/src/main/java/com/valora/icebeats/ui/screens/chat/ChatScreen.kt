@@ -50,6 +50,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.valora.icebeats.LocalDatabase
@@ -96,16 +97,25 @@ fun ChatScreen(
     var isSending by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var showShareMusicSheet by remember { mutableStateOf(false) }
+    var showProfileSheet by remember { mutableStateOf(false) }
+    var friendshipStatus by remember { mutableStateOf<FriendshipStatus?>(null) }
+    var isFriendActionLoading by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
-    // Resolve current user ID
+    // Resolve current user ID & Friendship status
     LaunchedEffect(Unit) {
         val uid = IceBeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager)
         currentUserId = uid
         // Ambil info detail otherUser jika memungkinkan
         val searchRes = supabaseClient.searchChatUsers(otherUserName, uid).getOrNull()
-        otherUser = searchRes?.find { it.id == otherUserId } ?: ChatUser(otherUserId, otherUserName)
+        val foundUser = searchRes?.find { it.id == otherUserId } ?: supabaseClient.getUserProfile(otherUserId).getOrNull()
+        otherUser = foundUser ?: ChatUser(otherUserId, otherUserName)
+
+        if (uid.isNotBlank() && otherUserId.isNotBlank()) {
+            val status = supabaseClient.getFriendshipStatus(uid, otherUserId).getOrDefault(FriendshipStatus.NONE)
+            friendshipStatus = status
+        }
     }
 
     // Polling berkala untuk pesan baru (setiap 3,5 detik tanpa memberatkan HP)
@@ -142,7 +152,7 @@ fun ChatScreen(
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header Bar
+            // Header Bar (Klik untuk melihat profil lawan bicara)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,59 +169,68 @@ fun ChatScreen(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                // Avatar lawan bicara dengan Master Profile Border
-                MasterProfileBorder(
-                    avatarSize = 40.dp,
-                    userRank = otherUser?.rank,
-                    totalListenMs = otherUser?.totalListenMs,
-                    borderStyle = otherUser?.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showProfileSheet = true }
+                        .padding(vertical = 4.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
+                    // Avatar lawan bicara dengan Master Profile Border
+                    MasterProfileBorder(
+                        avatarSize = 40.dp,
+                        userRank = otherUser?.rank,
+                        totalListenMs = otherUser?.totalListenMs,
+                        borderStyle = otherUser?.borderStyle?.let { MasterBorderStyle.fromId(it) }
                     ) {
-                        if (!otherUser?.profileUrl.isNullOrBlank()) {
-                            AsyncImage(
-                                model = otherUser?.profileUrl,
-                                contentDescription = otherUserName,
-                                modifier = Modifier.size(40.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (!otherUser?.profileUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = otherUser?.profileUrl,
+                                    contentDescription = otherUserName,
+                                    modifier = Modifier.size(40.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = otherUserName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = otherUserName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                text = otherUserName,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            otherUser?.rank?.let { rank ->
+                                Spacer(modifier = Modifier.width(6.dp))
+                                RankBadge(rank = rank, displayedRank = null, size = 18.dp)
+                            }
                         }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = otherUserName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            text = if (friendshipStatus == com.valora.icebeats.supabase.FriendshipStatus.FRIENDS) "Teman • Ketuk untuk lihat profil" else "Ketuk untuk lihat profil",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                         )
-                        otherUser?.rank?.let { rank ->
-                            Spacer(modifier = Modifier.width(6.dp))
-                            RankBadge(rank = rank, displayedRank = null, size = 18.dp)
-                        }
                     }
-                    Text(
-                        text = "IceBeats Live Chat",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    )
                 }
             }
 
@@ -265,7 +284,76 @@ fun ChatScreen(
                 }
             }
 
+            // Banner Pertemanan (Jika belum berteman resmi)
+            if (friendshipStatus != null && friendshipStatus != com.valora.icebeats.supabase.FriendshipStatus.FRIENDS) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = when (friendshipStatus) {
+                                    com.valora.icebeats.supabase.FriendshipStatus.PENDING_SENT -> "Permintaan terkirim. Menunggu persetujuan $otherUserName..."
+                                    com.valora.icebeats.supabase.FriendshipStatus.PENDING_RECEIVED -> "$otherUserName mengajak Anda berteman!"
+                                    else -> "Ajak berteman terlebih dahulu agar dapat mengobrol."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        when (friendshipStatus) {
+                            com.valora.icebeats.supabase.FriendshipStatus.NONE -> {
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        scope.launch {
+                                            isFriendActionLoading = true
+                                            val ok = supabaseClient.sendFriendRequest(currentUserId, otherUserId).getOrDefault(false)
+                                            if (ok) friendshipStatus = com.valora.icebeats.supabase.FriendshipStatus.PENDING_SENT
+                                            isFriendActionLoading = false
+                                        }
+                                    },
+                                    enabled = !isFriendActionLoading,
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("Ajak Berteman", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                            com.valora.icebeats.supabase.FriendshipStatus.PENDING_RECEIVED -> {
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        scope.launch {
+                                            isFriendActionLoading = true
+                                            val ok = supabaseClient.acceptFriendRequest(currentUserId, otherUserId).getOrDefault(false)
+                                            if (ok) friendshipStatus = com.valora.icebeats.supabase.FriendshipStatus.FRIENDS
+                                            isFriendActionLoading = false
+                                        }
+                                    },
+                                    enabled = !isFriendActionLoading,
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("Terima", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+            }
+
             // Input Bottom Bar
+            val canChat = friendshipStatus == com.valora.icebeats.supabase.FriendshipStatus.FRIENDS || friendshipStatus == null
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -275,16 +363,17 @@ fun ChatScreen(
             ) {
                 // Tombol Bagikan Musik
                 IconButton(
-                    onClick = { showShareMusicSheet = true },
+                    onClick = { if (canChat) showShareMusicSheet = true },
+                    enabled = canChat,
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                        .background(if (canChat) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.music_note),
                         contentDescription = "Bagikan Musik",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (canChat) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -295,7 +384,13 @@ fun ChatScreen(
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    placeholder = { Text("Ketik pesan...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    placeholder = {
+                        Text(
+                            text = if (canChat) "Ketik pesan..." else "Berteman terlebih dahulu untuk chat...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    enabled = canChat,
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),
@@ -517,6 +612,38 @@ fun ChatScreen(
             }
         }
     }
+
+    // Modal Sheet Profil Pengguna Lawan Bicara
+    if (showProfileSheet && otherUser != null) {
+        UserProfileSheet(
+            targetUser = otherUser!!,
+            currentUserId = currentUserId,
+            isSelf = false,
+            onDismiss = { showProfileSheet = false },
+            onStartChat = { showProfileSheet = false }
+        )
+    }
+}
+
+private fun formatChatTime(raw: String): String {
+    if (raw.isBlank()) return ""
+    return try {
+        val epoch = raw.toLongOrNull()
+        if (epoch != null) {
+            val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(epoch))
+        } else {
+            val clean = raw.substringBefore(".").substringBefore("+").substringBefore("Z")
+            val iso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+            iso.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            val date = iso.parse(clean)
+            val out = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+            out.timeZone = java.util.TimeZone.getDefault()
+            if (date != null) out.format(date) else ""
+        }
+    } catch (_: Exception) {
+        ""
+    }
 }
 
 @Composable
@@ -547,7 +674,7 @@ private fun ChatBubbleItem(
                     )
                 )
                 .background(bubbleColor)
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
                 if (message.messageType == "music" && message.mediaData != null) {
@@ -556,7 +683,7 @@ private fun ChatBubbleItem(
                             text = message.content,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
                     }
                     ChatMusicCard(media = message.mediaData, isFromMe = isMe)
@@ -567,23 +694,34 @@ private fun ChatBubbleItem(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-        // Status dibaca (Read Checkmark) untuk pesan pengirim
-        if (isMe) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Done,
-                    contentDescription = if (message.isRead) "Dibaca" else "Terkirim",
-                    tint = if (message.isRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(13.dp)
-                )
+                // Baris Jam Pengiriman & Status Dibaca (WhatsApp Style)
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    val timeStr = remember(message.createdAt) { formatChatTime(message.createdAt) }
+                    if (timeStr.isNotBlank()) {
+                        Text(
+                            text = timeStr,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        )
+                    }
+
+                    if (isMe) {
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Icon(
+                            imageVector = Icons.Default.Done,
+                            contentDescription = if (message.isRead) "Dibaca" else "Terkirim",
+                            tint = if (message.isRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
             }
         }
     }

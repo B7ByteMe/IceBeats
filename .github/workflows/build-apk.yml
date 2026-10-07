@@ -65,14 +65,14 @@ jobs:
           for file in app/build/outputs/apk/release/*.apk; do
             filename=$(basename "$file")
             if [[ "$filename" == *"universal"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.2-universal.apk"
-              cp "$file" "release-apks/IceBeats-v7.1.2.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.3-universal.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.3.apk"
             elif [[ "$filename" == *"arm64-v8a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.2-arm64-v8a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.3-arm64-v8a.apk"
             elif [[ "$filename" == *"armeabi-v7a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.2-armeabi-v7a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.3-armeabi-v7a.apk"
             elif [[ "$filename" == *"x86_64"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.2-x86_64.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.3-x86_64.apk"
             else
               cp "$file" "release-apks/$filename"
             fi
@@ -83,7 +83,7 @@ jobs:
       - name: Upload All APK Variants
         uses: actions/upload-artifact@v4
         with:
-          name: IceBeats-v7.1.2-Multi-Arch-APKs
+          name: IceBeats-v7.1.3-Multi-Arch-APKs
           path: release-apks/*.apk
           retention-days: 14
 
@@ -91,22 +91,22 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.2' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.2' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.3' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.3' }}
           body: |
-            ## 🎵 IceBeats v7.1.2
+            ## 🎵 IceBeats v7.1.3
 
-            ### ✨ Apa yang baru di v7.1.2:
-            - **👑 Sempurna Tanpa Celah (Zero Gap Border)**: Skala lingkaran border disesuaikan presisi ke 1.80x sehingga cincin emas, kristal, sayap, dan api membingkai tepat menempel di tepi luar lingkaran avatar tanpa ada celah hitam renggang.
-            - **💬 Miniplayer Auto-Hide di Menu Chat**: UI balok musik otomatis disembunyikan di menu obrolan agar tampilan obrolan penuh dan bersih, sementara lagu tetap berputar di latar belakang tanpa terputus.
-            - **👤 Isolasi Data & Level Per-Akun**: Setiap akun memiliki penyimpanan rekor statistik masing-masing. Level dan jam dengar akun lain tidak akan tertukar atau terbawa saat logout dan login akun berbeda.
-            - **🔒 Fix Duplikasi Akun & Token Auth**: Tidak ada lagi akun ganda setelah logout & login ulang dengan akun yang sama.
+            ### ✨ Fitur Baru & Peningkatan di v7.1.3:
+            - **🕒 Jam & Status Pesan WhatsApp Style**: Setiap pesan chat kini dilengkapi penunjuk waktu jam:menit dan centang status terkirim/dibaca di pojok kanan bawah gelembung pesan.
+            - **👥 Sistem Pertemanan & Proteksi Chat**: Pengguna dapat saling mengirim permintaan pertemanan (Ajak Berteman), menerima/menolak pertemanan, dan memastikan telah berteman resmi sebelum saling mengirim pesan chat.
+            - **👤 Tampilan Profil Pengguna Lengkap**: Ketuk avatar atau nama pengguna untuk melihat profil lengkap mereka (nama, border Master aktif, tier badge, total jam dengar, dan koleksi playlist publik).
+            - **🌟 Menu "Profil Saya"**: Antarmuka profil diri sendiri yang identik dan mewah—dapat diakses langsung dari header Chat maupun beranda utama (klik avatar).
+            - **👑 Sempurna Tanpa Celah (Zero Gap Border)**: Skala lingkaran border 1.80x pas melingkari tepi avatar tanpa celah hitam renggang.
             - **📱 Multi-Architecture Support**:
-              - `IceBeats-v7.1.2.apk` & `IceBeats-v7.1.2-universal.apk`: Universal untuk semua HP Android.
-              - `IceBeats-v7.1.2-arm64-v8a.apk`: Khusus HP 64-bit modern (performa maksimal).
-              - `IceBeats-v7.1.2-armeabi-v7a.apk`: Khusus HP 32-bit.
-              - `IceBeats-v7.1.2-x86_64.apk`: Untuk Emulator Android PC.
-            - **🛡️ Leaderboard Highscore Protection**: Jam dengar tidak akan pernah berkurang atau reset.
+              - `IceBeats-v7.1.3.apk` & `IceBeats-v7.1.3-universal.apk`: Universal untuk semua HP Android.
+              - `IceBeats-v7.1.3-arm64-v8a.apk`: Khusus HP 64-bit modern (performa maksimal).
+              - `IceBeats-v7.1.3-armeabi-v7a.apk`: Khusus HP 32-bit.
+              - `IceBeats-v7.1.3-x86_64.apk`: Untuk Emulator Android PC.
           files: release-apks/*.apk
           draft: false
           prerelease: false

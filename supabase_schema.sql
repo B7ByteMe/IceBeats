@@ -515,5 +515,58 @@ EXCEPTION WHEN OTHERS THEN
     NULL;
 END $$;
 
+-- D. TABEL PERTEMANAN & PERMINTAAN BERTEMAN (FRIENDSHIPS SYSTEM v7.1.3)
+CREATE TABLE IF NOT EXISTS public.chat_friendships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_id TEXT NOT NULL,
+    receiver_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending' atau 'accepted'
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_friend_pair UNIQUE (sender_id, receiver_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_friendships_sender ON public.chat_friendships(sender_id, status);
+CREATE INDEX IF NOT EXISTS idx_chat_friendships_receiver ON public.chat_friendships(receiver_id, status);
+
+ALTER TABLE public.chat_friendships ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can select friendships" ON public.chat_friendships;
+DROP POLICY IF EXISTS "Public can insert friendships" ON public.chat_friendships;
+DROP POLICY IF EXISTS "Public can update friendships" ON public.chat_friendships;
+DROP POLICY IF EXISTS "Public can delete friendships" ON public.chat_friendships;
+
+CREATE POLICY "Public can select friendships"
+ON public.chat_friendships
+FOR SELECT
+TO public
+USING (true);
+
+CREATE POLICY "Public can insert friendships"
+ON public.chat_friendships
+FOR INSERT
+TO public
+WITH CHECK (true);
+
+CREATE POLICY "Public can update friendships"
+ON public.chat_friendships
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Public can delete friendships"
+ON public.chat_friendships
+FOR DELETE
+TO public
+USING (true);
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_friendships;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
 
 
