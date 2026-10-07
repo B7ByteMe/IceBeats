@@ -1920,7 +1920,7 @@ class SupabaseClient(private val context: Context) {
                     val name = obj.optString("name", "IceBeats User")
                     val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
                     val totalMs = obj.optLong("total_listen_ms", 0L)
-                    val rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(totalMs)
+                    val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                     val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
                     result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle))
                 }
@@ -1982,7 +1982,7 @@ class SupabaseClient(private val context: Context) {
                     val name = obj.optString("name", "IceBeats User")
                     val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
                     val totalMs = obj.optLong("total_listen_ms", 0L)
-                    val rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(totalMs)
+                    val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                     val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
                     result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle))
                 }
@@ -2015,7 +2015,7 @@ class SupabaseClient(private val context: Context) {
                 val name = obj.optString("name", "IceBeats User")
                 val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
                 val totalMs = obj.optLong("total_listen_ms", 0L)
-                val rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(totalMs)
+                val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                 val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
                 ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle)
             }

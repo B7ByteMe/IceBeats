@@ -1248,7 +1248,7 @@ fun ModernHomeTopBarInline(
         val namePreferenceManager = remember { com.valora.icebeats.ui.component.NamePreferenceManager(context) }
         val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
         val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
-        val myName by namePreferenceManager.customName.collectAsState(initial = "")
+        val myName by namePreferenceManager.userName.collectAsState(initial = "")
         val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
         val currentUserId = remember { com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager) }
         val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
@@ -1262,7 +1262,7 @@ fun ModernHomeTopBarInline(
                 name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
                 profileUrl = null,
                 totalListenMs = myListenMs,
-                rank = com.valora.icebeats.ui.component.RankPreferenceManager.calculateRank(myListenMs),
+                rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
                 borderStyle = selectedBorder.id
             )
         }
