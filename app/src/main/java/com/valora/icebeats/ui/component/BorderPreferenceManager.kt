@@ -100,12 +100,15 @@ class BorderPreferenceManager @Inject constructor(
                     put("border_style", style.id)
                 }
 
+                val mediaType = okhttp3.MediaType.Companion.toMediaType("application/json; charset=utf-8")
+                val requestBody = okhttp3.RequestBody.Companion.toRequestBody(bodyJson.toString(), mediaType)
+
                 val request = okhttp3.Request.Builder()
                     .url(targetUrl)
                     .header("apikey", anonKey)
                     .header("Authorization", "Bearer $token")
                     .header("Content-Type", "application/json")
-                    .patch(okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json; charset=utf-8"), bodyJson.toString()))
+                    .patch(requestBody)
                     .build()
 
                 okhttp3.OkHttpClient().newCall(request).execute().close()

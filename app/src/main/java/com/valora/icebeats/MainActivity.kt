@@ -484,8 +484,8 @@ class MainActivity : ComponentActivity() {
                     // Otomatis logout bersih satu kali untuk update versi 7.0.9
                     namePreferenceManager.clearUser()
                     com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(this@MainActivity).clearSession()
-                    com.valora.icebeats.supabase.SupabaseClient.getInstance().signOut()
-                    com.valora.icebeats.utils.icebeatsStatsCloudSync.clearCachedUserId(this@MainActivity)
+                    com.valora.icebeats.supabase.SupabaseClient(this@MainActivity).signOut()
+                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearCachedUserId(this@MainActivity)
                     playerConnection?.player?.stop()
                     migrationPrefs.edit().putBoolean("migrated_v709_logout", true).apply()
                 }
