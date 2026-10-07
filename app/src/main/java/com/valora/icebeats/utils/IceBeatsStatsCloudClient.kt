@@ -20,6 +20,7 @@ data class GlobalStatsUser(
     val lastUpdatedAt: Long,
     val rank: Int = 0,
     val fcmToken: String? = null,
+    val borderStyle: String? = null,
 )
 
 data class GlobalStatsBoard(
@@ -35,6 +36,7 @@ data class LocalStatsUpload(
     val totalListenMs: Long,
     val weeklyListenMs: Long,
     val fcmToken: String? = null,
+    val borderStyle: String? = null,
 )
 
 class icebeatsStatsCloudClient {
@@ -82,7 +84,8 @@ class icebeatsStatsCloudClient {
                                 weeklyListenMs = obj.optLong("weekly_listen_ms", 0L),
                                 lastUpdatedAt = obj.optLong("last_updated_at", 0L),
                                 rank = i + 1,
-                                fcmToken = obj.optString("fcm_token").trim().takeIf { it.isNotBlank() && it != "null" }
+                                fcmToken = obj.optString("fcm_token").trim().takeIf { it.isNotBlank() && it != "null" },
+                                borderStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
                             )
                         )
                     }
@@ -108,7 +111,7 @@ class icebeatsStatsCloudClient {
             }
         }
 
-    suspend fun uploadDaily(upload: LocalStatsUpload): Result<GlobalStatsBoard> =
+    suspend fun uploadDaily(upload: LocalStatsUpload, authToken: String? = null): Result<GlobalStatsBoard> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val sanitizedName = upload.name.trim()
@@ -129,7 +132,15 @@ class icebeatsStatsCloudClient {
                     put("weekly_listen_ms", safeWeeklyListenMs)
                     put("last_updated_at", System.currentTimeMillis())
                     put("fcm_token", upload.fcmToken ?: JSONObject.NULL)
+                    if (upload.borderStyle != null) {
+                        put("border_style", upload.borderStyle)
+                    }
                 }
+
+                // Gunakan auth token user jika tersedia untuk memenuhi RLS policy Supabase.
+                // Jika tidak ada (guest), fallback ke anon key.
+                val bearerToken = if (!authToken.isNullOrBlank()) authToken
+                    else com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
 
                 val supabaseUrl = "${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL}/rest/v1/user_stats?on_conflict=id"
                 val request =
@@ -137,7 +148,7 @@ class icebeatsStatsCloudClient {
                         .Builder()
                         .url(supabaseUrl)
                         .header("apikey", com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY)
-                        .header("Authorization", "Bearer ${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY}")
+                        .header("Authorization", "Bearer $bearerToken")
                         .header("Content-Type", "application/json")
                         .header("Prefer", "resolution=merge-duplicates")
                         .post(bodyJson.toString().toRequestBody(JSON_MEDIA_TYPE))
@@ -146,7 +157,7 @@ class icebeatsStatsCloudClient {
                 runCatching {
                     client.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) {
-                            android.util.Log.w("IceBeatsStats", "Upsert returned ${response.code}")
+                            android.util.Log.w("IceBeatsStats", "Upsert returned ${response.code}: ${response.body?.string()}")
                         }
                     }
                 }

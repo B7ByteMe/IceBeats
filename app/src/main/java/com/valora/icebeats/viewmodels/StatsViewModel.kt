@@ -237,7 +237,8 @@ constructor(
         if (forceUpload || shouldUploadToday()) {
             val upload = runCatching { buildUpload(userId) }.getOrNull()
             if (upload != null) {
-                val uploadResult = cloudClient.uploadDaily(upload)
+                val authToken = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).accessToken
+                val uploadResult = cloudClient.uploadDaily(upload, authToken)
                 if (uploadResult.isSuccess) {
                     val board = uploadResult.getOrThrow()
                     // Pastikan HP menyimpan rekor skor tertinggi dari server agar tidak ter-reset

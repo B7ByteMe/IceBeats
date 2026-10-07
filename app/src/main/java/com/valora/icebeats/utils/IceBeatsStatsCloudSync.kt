@@ -1,6 +1,7 @@
 package com.valora.icebeats.utils
 
 import android.content.Context
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.valora.icebeats.db.MusicDatabase
 import com.valora.icebeats.ui.component.AvatarPreferenceManager
 import com.valora.icebeats.ui.component.AvatarSelection
@@ -23,8 +24,10 @@ object icebeatsStatsCloudSync {
         val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
         val userId = resolveStableUserId(context, namePreferenceManager, preferences)
         val upload = buildUpload(context, database, namePreferenceManager, userId) ?: return null
+        // Teruskan auth token agar upsert menggunakan kredensial user (bukan anonymous key)
+        val authToken = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).accessToken
         return icebeatsStatsCloudClient()
-            .uploadDaily(upload)
+            .uploadDaily(upload, authToken)
             .onSuccess {
                 preferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
             }
@@ -65,6 +68,7 @@ object icebeatsStatsCloudSync {
                 is AvatarSelection.Custom -> avatar.cloudUrl
                 else -> null
             }
+        val borderStyle = com.valora.icebeats.ui.component.BorderPreferenceManager(context).selectedBorder.first().id
         return LocalStatsUpload(
             userId = userId,
             name = name,
@@ -72,6 +76,7 @@ object icebeatsStatsCloudSync {
             email = email,
             totalListenMs = totalListenMs,
             weeklyListenMs = weeklyListenMs,
+            borderStyle = borderStyle
         )
     }
 
@@ -83,10 +88,26 @@ object icebeatsStatsCloudSync {
         namePreferenceManager: NamePreferenceManager,
         preferences: android.content.SharedPreferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE),
     ): String {
-        val supabaseUid = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).userId.value.trim()
+        // Baca langsung dari DataStore (bukan StateFlow) untuk menghindari race condition
+        // StateFlow mungkin belum terupdate saat dipanggil tepat setelah login
+        val supabaseUid = runCatching {
+            val KEY_DATASTORE_USER_ID = stringPreferencesKey("supabase_user_id")
+            context.dataStore.data.first()[KEY_DATASTORE_USER_ID]?.trim().orEmpty()
+        }.getOrElse {
+            // Fallback ke StateFlow jika DataStore gagal
+            com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).userId.value.trim()
+        }
+
         if (supabaseUid.isNotBlank()) {
             preferences.edit().putString(KEY_USER_ID, supabaseUid).apply()
             return supabaseUid
+        }
+
+        // Cek cached user id dulu (mungkin sudah disimpan dari sesi sebelumnya)
+        val existing = preferences.getString(KEY_USER_ID, null)
+        if (!existing.isNullOrBlank() && !existing.startsWith("device-")) {
+            // Hanya pakai cache jika bukan device-ID (supaya tidak ada duplikasi)
+            return existing
         }
 
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
@@ -96,7 +117,6 @@ object icebeatsStatsCloudSync {
             return resolved
         }
 
-        val existing = preferences.getString(KEY_USER_ID, null)
         if (!existing.isNullOrBlank()) return existing
 
         return stableUserId(preferences)
