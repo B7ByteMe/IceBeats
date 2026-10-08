@@ -491,6 +491,16 @@ fun AppleHomeScreen(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh
     ) {
+        // Top 1 Listener Banner (Kompak & Elegan)
+        item {
+            com.valora.icebeats.ui.component.TopListenerHomeSection(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                navController = navController
+            )
+        }
+
         quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
             item {
                 AppleSectionTitle("Made for You")

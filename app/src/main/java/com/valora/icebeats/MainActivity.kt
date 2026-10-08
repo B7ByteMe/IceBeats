@@ -769,11 +769,12 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     val route = navBackStackEntry?.destination?.route
                                     val isChat = route?.startsWith("chat") == true
+                                    val isSettings = route?.startsWith("settings") == true
                                     val isAuth = route == "onboarding" || route == "login" || route == "guest_profile_setup" || route == "discord_login" || isNameSet == false
 
                                     var bottom = bottomInset
-                                    if (shouldShowNavigationBar && !isChat && !isAuth) bottom += NavigationBarHeight - 16.dp
-                                    if (!playerBottomSheetState.isDismissed && !isChat && !isAuth) bottom += MiniPlayerHeight
+                                    if (shouldShowNavigationBar && !isChat && !isSettings && !isAuth) bottom += NavigationBarHeight - 16.dp
+                                    if (!playerBottomSheetState.isDismissed && !isChat && !isSettings && !isAuth) bottom += MiniPlayerHeight
                                     windowsInsets
                                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
@@ -1231,6 +1232,7 @@ class MainActivity : ComponentActivity() {
                                             val isPlayfulHome = (currentRoute == Screens.Home.route || currentRoute == Screens.Library.route || currentRoute == Screens.Explore.route) && homeScreenStyle == HomeScreenStyle.PLAYFUL
 
                                             val isChatScreen = currentRoute?.startsWith("chat") == true
+                                            val isSettingsScreen = currentRoute?.startsWith("settings") == true
 
                                             val isAuthScreen = isNameSet == false ||
                                                     currentRoute == "onboarding" ||
@@ -1249,7 +1251,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
 
-                                            if (!isAuthScreen && !isChatScreen && (!isPlayfulHome || !playerBottomSheetState.isCollapsed)) {
+                                            if (!isAuthScreen && !isChatScreen && !isSettingsScreen && (!isPlayfulHome || !playerBottomSheetState.isCollapsed)) {
                                                 BottomSheetPlayer(
                                                     state = playerBottomSheetState,
                                                     navController = navController,

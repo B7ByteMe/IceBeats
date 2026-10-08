@@ -108,6 +108,16 @@ fun ChatScreen(
     LaunchedEffect(Unit) {
         val uid = IceBeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager)
         currentUserId = uid
+
+        // Muat riwayat pesan dari cache lokal seketika agar tidak pernah kosong/hilang
+        if (conversationId.isNotBlank()) {
+            val cached = com.valora.icebeats.supabase.ChatLocalCache.getMessages(context, conversationId)
+            if (cached.isNotEmpty()) {
+                messages = cached
+                isLoading = false
+            }
+        }
+
         // Ambil info detail otherUser jika memungkinkan
         val searchRes = supabaseClient.searchChatUsers(otherUserName, uid).getOrNull()
         val foundUser = searchRes?.find { it.id == otherUserId } ?: supabaseClient.getUserProfile(otherUserId).getOrNull()
@@ -128,6 +138,9 @@ fun ChatScreen(
                 val previousSize = messages.size
                 messages = res
                 isLoading = false
+                // Simpan pesan terbaru ke cache lokal
+                com.valora.icebeats.supabase.ChatLocalCache.saveMessages(context, conversationId, res)
+
                 if (currentUserId.isNotBlank()) {
                     supabaseClient.markChatAsRead(conversationId, currentUserId)
                 }
@@ -173,21 +186,24 @@ fun ChatScreen(
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { showProfileSheet = true }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { showProfileSheet = true }
                         .padding(vertical = 4.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar lawan bicara dengan Master Profile Border
+                    // Avatar lawan bicara dengan Master Profile Border (ukuran pas dan tidak kebesaran)
                     MasterProfileBorder(
-                        avatarSize = 40.dp,
+                        avatarSize = 30.dp,
                         userRank = otherUser?.rank,
                         totalListenMs = otherUser?.totalListenMs,
-                        borderStyle = otherUser?.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                        borderStyle = otherUser?.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                        isSelf = false
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(30.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
@@ -196,20 +212,21 @@ fun ChatScreen(
                                 AsyncImage(
                                     model = otherUser?.profileUrl,
                                     contentDescription = otherUserName,
-                                    modifier = Modifier.size(40.dp),
+                                    modifier = Modifier.size(30.dp),
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
                                 Text(
                                     text = otherUserName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U",
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 13.sp
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -221,6 +238,13 @@ fun ChatScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                                verificationBadge = otherUser?.verificationBadge
+                            )
+                            if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 15.dp)
+                            }
                             otherUser?.rank?.let { rank ->
                                 Spacer(modifier = Modifier.width(6.dp))
                                 RankBadge(rank = rank, displayedRank = null, size = 18.dp)
@@ -424,6 +448,7 @@ fun ChatScreen(
                                 val updated = supabaseClient.getChatMessages(conversationId).getOrNull()
                                 if (updated != null) {
                                     messages = updated
+                                    com.valora.icebeats.supabase.ChatLocalCache.saveMessages(context, conversationId, updated)
                                     listState.animateScrollToItem(updated.size - 1)
                                 }
                                 isSending = false
@@ -495,7 +520,10 @@ fun ChatScreen(
                                             media = shared
                                         )
                                         val updated = supabaseClient.getChatMessages(conversationId).getOrNull()
-                                        if (updated != null) messages = updated
+                                        if (updated != null) {
+                                            messages = updated
+                                            com.valora.icebeats.supabase.ChatLocalCache.saveMessages(context, conversationId, updated)
+                                        }
                                     }
                                 }
                                 .padding(12.dp)
@@ -572,7 +600,10 @@ fun ChatScreen(
                                                     media = shared
                                                 )
                                                 val updated = supabaseClient.getChatMessages(conversationId).getOrNull()
-                                                if (updated != null) messages = updated
+                                                if (updated != null) {
+                                                    messages = updated
+                                                    com.valora.icebeats.supabase.ChatLocalCache.saveMessages(context, conversationId, updated)
+                                                }
                                             }
                                         }
                                         .padding(8.dp),
@@ -679,7 +710,7 @@ private fun ChatBubbleItem(
         ) {
             Column {
                 if (message.messageType == "music" && message.mediaData != null) {
-                    if (message.content.isNotBlank() && !message.content.startsWith("🎵 Berbagi lagu")) {
+                    if (message.content.isNotBlank() && !message.content.startsWith("🎵 Berbagi lagu") && !message.content.startsWith("Berbagi lagu")) {
                         Text(
                             text = message.content,
                             style = MaterialTheme.typography.bodyMedium,

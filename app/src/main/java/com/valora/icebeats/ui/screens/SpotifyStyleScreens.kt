@@ -175,6 +175,16 @@ fun SpotifyHomeScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
 
+                // Top 1 Listener Banner (Kompak & Elegan)
+                item {
+                    com.valora.icebeats.ui.component.TopListenerHomeSection(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        navController = navController
+                    )
+                }
+
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
                     item {
                         NavigationTitle(title = "Quick picks")
@@ -785,7 +795,8 @@ private fun SpotifyHeader(
                                 val rankPrefMgr = androidx.compose.runtime.remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
                                 val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
 
-                                currentRank?.let { rank ->
+                                val effectiveRank = displayedRank ?: currentRank
+                                effectiveRank?.let { rank ->
                                     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
                                     var showBadgeSelector by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -796,7 +807,7 @@ private fun SpotifyHeader(
                                         modifier = Modifier.clickable { showBadgeSelector = true }
                                     )
                                     if (showBadgeSelector) {
-                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours)
+                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, displayedRank)
                                         com.valora.icebeats.ui.component.BadgeSelector(
                                             unlockedRanks = unlocked,
                                             currentDisplayed = displayedRank,

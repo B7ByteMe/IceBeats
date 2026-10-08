@@ -90,6 +90,40 @@ class VipSubscriptionManager @Inject constructor(
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
+    suspend fun getEffectiveUserIdentity(): Triple<String, String, String> {
+        val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
+        val sbUid = authManager.userId.value.trim().ifBlank {
+            runCatching {
+                context.dataStore.data.first()[androidx.datastore.preferences.core.stringPreferencesKey("supabase_user_id")]?.trim().orEmpty()
+            }.getOrDefault("")
+        }
+        val prefs = context.dataStore.data.first()
+        val email = (prefs[com.valora.icebeats.constants.AccountEmailKey] ?: "").trim()
+        val userName = (prefs[com.valora.icebeats.constants.AccountNameKey] ?: "").trim()
+
+        val finalUid = when {
+            sbUid.isNotBlank() -> sbUid
+            email.isNotBlank() -> {
+                val md = MessageDigest.getInstance("SHA-256")
+                "user-" + md.digest(email.lowercase(Locale.ROOT).toByteArray()).joinToString("") { "%02x".format(it) }.take(32)
+            }
+            else -> com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+        }
+        return Triple(finalUid, email, userName)
+    }
+
+    suspend fun resetVipState() {
+        context.dataStore.edit { prefs ->
+            prefs[VipStatusKey] = false
+            prefs[VipExpiresAtKey] = 0L
+            prefs[VipPlanKey] = "Gratis"
+            prefs[VipSignatureKey] = ""
+            prefs[HomeScreenStyleKey] = HomeScreenStyle.CLASSIC.name
+            prefs[NavBarStyleKey] = NavBarStyle.CLASSIC.name
+            prefs[DynamicIslandKey] = false
+        }
+    }
+
     val isVip: Flow<Boolean> = context.dataStore.data.map { prefs ->
         val active = prefs[VipStatusKey] ?: false
         val expiresAt = prefs[VipExpiresAtKey] ?: 0L
@@ -99,12 +133,24 @@ class VipSubscriptionManager @Inject constructor(
         if (!active) {
             false
         } else {
-            // Anti-Mod / Anti-Crack Check:
-            // Gunakan stableUserId (blocking) karena Flow.map bukan suspend context
-            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
-            val expectedSig = generateSecuritySignature(userId, expiresAt, plan)
+            val authMgr = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
+            val sbUid = authMgr.userId.value.trim().ifBlank {
+                prefs[androidx.datastore.preferences.core.stringPreferencesKey("supabase_user_id")]?.trim().orEmpty()
+            }
+            val email = (prefs[com.valora.icebeats.constants.AccountEmailKey] ?: "").trim()
+            val emailUid = if (email.isNotBlank()) {
+                val md = MessageDigest.getInstance("SHA-256")
+                "user-" + md.digest(email.lowercase(Locale.ROOT).toByteArray()).joinToString("") { "%02x".format(it) }.take(32)
+            } else ""
+            val deviceId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
 
-            if (token != expectedSig) {
+            val validSigs = listOfNotNull(
+                if (sbUid.isNotBlank()) generateSecuritySignature(sbUid, expiresAt, plan) else null,
+                if (emailUid.isNotBlank()) generateSecuritySignature(emailUid, expiresAt, plan) else null,
+                generateSecuritySignature(deviceId, expiresAt, plan)
+            )
+
+            if (token !in validSigs) {
                 // Modifikasi ilegal / cracker terdeteksi!
                 false
             } else {
@@ -130,10 +176,14 @@ class VipSubscriptionManager @Inject constructor(
         val token = prefs[VipSignatureKey] ?: ""
 
         if (!active) return false
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
-        val expectedSig = generateSecuritySignature(userId, expiresAt, plan)
+        val (userId, _, _) = getEffectiveUserIdentity()
+        val deviceId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+        val validSigs = listOf(
+            generateSecuritySignature(userId, expiresAt, plan),
+            generateSecuritySignature(deviceId, expiresAt, plan)
+        )
 
-        return if (token != expectedSig) false else (expiresAt <= 0L || System.currentTimeMillis() < expiresAt)
+        return if (token !in validSigs) false else (expiresAt <= 0L || System.currentTimeMillis() < expiresAt)
     }
 
     suspend fun activatePlan(plan: VipPlan) {
@@ -148,7 +198,7 @@ class VipSubscriptionManager @Inject constructor(
             now + durationMillis
         }
 
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+        val (userId, _, _) = getEffectiveUserIdentity()
         val signature = generateSecuritySignature(userId, newExpiry, plan.title)
 
         context.dataStore.edit { prefs ->
@@ -172,7 +222,7 @@ class VipSubscriptionManager @Inject constructor(
             now + durationMillis
         }
 
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+        val (userId, _, _) = getEffectiveUserIdentity()
         val signature = generateSecuritySignature(userId, newExpiry, planTitle)
 
         context.dataStore.edit { prefs ->
@@ -216,9 +266,7 @@ class VipSubscriptionManager @Inject constructor(
      */
     suspend fun submitPendingPayment(plan: VipPlan): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
-            val email = (context.dataStore.data.first()[com.valora.icebeats.constants.AccountEmailKey] ?: "").trim()
-            val userName = (context.dataStore.data.first()[com.valora.icebeats.constants.AccountNameKey] ?: "").trim()
+            val (userId, email, currentUserName) = getEffectiveUserIdentity()
             val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
             val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
             val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
@@ -226,7 +274,7 @@ class VipSubscriptionManager @Inject constructor(
 
             val bodyJson = JSONObject().apply {
                 put("user_id", userId)
-                put("user_name", userName.ifBlank { email.substringBefore("@").ifBlank { "User IceBeats" } })
+                put("user_name", currentUserName.ifBlank { email.substringBefore("@").ifBlank { "User IceBeats" } })
                 put("email", email)
                 put("plan_name", plan.title)
                 put("price", plan.priceRupiah)
@@ -255,19 +303,32 @@ class VipSubscriptionManager @Inject constructor(
 
     /**
      * Memeriksa apakah admin di dashboard Supabase sudah me-ACC (mengaktifkan) paket langganan
+     * Khusus untuk akun yang sedang login! Jika akun ini tidak punya langganan, otomatis revert ke non-VIP!
      */
     suspend fun checkCloudSubscriptionStatus(): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+            val (userId, email, _) = getEffectiveUserIdentity()
             val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
             val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
             val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
             val token = authManager.accessToken ?: anonKey
 
+            // Query spesifik untuk akun yang aktif (berdasarkan Supabase UID atau email)
+            val filter = if (email.isNotBlank() && userId.isNotBlank() && !userId.startsWith("device-")) {
+                val encEmail = java.net.URLEncoder.encode(email, java.nio.charset.StandardCharsets.UTF_8.name())
+                "or=(user_id.eq.$userId,email.eq.$encEmail)&order=created_at.desc&limit=1"
+            } else if (email.isNotBlank()) {
+                val encEmail = java.net.URLEncoder.encode(email, java.nio.charset.StandardCharsets.UTF_8.name())
+                "email=eq.$encEmail&order=created_at.desc&limit=1"
+            } else {
+                "user_id=eq.$userId&order=created_at.desc&limit=1"
+            }
+
             val request = Request.Builder()
-                .url("$baseUrl/rest/v1/user_subscriptions?user_id=eq.$userId&select=*")
+                .url("$baseUrl/rest/v1/user_subscriptions?$filter")
                 .header("apikey", anonKey)
                 .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
                 .get()
                 .build()
 
@@ -282,6 +343,9 @@ class VipSubscriptionManager @Inject constructor(
 
             val jsonArray = JSONArray(responseBody)
             if (jsonArray.length() == 0) {
+                // Tidak ada langganan untuk akun ini di database cloud!
+                // Pastikan status VIP akun ini NONAKTIF (agar tidak mewarisi VIP akun sebelumnya)
+                resetVipState()
                 return@runCatching false
             }
 
@@ -292,8 +356,11 @@ class VipSubscriptionManager @Inject constructor(
             val expiresAtStr = subObject.optString("expires_at", "")
 
             if (isActive || status.equals("approved", ignoreCase = true)) {
-                // Admin telah ACC pesanan di dashboard! Otomatis aktifkan VIP di HP pengguna!
+                // Admin telah ACC pesanan di dashboard / set Developer! Otomatis aktifkan di HP pengguna!
+                val isDeveloperPlan = planName.contains("developer", ignoreCase = true)
                 val matchedPlan = VipPlan.entries.find { it.title.equals(planName, ignoreCase = true) } ?: VipPlan.ONE_MONTH
+                val finalPlanTitle = if (isDeveloperPlan) "Developer" else matchedPlan.title
+
                 var expiryMillis = 0L
 
                 if (expiresAtStr.isNotBlank() && expiresAtStr != "null") {
@@ -306,19 +373,31 @@ class VipSubscriptionManager @Inject constructor(
                 }
 
                 if (expiryMillis <= System.currentTimeMillis()) {
-                    expiryMillis = System.currentTimeMillis() + (matchedPlan.durationDays * 24L * 60L * 60L * 1000L)
+                    expiryMillis = if (isDeveloperPlan) {
+                        System.currentTimeMillis() + (36500L * 24L * 60L * 60L * 1000L) // 100 Tahun Developer
+                    } else {
+                        System.currentTimeMillis() + (matchedPlan.durationDays * 24L * 60L * 60L * 1000L)
+                    }
                 }
 
-                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
-                val signature = generateSecuritySignature(userId, expiryMillis, matchedPlan.title)
+                if (!isDeveloperPlan && expiryMillis <= System.currentTimeMillis()) {
+                    // Paket sudah habis masa berlakunya
+                    resetVipState()
+                    return@runCatching false
+                }
+
+                val signature = generateSecuritySignature(userId, expiryMillis, finalPlanTitle)
 
                 context.dataStore.edit { prefs ->
                     prefs[VipStatusKey] = true
                     prefs[VipExpiresAtKey] = expiryMillis
-                    prefs[VipPlanKey] = matchedPlan.title
+                    prefs[VipPlanKey] = finalPlanTitle
                     prefs[VipSignatureKey] = signature
                 }
                 return@runCatching true
+            } else {
+                // Pesanan pending / ditolak / dinonaktifkan
+                resetVipState()
             }
 
             false
@@ -333,19 +412,17 @@ class VipSubscriptionManager @Inject constructor(
         val token = prefs[VipSignatureKey] ?: ""
         val now = System.currentTimeMillis()
 
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
-        val expectedSig = generateSecuritySignature(userId, expiresAt, plan)
+        val (userId, _, _) = getEffectiveUserIdentity()
+        val deviceId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+        val validSigs = listOf(
+            generateSecuritySignature(userId, expiresAt, plan),
+            generateSecuritySignature(deviceId, expiresAt, plan)
+        )
 
         // Validasi Anti-Tamper & Validasi Kadaluarsa
-        if (active && (token != expectedSig || (expiresAt > 0L && now >= expiresAt))) {
+        if (active && (token !in validSigs || (expiresAt > 0L && now >= expiresAt))) {
             // Modifikasi ilegal terdeteksi ATAU masa aktif telah habis -> reset ke gratis
-            context.dataStore.edit {
-                it[VipStatusKey] = false
-                it[VipSignatureKey] = ""
-                it[HomeScreenStyleKey] = HomeScreenStyle.CLASSIC.name
-                it[NavBarStyleKey] = NavBarStyle.CLASSIC.name
-                it[DynamicIslandKey] = false
-            }
+            resetVipState()
         } else {
             // Selalu verifikasi status dengan server Supabase di latar belakang
             checkCloudSubscriptionStatus()
@@ -361,10 +438,7 @@ class VipSubscriptionManager @Inject constructor(
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
-                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
-                val prefs = context.dataStore.data.first()
-                val email = (prefs[com.valora.icebeats.constants.AccountEmailKey] ?: "").trim()
-                val userName = (prefs[com.valora.icebeats.constants.AccountNameKey] ?: "").trim()
+                val (userId, email, currentUserName) = getEffectiveUserIdentity()
                 val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
                 val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
                 val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
@@ -376,7 +450,7 @@ class VipSubscriptionManager @Inject constructor(
 
                 val bodyJson = JSONObject().apply {
                     put("user_id", userId)
-                    put("user_name", userName.ifBlank { email.substringBefore("@").ifBlank { "User IceBeats" } })
+                    put("user_name", currentUserName.ifBlank { email.substringBefore("@").ifBlank { "User IceBeats" } })
                     put("email", email)
                     put("plan_name", planName)
                     put("price", price)

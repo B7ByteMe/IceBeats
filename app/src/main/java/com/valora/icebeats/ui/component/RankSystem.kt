@@ -508,10 +508,40 @@ fun RankBadgeSelector(
 
     val rankPrefMgr = remember { RankPreferenceManager(context) }
     val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
+    val lastSeenRank by rankPrefMgr.lastSeenRank.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
 
-    val unlockedRanks = remember(totalHours) {
-        unlockedRanksFromHours(totalHours)
+    val nameManager = remember { NamePreferenceManager(context) }
+    val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE) }
+    val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
+    var savedListenMs by remember(currentAccountEmail) {
+        val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
+        mutableLongStateOf(statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L)))
+    }
+    DisposableEffect(statsPrefs, currentAccountEmail) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key != null && (key.startsWith("saved_max_total_listen_ms") || key == "saved_max_total_listen_ms")) {
+                val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
+                savedListenMs = prefs.getLong("saved_max_total_listen_ms_$uid", prefs.getLong("saved_max_total_listen_ms", 0L))
+            }
+        }
+        statsPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            statsPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+    val cloudHours = (savedListenMs / (1000.0 * 3600.0))
+    val effectiveHours = maxOf(totalHours, cloudHours)
+
+    val highestRank = listOfNotNull(
+        currentRank,
+        if (effectiveHours >= 1.0) icebeatsRank.fromHours(effectiveHours.toInt()) else null,
+        displayedRank,
+        lastSeenRank
+    ).maxByOrNull { it.ordinal }
+
+    val unlockedRanks = remember(effectiveHours, highestRank) {
+        unlockedRanksFromHours(effectiveHours, highestRank).toSet()
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -572,7 +602,7 @@ fun RankBadgeSelector(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Current: ${currentRank?.name ?: "No rank unlocked (needs 1h)"}",
+                    text = "Current: ${highestRank?.name ?: "No rank unlocked (needs 1h)"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -605,7 +635,7 @@ fun RankBadgeSelector(
         ) {
             icebeatsRank.values().forEach { rank ->
                 val isUnlocked = unlockedRanks.contains(rank)
-                val isSelected = displayedRank == rank
+                val isSelected = (displayedRank == rank) || (displayedRank == null && highestRank == rank)
 
                 Box(
                     modifier = Modifier
@@ -731,6 +761,13 @@ fun BadgeSelector(
     )
 }
 
-fun unlockedRanksFromHours(hours: Double): List<icebeatsRank> {
-    return icebeatsRank.values().filter { hours >= it.thresholdHours }
+fun unlockedRanksFromHours(
+    hours: Double,
+    activeRank: icebeatsRank? = null
+): List<icebeatsRank> {
+    val h = hours.toInt()
+    val fromHours = icebeatsRank.values().filter { h >= it.thresholdHours }
+    val highest = listOfNotNull(fromHours.maxByOrNull { it.ordinal }, activeRank).maxByOrNull { it.ordinal }
+    if (highest == null) return emptyList()
+    return icebeatsRank.values().filter { it.ordinal <= highest.ordinal }
 }

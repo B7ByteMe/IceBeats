@@ -19,7 +19,7 @@ enum class MasterBorderStyle(
     val title: String,
     val description: String,
     val drawableResName: String,
-    val scaleMultiplier: Float = 1.80f,
+    val scaleMultiplier: Float = 1.68f,
     val offsetYRatio: Float = 0f
 ) {
     ROYAL_CROWN(
@@ -27,7 +27,7 @@ enum class MasterBorderStyle(
         title = "Royal Crown",
         description = "Mahkota Emas Mewah, Sayap Hitam & Permata",
         drawableResName = "border_royal_crown",
-        scaleMultiplier = 1.80f,
+        scaleMultiplier = 1.68f,
         offsetYRatio = 0f
     ),
     CRIMSON_WING(
@@ -35,7 +35,7 @@ enum class MasterBorderStyle(
         title = "Crimson Wings",
         description = "Sayap Emas Elegan & Kristal Rubi Merah",
         drawableResName = "border_crimson_wing",
-        scaleMultiplier = 1.80f,
+        scaleMultiplier = 1.68f,
         offsetYRatio = 0f
     ),
     FIRE_FLAME(
@@ -43,7 +43,7 @@ enum class MasterBorderStyle(
         title = "Fire Flame Ring",
         description = "Cincin Api Berputar Khas Elemen Membara",
         drawableResName = "border_fire_flame",
-        scaleMultiplier = 1.80f,
+        scaleMultiplier = 1.68f,
         offsetYRatio = 0f
     ),
     GOLDEN_SHIELD(
@@ -51,13 +51,20 @@ enum class MasterBorderStyle(
         title = "Golden Champion",
         description = "Tameng Sayap Kejuaraan Emas Gagah",
         drawableResName = "border_golden_shield",
-        scaleMultiplier = 1.80f,
+        scaleMultiplier = 1.62f,
         offsetYRatio = 0f
     );
 
     companion object {
         fun fromId(id: String?): MasterBorderStyle {
-            return entries.find { it.id == id } ?: ROYAL_CROWN
+            return entries.find { it.id.equals(id, ignoreCase = true) } ?: ROYAL_CROWN
+        }
+
+        fun fromIdOrNull(id: String?): MasterBorderStyle? {
+            if (id.isNullOrBlank() || id.equals("none", ignoreCase = true) || id.equals("null", ignoreCase = true)) {
+                return null
+            }
+            return entries.find { it.id.equals(id, ignoreCase = true) }
         }
     }
 }

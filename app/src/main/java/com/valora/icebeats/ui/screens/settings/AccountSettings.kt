@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import coil.compose.AsyncImage
 import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import com.valora.icebeats.LocalPlayerConnection
@@ -343,6 +344,8 @@ fun AccountSettings(
                         com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
                     )
                     com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
+                    com.valora.icebeats.ui.component.VipSubscriptionManager(context).resetVipState()
+                    com.valora.icebeats.ui.component.BannerPreferenceManager(context).clearBanner()
 
                     Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
                     navController.navigate("onboarding") {
@@ -357,7 +360,15 @@ fun AccountSettings(
         }
     }
 
-    Box(
+    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "Gratis")
+    val myVerificationType = remember(isVip, currentVipPlan) {
+        com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+            planName = currentVipPlan,
+            isVip = isVip
+        )
+    }
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F0F0F))
@@ -416,13 +427,19 @@ fun AccountSettings(
                         {
                             PreferenceEntry(
                                 title = {
-                                    Text(
-                                        if (isSupabaseLoggedIn) {
-                                            supabaseName.ifBlank { supabaseEmail.substringBefore("@") }
-                                        } else {
-                                            "Masuk / Buat Akun Cloud"
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            if (isSupabaseLoggedIn) {
+                                                supabaseName.ifBlank { supabaseEmail.substringBefore("@") }
+                                            } else {
+                                                "Masuk / Buat Akun Cloud"
+                                            }
+                                        )
+                                        if (isSupabaseLoggedIn && myVerificationType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            com.valora.icebeats.ui.component.VerificationBadge(type = myVerificationType, size = 16.dp)
                                         }
-                                    )
+                                    }
                                 },
                                 description = if (isSupabaseLoggedIn) {
                                     if (lastSyncTime.isNotBlank()) "Email: $supabaseEmail • Terakhir sinkron: $lastSyncTime"
@@ -578,7 +595,7 @@ fun AccountSettings(
                                         )
                                     }
                                 },
-                                description = if (isMaster) "$totalHours Jam Mendengarkan • Level Master Aktif 👑"
+                                description = if (isMaster) "$totalHours Jam Mendengarkan • Level Master Aktif"
                                 else "$totalHours Jam Mendengarkan • Butuh ${maxOf(0, 150 - totalHours)} jam lagi untuk Level Master",
                                 icon = {
                                     Icon(
@@ -589,7 +606,7 @@ fun AccountSettings(
                                 },
                                 trailingContent = {
                                     Text(
-                                        text = if (isMaster) "👑 MASTER" else "#LEVEL",
+                                        text = if (isMaster) "MASTER" else "#LEVEL",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isMaster) Color(0xFFFFD700) else MaterialTheme.colorScheme.primary
@@ -602,29 +619,37 @@ fun AccountSettings(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 👑 BORDER PROFIL MASTER (v7.0.9)
+                // BORDER & ANIMASI PROFIL PREMIUM
+                var showVipDialog by remember { mutableStateOf(false) }
                 val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
                 val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
                 var showBorderSelectorSheet by remember { mutableStateOf(false) }
 
+                val avatarManager = remember { com.valora.icebeats.ui.component.AvatarPreferenceManager(context) }
+                val currentAvatarSelection by avatarManager.getAvatarSelection.collectAsState(initial = com.valora.icebeats.ui.component.AvatarSelection.Default)
+                val bannerPrefManager = remember { com.valora.icebeats.ui.component.BannerPreferenceManager(context) }
+                val myBannerUrl by bannerPrefManager.bannerUrl.collectAsState(initial = null)
+                var showAvatarGifDialog by remember { mutableStateOf(false) }
+                var showBannerGifDialog by remember { mutableStateOf(false) }
+
                 SettingsGeneralCategory(
-                    title = "Border Profil Master (v${com.valora.icebeats.BuildConfig.VERSION_NAME})",
+                    title = "IceBeats Premium Fitur",
                     items = listOf(
                         {
                             PreferenceEntry(
                                 title = {
                                     Text(
-                                        if (isMaster) "Gaya Border: ${selectedBorder.title}"
-                                        else "🔒 Border Profil Master (Terkunci)"
+                                        if (isVip) "Gaya Border: ${selectedBorder.title}"
+                                        else "Border Profil Avatar (Khusus Premium)"
                                     )
                                 },
-                                description = if (isMaster) selectedBorder.description
-                                else "Capai Level Master (150 Jam) untuk membuka 4 pilihan border mahkota & sayap!",
+                                description = if (isVip) selectedBorder.description
+                                else "Beli paket IceBeats Premium untuk membuka dan mengganti 4 pilihan border animasi eksklusif!",
                                 icon = {
                                     Icon(
-                                        painter = painterResource(if (isMaster) R.drawable.star else R.drawable.lock),
+                                        painter = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),
                                         contentDescription = null,
-                                        tint = if (isMaster) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 },
                                 trailingContent = {
@@ -634,8 +659,9 @@ fun AccountSettings(
                                     ) {
                                         com.valora.icebeats.ui.component.MasterProfileBorder(
                                             avatarSize = 28.dp,
-                                            forceShowMaster = isMaster,
-                                            borderStyle = selectedBorder
+                                            forceShowMaster = isVip,
+                                            borderStyle = selectedBorder,
+                                            isSelf = true
                                         ) {
                                             com.valora.icebeats.ui.component.AvatarDisplay(
                                                 size = 28.dp,
@@ -644,7 +670,127 @@ fun AccountSettings(
                                         }
                                     }
                                 },
-                                onClick = if (isMaster) ({ showBorderSelectorSheet = true }) else null
+                                onClick = {
+                                    if (isVip) {
+                                        showBorderSelectorSheet = true
+                                    } else {
+                                        showVipDialog = true
+                                    }
+                                }
+                            )
+                        },
+                        {
+                            PreferenceEntry(
+                                title = {
+                                    Text(
+                                        if (isVip) "Avatar Profil Animasi (GIF)"
+                                        else "Avatar Animasi GIF (Khusus Premium)"
+                                    )
+                                },
+                                description = if (isVip) {
+                                    if (currentAvatarSelection is com.valora.icebeats.ui.component.AvatarSelection.Gif)
+                                        "Status: Link GIF Aktif • Klik untuk mengganti link"
+                                    else
+                                        "Pasang tautan GIF animasi agar foto profilmu bergerak"
+                                } else {
+                                    "Beli paket IceBeats Premium untuk memasang link GIF bergerak pada avatar profil!"
+                                },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),
+                                        contentDescription = null,
+                                        tint = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                trailingContent = {
+                                    Box(
+                                        modifier = Modifier.size(50.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isVip && currentAvatarSelection is com.valora.icebeats.ui.component.AvatarSelection.Gif) {
+                                            AsyncImage(
+                                                model = (currentAvatarSelection as com.valora.icebeats.ui.component.AvatarSelection.Gif).url,
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .border(1.dp, Color(0xFFFFD700), CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Icon(
+                                                painter = painterResource(if (isVip) R.drawable.image else R.drawable.lock),
+                                                contentDescription = null,
+                                                tint = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (isVip) {
+                                        showAvatarGifDialog = true
+                                    } else {
+                                        showVipDialog = true
+                                    }
+                                }
+                            )
+                        },
+                        {
+                            PreferenceEntry(
+                                title = {
+                                    Text(
+                                        if (isVip) "Banner Profil Animasi (GIF)"
+                                        else "Banner Animasi GIF (Khusus Premium)"
+                                    )
+                                },
+                                description = if (isVip) {
+                                    if (!myBannerUrl.isNullOrBlank())
+                                        "Status: Banner GIF Aktif • Klik untuk mengganti link banner"
+                                    else
+                                        "Pasang tautan GIF banner latar belakang profil yang bergerak"
+                                } else {
+                                    "Beli paket IceBeats Premium untuk memasang banner profil bergerak (GIF)!"
+                                },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),
+                                        contentDescription = null,
+                                        tint = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                trailingContent = {
+                                    Box(
+                                        modifier = Modifier.size(50.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isVip && !myBannerUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = myBannerUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(44.dp, 28.dp)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(6.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Icon(
+                                                painter = painterResource(if (isVip) R.drawable.link else R.drawable.lock),
+                                                contentDescription = null,
+                                                tint = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (isVip) {
+                                        showBannerGifDialog = true
+                                    } else {
+                                        showVipDialog = true
+                                    }
+                                }
                             )
                         }
                     )
@@ -655,6 +801,39 @@ fun AccountSettings(
                         onDismiss = { showBorderSelectorSheet = false },
                         userRank = currentRank,
                         totalListenMs = savedListenMs
+                    )
+                }
+
+                if (showAvatarGifDialog) {
+                    com.valora.icebeats.ui.component.AnimatedAvatarGifDialog(
+                        currentGifUrl = if (currentAvatarSelection is com.valora.icebeats.ui.component.AvatarSelection.Gif)
+                            (currentAvatarSelection as com.valora.icebeats.ui.component.AvatarSelection.Gif).url else null,
+                        onDismiss = { showAvatarGifDialog = false },
+                        onGifSaved = { url ->
+                            avatarManager.saveAvatarSelection(com.valora.icebeats.ui.component.AvatarSelection.Gif(url))
+                        },
+                        onGifRemoved = {
+                            avatarManager.saveAvatarSelection(com.valora.icebeats.ui.component.AvatarSelection.Default)
+                        }
+                    )
+                }
+
+                if (showBannerGifDialog) {
+                    com.valora.icebeats.ui.component.AnimatedBannerGifDialog(
+                        currentBannerUrl = myBannerUrl,
+                        onDismiss = { showBannerGifDialog = false },
+                        onBannerSaved = { url ->
+                            bannerPrefManager.saveBannerUrl(url)
+                        },
+                        onBannerRemoved = {
+                            bannerPrefManager.clearBannerUrl()
+                        }
+                    )
+                }
+
+                if (showVipDialog) {
+                    com.valora.icebeats.ui.component.VipSubscriptionDialog(
+                        onDismiss = { showVipDialog = false }
                     )
                 }
 

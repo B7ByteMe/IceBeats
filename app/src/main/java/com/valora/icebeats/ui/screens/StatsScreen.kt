@@ -894,10 +894,13 @@ private fun GlobalUserRankRow(
         )
         val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
         val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
+        val userBorderStyle = if (isCurrentUser) null else com.valora.icebeats.ui.component.MasterBorderStyle.fromIdOrNull(user.borderStyle)
         com.valora.icebeats.ui.component.MasterProfileBorder(
             avatarSize = 34.dp,
             userRank = userRank,
-            totalListenMs = user.totalListenMs
+            totalListenMs = user.totalListenMs,
+            borderStyle = userBorderStyle,
+            isSelf = isCurrentUser
         ) {
             ProfileBubble(user.profileUrl, user.name)
         }
@@ -914,6 +917,13 @@ private fun GlobalUserRankRow(
                 fontWeight = if (isCurrentUser) FontWeight.Black else FontWeight.SemiBold,
                 style = MaterialTheme.typography.bodyMedium,
             )
+            val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                verificationBadge = user.verificationBadge
+            )
+            if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                Spacer(modifier = Modifier.width(4.dp))
+                com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 14.dp)
+            }
             userRank?.let { rank ->
                 Spacer(modifier = Modifier.width(6.dp))
                 RankBadge(rank = rank, displayedRank = null, size = 18.dp)
@@ -992,10 +1002,14 @@ private fun WeeklyGlobalStatsSheet(
                             )
                             val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
                             val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
+                            val isThisCurrentUser = user.id == currentUserId
+                            val userBorderStyle = if (isThisCurrentUser) null else com.valora.icebeats.ui.component.MasterBorderStyle.fromIdOrNull(user.borderStyle)
                             com.valora.icebeats.ui.component.MasterProfileBorder(
                                 avatarSize = 34.dp,
                                 userRank = userRank,
-                                totalListenMs = user.totalListenMs
+                                totalListenMs = user.totalListenMs,
+                                borderStyle = userBorderStyle,
+                                isSelf = isThisCurrentUser
                             ) {
                                 ProfileBubble(user.profileUrl, user.name)
                             }
@@ -1010,6 +1024,13 @@ private fun WeeklyGlobalStatsSheet(
                                     overflow = TextOverflow.Ellipsis,
                                     fontWeight = FontWeight.Bold,
                                 )
+                                val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                                    verificationBadge = user.verificationBadge
+                                )
+                                if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 14.dp)
+                                }
                                 userRank?.let { rank ->
                                     Spacer(modifier = Modifier.width(6.dp))
                                     RankBadge(rank = rank, displayedRank = null, size = 18.dp)

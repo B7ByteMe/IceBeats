@@ -549,7 +549,7 @@ fun AppearanceSettings(
                         {PreferenceEntry(
                             title = {
                                 Text(
-                                    if (isVip) "👑 IceBeats VIP Aktif" else "👑 Buka Semua Tema dengan VIP",
+                                    if (isVip) "IceBeats VIP Aktif" else "Buka Semua Tema dengan VIP",
                                     color = Color(0xFFFFD700),
                                     fontWeight = FontWeight.Bold
                                 )
@@ -572,10 +572,10 @@ fun AppearanceSettings(
                             valueText = {
                                 when (it) {
                                     HomeScreenStyle.CLASSIC -> "Classic (Gratis)"
-                                    HomeScreenStyle.PLAYFUL -> "👑 Playful (VIP)"
-                                    HomeScreenStyle.NEON -> "👑 Neon (VIP)"
-                                    HomeScreenStyle.SPOTIFY -> "👑 Spotify (VIP)"
-                                    HomeScreenStyle.APPLE -> "👑 Apple (VIP)"
+                                    HomeScreenStyle.PLAYFUL -> "Playful (VIP)"
+                                    HomeScreenStyle.NEON -> "Neon (VIP)"
+                                    HomeScreenStyle.SPOTIFY -> "Spotify (VIP)"
+                                    HomeScreenStyle.APPLE -> "Apple (VIP)"
                                 }
                             },
                         )},
@@ -593,11 +593,11 @@ fun AppearanceSettings(
                             valueText = {
                                 when (it) {
                                     NavBarStyle.CLASSIC -> "Classic (Gratis)"
-                                    NavBarStyle.LIQUID_GLASS -> "👑 Liquid Glass (VIP)"
-                                    NavBarStyle.SPOTIFY -> "👑 Spotify (VIP)"
-                                    NavBarStyle.APPLE -> "👑 Apple (VIP)"
-                                    NavBarStyle.NEON -> "👑 Neon (VIP)"
-                                    NavBarStyle.NEW_CLASSIC -> "👑 New Classic (VIP)"
+                                    NavBarStyle.LIQUID_GLASS -> "Liquid Glass (VIP)"
+                                    NavBarStyle.SPOTIFY -> "Spotify (VIP)"
+                                    NavBarStyle.APPLE -> "Apple (VIP)"
+                                    NavBarStyle.NEON -> "Neon (VIP)"
+                                    NavBarStyle.NEW_CLASSIC -> "New Classic (VIP)"
                                 }
                             },
                         )},
@@ -630,7 +630,7 @@ fun AppearanceSettings(
                         {
                             val context = LocalContext.current
                             SwitchPreference(
-                                title = { Text(stringResource(R.string.enable_dynamic_island) + if (!isVip) " 👑 (VIP)" else "") },
+                                title = { Text(stringResource(R.string.enable_dynamic_island) + if (!isVip) " (VIP)" else "") },
                                 description = stringResource(R.string.enable_dynamic_island_desc),
                                 icon = { Icon(painterResource(R.drawable.music_note), null) },
                                 checked = if (isVip) enableDynamicIsland else false,

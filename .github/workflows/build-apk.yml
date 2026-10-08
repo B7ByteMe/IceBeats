@@ -65,14 +65,14 @@ jobs:
           for file in app/build/outputs/apk/release/*.apk; do
             filename=$(basename "$file")
             if [[ "$filename" == *"universal"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.5-universal.apk"
-              cp "$file" "release-apks/IceBeats-v7.1.5.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.6-universal.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.6.apk"
             elif [[ "$filename" == *"arm64-v8a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.5-arm64-v8a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.6-arm64-v8a.apk"
             elif [[ "$filename" == *"armeabi-v7a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.5-armeabi-v7a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.6-armeabi-v7a.apk"
             elif [[ "$filename" == *"x86_64"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.5-x86_64.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.6-x86_64.apk"
             else
               cp "$file" "release-apks/$filename"
             fi
@@ -83,7 +83,7 @@ jobs:
       - name: Upload All APK Variants
         uses: actions/upload-artifact@v4
         with:
-          name: IceBeats-v7.1.5-Multi-Arch-APKs
+          name: IceBeats-v7.1.6-Multi-Arch-APKs
           path: release-apks/*.apk
           retention-days: 14
 
@@ -91,30 +91,28 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.5' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.5' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.6' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.6' }}
           body: |
-            ## 🎵 IceBeats v7.1.5 - Sistem Langganan VIP & Tema Eksklusif
+            ## 🎵 IceBeats v7.1.6 - Fitur Baru & Peningkatan Stabilitas
 
-            ### 👑 Paket Langganan VIP IceBeats:
-            - **1 Bulan**: Rp 5.000
-            - **2 Bulan**: Rp 7.000 (Paling Populer - Hemat Rp 3.000)
-            - **5 Bulan**: Rp 12.000 (Paling Hemat - Cuma Rp 2.400/bulan)
-
-            ### ✨ Fitur Eksklusif VIP:
-            - **🎨 Akses Bebas Semua Tema Home Screen**: Tema Playful, Neon, Spotify, Apple khusus member VIP (Versi Gratis: Classic).
-            - **🧭 Akses Bebas Semua Tema Nav Bar**: Tema Liquid Glass, Spotify, Apple, Neon, New Classic khusus member VIP (Versi Gratis: Classic).
-            - **🏝️ Dynamic Island Mini Player**: Mini player mengambang interaktif ala iOS eksklusif untuk member VIP.
-            - **💬 IceBeats Chat & Bagi Musik**: Mengobrol bersama teman pendengar musik dan berbagi lagu favorit secara real-time.
-            - **👑 4 Border Animasi Profil Bergerak Master**: Mahkota Royal Crown, Sayap Crimson Wings, Api Fire Flame Ring, dan Tameng Golden Champion.
-            - **✨ Badge Mahkota VIP Emas**: Tampilan badge eksklusif di profil.
-            - **🎟️ Sistem Voucher & Konfirmasi WhatsApp**: Aktivasi instan via kode voucher atau konfirmasi langsung dengan Admin via WhatsApp.
+            ### 🚀 Pembaruan di Versi 7.1.6:
+            - **🎬 Banner Profil Bergerak (GIF)**: Pengguna VIP IceBeats kini dapat memasang URL GIF untuk banner profil animasi bergerak yang indah.
+            - **🏆 Top 1 Listener di Semua Tema Home**: Kartu profil otomatis untuk pendengar musik peringkat 1 (Top Listener) di semua gaya Home Screen (Playful, Neon, Spotify, Apple, Classic) lengkap dengan border animasi dan tombol profil.
+            - **💬 Perbaikan Fitur Chat & Cache Lokal (Cache-First)**:
+              - Riwayat chat dan pesan tidak akan hilang saat keluar aplikasi dalam waktu lama.
+              - Perbaikan pencarian user di database Supabase (PostgREST ILIKE wildcard).
+              - Auto-refresh session token Supabase saat token JWT kedaluwarsa.
+            - **🔒 Perbaikan Sistem Langganan VIP Multi-Akun**:
+              - Pengikatan status langganan kini berbasis akun (User ID & Email), bukan ke perangkat fisik (Device ID).
+              - Reset status VIP otomatis saat logout sehingga akun baru yang tidak berlangganan tidak ikut menjadi premium.
+              - Validasi otomatis status cloud saat login akun baru.
 
             ### 📱 Multi-Architecture Support:
-            - `IceBeats-v7.1.5.apk` & `IceBeats-v7.1.5-universal.apk`: Universal untuk semua HP Android.
-            - `IceBeats-v7.1.5-arm64-v8a.apk`: Khusus HP 64-bit modern.
-            - `IceBeats-v7.1.5-armeabi-v7a.apk`: Khusus HP 32-bit.
-            - `IceBeats-v7.1.5-x86_64.apk`: Untuk Emulator Android PC.
+            - `IceBeats-v7.1.6.apk` & `IceBeats-v7.1.6-universal.apk`: Universal untuk semua HP Android.
+            - `IceBeats-v7.1.6-arm64-v8a.apk`: Khusus HP 64-bit modern.
+            - `IceBeats-v7.1.6-armeabi-v7a.apk`: Khusus HP 32-bit.
+            - `IceBeats-v7.1.6-x86_64.apk`: Untuk Emulator Android PC.
           files: release-apks/*.apk
           draft: false
           prerelease: false

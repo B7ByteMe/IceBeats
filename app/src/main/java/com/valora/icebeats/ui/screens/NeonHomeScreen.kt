@@ -166,7 +166,8 @@ fun NeonHomeScreen(
                     color = if (isDarkTheme) Color.LightGray else Color.DarkGray
                 )
                 
-                currentRank?.let { rank ->
+                val effectiveRank = displayedRank ?: currentRank
+                effectiveRank?.let { rank ->
                     Spacer(modifier = Modifier.width(8.dp))
                     var showBadgeSelector by remember { mutableStateOf(false) }
                     RankBadge(
@@ -176,7 +177,7 @@ fun NeonHomeScreen(
                         modifier = Modifier.clickable { showBadgeSelector = true }
                     )
                     if (showBadgeSelector) {
-                        val unlocked = unlockedRanksFromHours(totalHours)
+                        val unlocked = unlockedRanksFromHours(totalHours, displayedRank)
                         BadgeSelector(
                             unlockedRanks = unlocked,
                             currentDisplayed = displayedRank,
@@ -204,7 +205,15 @@ fun NeonHomeScreen(
                 color = textColor
             )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Top 1 Listener Banner (Kompak & Elegan)
+            com.valora.icebeats.ui.component.TopListenerHomeSection(
+                modifier = Modifier.fillMaxWidth(),
+                navController = navController
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
             
             // New Release Featured Card
             val topPick = quickPicks?.firstOrNull()

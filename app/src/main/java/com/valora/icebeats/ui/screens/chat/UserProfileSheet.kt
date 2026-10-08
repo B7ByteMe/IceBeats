@@ -97,10 +97,14 @@ fun UserProfileSheet(
     val isVip by vipManager.isVip.collectAsState(initial = false)
     var showVipDialog by remember { mutableStateOf(false) }
 
+    val bannerPrefManager = remember { com.valora.icebeats.ui.component.BannerPreferenceManager(context) }
+    val myBannerUrl by bannerPrefManager.bannerUrl.collectAsState(initial = null)
+    val displayBannerUrl = if (isSelf) myBannerUrl else targetUser.bannerUrl
+
     // Hitung jam dengar & rank
     val totalHours = (targetUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
     val userRank = targetUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
-    val borderStyle = MasterBorderStyle.fromId(targetUser.borderStyle)
+    val borderStyle = MasterBorderStyle.fromIdOrNull(targetUser.borderStyle)
 
     // Muat data status pertemanan & playlist
     LaunchedEffect(targetUser.id, currentUserId) {
@@ -149,6 +153,37 @@ fun UserProfileSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 0. BANNER PROFIL ANIMASI (JIKA ADA)
+            if (!displayBannerUrl.isNullOrBlank()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(125.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF1E1E22))
+                            .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                    ) {
+                        AsyncImage(
+                            model = displayBannerUrl,
+                            contentDescription = "Banner Animasi ${targetUser.name}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
+                                    )
+                                )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height((-50).dp))
+                }
+            }
+
             // 1. HEADER AVATAR DENGAN MASTER BORDER
             item {
                 Box(
@@ -158,21 +193,22 @@ fun UserProfileSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     MasterProfileBorder(
-                        avatarSize = 78.dp,
+                        avatarSize = 70.dp,
                         userRank = userRank,
                         totalListenMs = targetUser.totalListenMs,
-                        borderStyle = borderStyle
+                        borderStyle = if (isSelf) null else borderStyle,
+                        isSelf = isSelf
                     ) {
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(78.dp)
+                            modifier = Modifier.size(70.dp)
                         ) {
                             if (!targetUser.profileUrl.isNullOrBlank()) {
                                 AsyncImage(
                                     model = targetUser.profileUrl,
                                     contentDescription = targetUser.name,
-                                    modifier = Modifier.size(78.dp),
+                                    modifier = Modifier.size(70.dp),
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
@@ -217,6 +253,13 @@ fun UserProfileSheet(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                        verificationBadge = targetUser.verificationBadge
+                    )
+                    if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 18.dp)
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     RankBadge(
                         rank = userRank,
@@ -411,7 +454,13 @@ fun UserProfileSheet(
                                     shape = RoundedCornerShape(12.dp),
                                     enabled = !isFriendActionLoading
                                 ) {
-                                    Text("✓ Terima Teman")
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Terima Teman")
                                 }
 
                                 OutlinedButton(

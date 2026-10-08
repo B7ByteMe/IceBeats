@@ -239,20 +239,27 @@ class App : LocaleAwareApplication(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader {
         val cacheSize = dataStore[MaxImageCacheSizeKey]
 
+        val builder = ImageLoader.Builder(this)
+            .crossfade(true)
+            .respectCacheHeaders(false)
+            .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            .components {
+                if (Build.VERSION.SDK_INT >= 28) {
+                    add(coil.decode.ImageDecoderDecoder.Factory())
+                } else {
+                    add(coil.decode.GifDecoder.Factory())
+                }
+                add(coil.decode.SvgDecoder.Factory())
+            }
+
         // will crash app if you set to 0 after cache starts being used
         if (cacheSize == 0) {
-            return ImageLoader.Builder(this)
-                .crossfade(true)
-                .respectCacheHeaders(false)
-                .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            return builder
                 .diskCachePolicy(CachePolicy.DISABLED)
                 .build()
         }
 
-        return ImageLoader.Builder(this)
-            .crossfade(true)
-            .respectCacheHeaders(false)
-            .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+        return builder
             .diskCache(
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("coil"))

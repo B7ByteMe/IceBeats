@@ -79,7 +79,7 @@ async function handleAdminLogin(event) {
   if (Date.now() < lockoutUntil) {
     const remainSec = Math.ceil((lockoutUntil - Date.now()) / 1000);
     if (errorEl) {
-      errorEl.textContent = `⚠️ Akses terkunci sementara! Tunggu ${remainSec} detik lagi.`;
+      errorEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Akses terkunci sementara! Tunggu ${remainSec} detik lagi.`;
       errorEl.classList.remove('hidden');
     }
     return;
@@ -111,12 +111,12 @@ async function handleAdminLogin(event) {
       const lockUntil = Date.now() + LOCKOUT_DURATION_MS;
       localStorage.setItem('icebeats_admin_lockout_until', lockUntil.toString());
       if (errorEl) {
-        errorEl.textContent = '⛔ Akses diblokir 3 menit karena 5x kesalahan kata sandi!';
+        errorEl.innerHTML = '<i class="fa-solid fa-ban mr-1"></i> Akses diblokir 3 menit karena 5x kesalahan kata sandi!';
         errorEl.classList.remove('hidden');
       }
     } else {
       if (errorEl) {
-        errorEl.textContent = `❌ Sandi / PIN salah! Sisa kesempatan: ${LOCKOUT_THRESHOLD - attempts}`;
+        errorEl.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i> Sandi / PIN salah! Sisa kesempatan: ${LOCKOUT_THRESHOLD - attempts}`;
         errorEl.classList.remove('hidden');
       }
     }
@@ -135,8 +135,15 @@ function handleAdminLogout() {
 
 function togglePasswordVisibility(id) {
   const input = document.getElementById(id);
+  const icon = document.getElementById('eyeIcon_' + id);
   if (input) {
-    input.type = input.type === 'password' ? 'text' : 'password';
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (icon) icon.className = 'fa-solid fa-eye-slash text-sm';
+    } else {
+      input.type = 'password';
+      if (icon) icon.className = 'fa-solid fa-eye text-sm';
+    }
   }
 }
 
@@ -508,13 +515,23 @@ function renderUsersTable() {
     const isMasterPlus = hours >= 150;
 
     const borderLabels = {
-      'royal_crown': '👑 Royal Crown',
-      'crimson_wing': '🪽 Crimson Wings',
-      'fire_flame': '🔥 Fire Flame',
-      'golden_shield': '🛡️ Golden Champion'
+      'royal_crown': '<i class="fa-solid fa-crown text-amber-400 mr-1"></i> Royal Crown',
+      'crimson_wing': '<i class="fa-solid fa-feather text-rose-400 mr-1"></i> Crimson Wings',
+      'fire_flame': '<i class="fa-solid fa-fire text-orange-400 mr-1"></i> Fire Flame',
+      'golden_shield': '<i class="fa-solid fa-shield-halved text-yellow-400 mr-1"></i> Golden Champion'
     };
     const userBorderBadge = isMasterPlus
-      ? `<div class="text-[10px] text-amber-300/90 font-medium mt-0.5">${borderLabels[u.border_style] || '👑 Royal Crown'}</div>`
+      ? `<div class="text-[10px] text-amber-300/90 font-medium mt-0.5">${borderLabels[u.border_style] || '<i class="fa-solid fa-crown text-amber-400 mr-1"></i> Royal Crown'}</div>`
+      : '';
+
+    const userSub = allSubscriptions.find(s => s.user_id === u.id && (s.is_active || s.status === 'approved'));
+    const isDev = (u.role === 'developer') || (userSub && userSub.plan_name && userSub.plan_name.toLowerCase().includes('developer'));
+    const isPrem = !isDev && Boolean(userSub);
+
+    const verifiedBadgeHtml = isDev
+      ? `<span class="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-red-600 text-white text-[9px] shadow-sm" title="Developer (Centang Merah)"><i class="fa-solid fa-check"></i></span>`
+      : isPrem
+      ? `<span class="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-sky-500 text-white text-[9px] shadow-sm" title="Premium Member (Centang Biru)"><i class="fa-solid fa-check"></i></span>`
       : '';
 
     return `
@@ -526,10 +543,13 @@ function renderUsersTable() {
           <div class="flex items-center gap-3">
             <div class="relative w-8 h-8 flex items-center justify-center">
               <img src="${u.profile_url || '../icebeats_logo.png'}" class="w-8 h-8 rounded-full object-cover" onerror="this.src='../icebeats_logo.png'">
-              ${isMasterPlus ? '<span class="absolute -top-1 -right-1 text-xs">👑</span>' : ''}
+              ${isMasterPlus ? '<span class="absolute -top-1 -right-1 text-xs text-amber-400"><i class="fa-solid fa-crown"></i></span>' : ''}
             </div>
             <div>
-              <div class="font-bold text-white text-sm">${escapeHtml(u.name || 'User')}</div>
+              <div class="font-bold text-white text-sm flex items-center">
+                <span>${escapeHtml(u.name || 'User')}</span>
+                ${verifiedBadgeHtml}
+              </div>
               <div class="text-[11px] text-gray-500 font-mono">${escapeHtml(u.id || '')}</div>
             </div>
           </div>
@@ -541,13 +561,13 @@ function renderUsersTable() {
         <td class="px-4 py-3.5 text-right whitespace-nowrap">
           <div class="flex items-center justify-end gap-1.5">
             <button onclick="boostSingleUser('${u.id}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs rounded border border-amber-500/40 font-medium" title="Jadikan Top 1">
-              🚀 Top 1
+              <i class="fa-solid fa-rocket mr-1 text-amber-400"></i> Top 1
             </button>
             <button onclick="openEditUserModal('${u.id}')" class="px-2 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs rounded border border-blue-500/40 font-medium">
-              ✏️ Edit
+              <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
             </button>
             <button onclick="deleteUser('${u.id}', '${escapeHtml(u.name)}')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs rounded border border-rose-500/40 font-medium">
-              🗑️ Hapus
+              <i class="fa-solid fa-trash mr-1"></i> Hapus
             </button>
           </div>
         </td>
@@ -582,6 +602,8 @@ function openAddUserModal() {
   document.getElementById('editProfileUrl').value = '';
   const borderEl = document.getElementById('editBorderStyle');
   if (borderEl) borderEl.value = 'royal_crown';
+  const roleEl = document.getElementById('editVerificationRole');
+  if (roleEl) roleEl.value = 'none';
   openModal('userModal');
 }
 
@@ -599,10 +621,17 @@ function openEditUserModal(userId) {
   const borderEl = document.getElementById('editBorderStyle');
   if (borderEl) borderEl.value = user.border_style || 'royal_crown';
 
-  const vipEl = document.getElementById('editIsVip');
-  if (vipEl) {
-    const isVip = allSubscriptions.some(s => s.user_id === user.id && (s.is_active || s.status === 'approved'));
-    vipEl.checked = isVip;
+  const roleEl = document.getElementById('editVerificationRole');
+  if (roleEl) {
+    const userSub = allSubscriptions.find(s => s.user_id === user.id && (s.is_active || s.status === 'approved'));
+    const isDev = (user.role === 'developer') || (userSub && userSub.plan_name && userSub.plan_name.toLowerCase().includes('developer'));
+    if (isDev) {
+      roleEl.value = 'developer';
+    } else if (userSub) {
+      roleEl.value = 'premium';
+    } else {
+      roleEl.value = 'none';
+    }
   }
 
   openModal('userModal');
@@ -616,7 +645,10 @@ async function saveUserChanges() {
   const weeklyHours = parseFloat(document.getElementById('editWeeklyHours').value) || 0;
   const profileUrl = document.getElementById('editProfileUrl').value.trim();
   const borderStyle = document.getElementById('editBorderStyle')?.value || 'royal_crown';
-  const isVipChecked = document.getElementById('editIsVip')?.checked || false;
+  const roleChoice = document.getElementById('editVerificationRole')?.value || 'none';
+  const isDev = roleChoice === 'developer';
+  const isPrem = roleChoice === 'premium';
+  const isVipOrDev = isDev || isPrem;
 
   if (!name) {
     showToast('Nama pengguna tidak boleh kosong', 'error');
@@ -631,6 +663,7 @@ async function saveUserChanges() {
     weekly_listen_ms: hoursToMs(weeklyHours),
     profile_url: profileUrl || null,
     border_style: borderStyle,
+    role: isDev ? 'developer' : 'user',
     last_updated_at: Date.now()
   };
 
@@ -646,19 +679,21 @@ async function saveUserChanges() {
 
     if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal menyimpan`);
 
-    // Sync VIP status to user_subscriptions
+    // Sync VIP / Developer role status to user_subscriptions
     try {
       const now = new Date();
-      const newExpiry = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      const expiryDays = isDev ? 36500 : 365; // 100 Tahun untuk Developer, 1 Tahun untuk Premium
+      const newExpiry = new Date(now.getTime() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
+      const planTitle = isDev ? 'Developer' : (isPrem ? 'Admin VIP' : 'Gratis');
       const subPayload = {
         user_id: id,
         user_name: name,
         email: email || null,
-        plan_name: isVipChecked ? 'Admin VIP' : 'Gratis',
+        plan_name: planTitle,
         price: 0,
-        status: isVipChecked ? 'approved' : 'rejected',
-        is_active: isVipChecked,
-        expires_at: isVipChecked ? newExpiry : null,
+        status: isVipOrDev ? 'approved' : 'rejected',
+        is_active: isVipOrDev,
+        expires_at: isVipOrDev ? newExpiry : null,
         updated_at: new Date().toISOString()
       };
       await fetch(`${appConfig.url}/rest/v1/user_subscriptions`, {
@@ -670,7 +705,7 @@ async function saveUserChanges() {
         body: JSON.stringify(subPayload)
       });
     } catch (e) {
-      console.warn('Sync VIP error:', e);
+      console.warn('Sync Subscriptions error:', e);
     }
 
     closeModal('userModal');
@@ -857,14 +892,14 @@ async function openChatMessages(convId, user1Name, user2Name) {
         <div class="p-3 bg-gray-800 rounded-xl border border-gray-700/60 max-w-lg text-xs space-y-1.5">
           <div class="flex items-center justify-between text-[11px] text-gray-400">
             <span class="font-bold text-blue-400">${escapeHtml(m.sender_id.slice(0, 10))}</span>
-            <span>${timeStr} ${m.is_read ? '✓✓' : '✓'}</span>
+            <span class="inline-flex items-center gap-1">${timeStr} ${m.is_read ? '<i class="fa-solid fa-check-double text-blue-400"></i>' : '<i class="fa-solid fa-check text-gray-500"></i>'}</span>
           </div>
           
           ${isMusic ? `
             <div class="p-2.5 bg-gray-900 rounded-lg border border-gray-700 flex items-center gap-3">
               <img src="${media.thumbnail_url || '../icebeats_logo.png'}" class="w-10 h-10 rounded-md object-cover" onerror="this.src='../icebeats_logo.png'">
               <div class="flex-1 min-w-0">
-                <div class="font-bold text-white truncate text-xs">🎵 ${escapeHtml(media.title || 'Lagu')}</div>
+                <div class="font-bold text-white truncate text-xs flex items-center gap-1"><i class="fa-solid fa-music text-purple-400"></i> ${escapeHtml(media.title || 'Lagu')}</div>
                 <div class="text-[11px] text-gray-400 truncate">${escapeHtml(media.artist_name || '')}</div>
               </div>
             </div>
@@ -953,8 +988,11 @@ function showToast(message, type = 'info') {
              type === 'error' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white';
 
   toast.className = `${bg} px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs font-semibold max-w-sm animate-bounce`;
+  const toastIcon = type === 'success' ? '<i class="fa-solid fa-circle-check text-sm"></i>' :
+                    type === 'error' ? '<i class="fa-solid fa-circle-xmark text-sm"></i>' :
+                    '<i class="fa-solid fa-circle-info text-sm"></i>';
   toast.innerHTML = `
-    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+    <span>${toastIcon}</span>
     <span class="flex-1">${escapeHtml(message)}</span>
   `;
 
@@ -1117,13 +1155,13 @@ function renderVipSubscriptionsTable() {
     // Status Badge
     let statusBadge = '';
     if (isPending) {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-950/80 text-amber-300 border border-amber-600/70 inline-flex items-center gap-1.5 animate-pulse">⏳ Menunggu ACC</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-950/80 text-amber-300 border border-amber-600/70 inline-flex items-center gap-1.5 animate-pulse"><i class="fa-solid fa-hourglass-half"></i> Menunggu ACC</span>`;
     } else if (isApproved && !isExpired) {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-600/70 inline-flex items-center gap-1.5">✅ VIP Aktif</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-600/70 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-400"></i> VIP Aktif</span>`;
     } else if (isExpired) {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-rose-950/80 text-rose-300 border border-rose-600/70 inline-flex items-center gap-1.5">⚠️ Kadaluarsa</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-rose-950/80 text-rose-300 border border-rose-600/70 inline-flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Kadaluarsa</span>`;
     } else {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-gray-800 text-gray-400 border border-gray-700 inline-flex items-center gap-1.5">❌ Ditolak</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-gray-800 text-gray-400 border border-gray-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-gray-400"></i> Ditolak</span>`;
     }
 
     // Plan Badge & Styling
@@ -1133,7 +1171,7 @@ function renderVipSubscriptionsTable() {
     } else if ((sub.plan_name || '').includes('5 Bulan')) {
       planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-950 text-amber-300 border border-amber-800">5 Bulan (Hemat)</span>`;
     } else if ((sub.plan_name || '').includes('Tahun') || (sub.plan_name || '').includes('Lifetime')) {
-      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-yellow-950 text-yellow-300 border border-yellow-700">👑 ${escapeHtml(sub.plan_name)}</span>`;
+      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-yellow-950 text-yellow-300 border border-yellow-700 inline-flex items-center gap-1"><i class="fa-solid fa-crown text-amber-400"></i> ${escapeHtml(sub.plan_name)}</span>`;
     }
 
     // Formatted Dates
@@ -1158,14 +1196,14 @@ function renderVipSubscriptionsTable() {
         <td class="px-4 py-3.5">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-full bg-amber-900/50 border border-amber-600/40 flex items-center justify-center text-amber-300 font-bold text-xs">
-              👑
+              <i class="fa-solid fa-crown text-amber-400"></i>
             </div>
             <div>
               <div class="font-bold text-white text-xs">${escapeHtml(sub.user_name || 'User Tanpa Nama')}</div>
               <div class="text-[11px] text-gray-400">${escapeHtml(sub.email || '-')}</div>
               <div class="text-[10px] text-gray-500 font-mono mt-0.5 flex items-center gap-1">
                 <span>ID: ${escapeHtml(sub.user_id || '')}</span>
-                <button onclick="navigator.clipboard.writeText('${sub.user_id}'); showToast('User ID disalin!', 'info')" class="hover:text-amber-300" title="Salin ID">📋</button>
+                <button onclick="navigator.clipboard.writeText('${sub.user_id}'); showToast('User ID disalin!', 'info')" class="hover:text-amber-300" title="Salin ID"><i class="fa-solid fa-copy"></i></button>
               </div>
             </div>
           </div>
@@ -1179,27 +1217,27 @@ function renderVipSubscriptionsTable() {
           <div class="flex items-center justify-end gap-1.5">
             ${isPending ? `
               <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded shadow flex items-center gap-1" title="ACC dan Aktifkan VIP di HP Pengguna">
-                ✅ ACC
+                <i class="fa-solid fa-check"></i> ACC
               </button>
-              <button onclick="rejectVipSubscription('${sub.id}')" class="px-2 py-1 bg-gray-700 hover:bg-rose-900 text-rose-300 text-xs rounded border border-rose-800" title="Tolak Pesanan">
-                ❌ Tolak
+              <button onclick="rejectVipSubscription('${sub.id}')" class="px-2 py-1 bg-gray-700 hover:bg-rose-900 text-rose-300 text-xs rounded border border-rose-800 flex items-center gap-1" title="Tolak Pesanan">
+                <i class="fa-solid fa-xmark"></i> Tolak
               </button>
             ` : `
-              <button onclick="extendVipSubscription('${sub.id}', '${sub.expires_at || ''}', 30)" class="px-2 py-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs rounded border border-blue-500/40" title="Tambah Masa Aktif +30 Hari">
-                ⏳ +30 Hr
+              <button onclick="extendVipSubscription('${sub.id}', '${sub.expires_at || ''}', 30)" class="px-2 py-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs rounded border border-blue-500/40 flex items-center gap-1" title="Tambah Masa Aktif +30 Hari">
+                <i class="fa-solid fa-hourglass-half"></i> +30 Hr
               </button>
               ${isApproved ? `
-                <button onclick="revokeVipSubscription('${sub.id}', '${sub.user_id}')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs rounded border border-rose-600/40" title="Nonaktifkan VIP">
-                  ⏹️ Stop
+                <button onclick="revokeVipSubscription('${sub.id}', '${sub.user_id}')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs rounded border border-rose-600/40 flex items-center gap-1" title="Nonaktifkan VIP">
+                  <i class="fa-solid fa-stop"></i> Stop
                 </button>
               ` : `
-                <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 text-xs rounded border border-emerald-500/40" title="Aktifkan Kembali">
-                  ▶️ Aktifkan
+                <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 text-xs rounded border border-emerald-500/40 flex items-center gap-1" title="Aktifkan Kembali">
+                  <i class="fa-solid fa-play"></i> Aktifkan
                 </button>
               `}
             `}
             <button onclick="deleteVipSubscription('${sub.id}')" class="p-1 text-gray-500 hover:text-rose-400 rounded" title="Hapus Data Pesanan">
-              🗑️
+              <i class="fa-solid fa-trash"></i>
             </button>
           </div>
         </td>
@@ -1229,7 +1267,7 @@ async function approveVipSubscription(subId, userId, planName) {
       })
     });
     if (rpcRes.ok) {
-      showToast(`✅ Paket ${planName} BERHASIL DI-ACC secara Aman! VIP aktif di HP pengguna.`, 'success');
+      showToast(`Paket ${planName} BERHASIL DI-ACC secara Aman! VIP aktif di HP pengguna.`, 'success');
       await fetchVipSubscriptions();
       return;
     }
@@ -1257,7 +1295,7 @@ async function approveVipSubscription(subId, userId, planName) {
 
     if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal menyetujui langganan`);
 
-    showToast(`✅ Paket ${planName} BERHASIL DI-ACC! Akun VIP aktif otomatis di HP pengguna.`, 'success');
+    showToast(`Paket ${planName} BERHASIL DI-ACC! Akun VIP aktif otomatis di HP pengguna.`, 'success');
     await fetchVipSubscriptions();
   } catch (err) {
     console.error(err);
@@ -1460,7 +1498,7 @@ async function submitManualVip() {
     if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal menyimpan VIP`);
 
     closeModal('manualVipModal');
-    showToast(`✅ Akses VIP (${planName}) berhasil diberikan ke ${userName || userId}!`, 'success');
+    showToast(`Akses VIP (${planName}) berhasil diberikan ke ${userName || userId}!`, 'success');
     await fetchVipSubscriptions();
   } catch (err) {
     console.error(err);

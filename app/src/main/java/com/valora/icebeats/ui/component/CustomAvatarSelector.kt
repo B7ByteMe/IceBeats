@@ -114,6 +114,7 @@ class AvatarPreferenceManager(private val context: Context) {
         private val CUSTOM_AVATAR_URI_KEY = stringPreferencesKey("custom_avatar_uri")
         private val CUSTOM_AVATAR_CLOUD_URL_KEY = stringPreferencesKey("custom_avatar_cloud_url")
         private val DICEBEAR_AVATAR_URL_KEY = stringPreferencesKey("dicebear_avatar_url")
+        private val GIF_AVATAR_URL_KEY = stringPreferencesKey("gif_avatar_url")
     }
 
     suspend fun saveAvatarSelection(selection: AvatarSelection) {
@@ -124,12 +125,14 @@ class AvatarPreferenceManager(private val context: Context) {
                     preferences.remove(CUSTOM_AVATAR_URI_KEY)
                     preferences.remove(CUSTOM_AVATAR_CLOUD_URL_KEY)
                     preferences.remove(DICEBEAR_AVATAR_URL_KEY)
+                    preferences.remove(GIF_AVATAR_URL_KEY)
                 }
                 is AvatarSelection.DiceBear -> {
                     preferences[SELECTED_AVATAR_TYPE_KEY] = "dicebear"
                     preferences[DICEBEAR_AVATAR_URL_KEY] = selection.url
                     preferences.remove(CUSTOM_AVATAR_URI_KEY)
                     preferences.remove(CUSTOM_AVATAR_CLOUD_URL_KEY)
+                    preferences.remove(GIF_AVATAR_URL_KEY)
                 }
                 is AvatarSelection.Custom -> {
                     preferences[SELECTED_AVATAR_TYPE_KEY] = "custom"
@@ -139,6 +142,14 @@ class AvatarPreferenceManager(private val context: Context) {
                     } else {
                         preferences.remove(CUSTOM_AVATAR_CLOUD_URL_KEY)
                     }
+                    preferences.remove(DICEBEAR_AVATAR_URL_KEY)
+                    preferences.remove(GIF_AVATAR_URL_KEY)
+                }
+                is AvatarSelection.Gif -> {
+                    preferences[SELECTED_AVATAR_TYPE_KEY] = "gif"
+                    preferences[GIF_AVATAR_URL_KEY] = selection.url
+                    preferences.remove(CUSTOM_AVATAR_URI_KEY)
+                    preferences.remove(CUSTOM_AVATAR_CLOUD_URL_KEY)
                     preferences.remove(DICEBEAR_AVATAR_URL_KEY)
                 }
             }
@@ -158,6 +169,10 @@ class AvatarPreferenceManager(private val context: Context) {
                     val cloudUrl = preferences[CUSTOM_AVATAR_CLOUD_URL_KEY]
                     if (uri != null) AvatarSelection.Custom(uri, cloudUrl) else AvatarSelection.Default
                 }
+                "gif" -> {
+                    val url = preferences[GIF_AVATAR_URL_KEY]
+                    if (url != null) AvatarSelection.Gif(url) else AvatarSelection.Default
+                }
                 else -> AvatarSelection.Default
             }
         }
@@ -170,6 +185,7 @@ sealed class AvatarSelection {
     object Default : AvatarSelection()
     data class DiceBear(val url: String) : AvatarSelection()
     data class Custom(val uri: String, val cloudUrl: String? = null) : AvatarSelection()
+    data class Gif(val url: String) : AvatarSelection()
 }
 
 /**

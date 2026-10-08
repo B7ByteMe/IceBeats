@@ -71,11 +71,7 @@ fun MasterBorderSelectorSheet(
     val isVip by vipManager.isVip.collectAsState(initial = false)
     var showVipDialog by remember { mutableStateOf(false) }
 
-    val isMaster = isVip || remember(userRank, totalListenMs) {
-        val rankQualified = userRank != null && userRank.ordinal >= icebeatsRank.Master.ordinal
-        val hoursQualified = totalListenMs != null && totalListenMs >= (150L * 3600L * 1000L)
-        rankQualified || hoursQualified
-    }
+    val isAllowed = isVip
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -89,7 +85,7 @@ fun MasterBorderSelectorSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Pilih Border Profil Master",
+                text = "Pilih Border Profil Premium",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -97,9 +93,9 @@ fun MasterBorderSelectorSheet(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            if (isMaster) {
+            if (isAllowed) {
                 Text(
-                    text = "Pilih gaya border mahkota atau sayap favorit Anda",
+                    text = "Pilih gaya border animasi eksklusif IceBeats Premium favorit Anda",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -122,7 +118,7 @@ fun MasterBorderSelectorSheet(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "👑 Buka via VIP (Mulai Rp 5.000) atau Master (150 Jam)",
+                            text = "Khusus IceBeats Premium (Mulai Rp 5.000)",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFFFD700),
                             fontWeight = FontWeight.Bold,
@@ -187,7 +183,7 @@ fun MasterBorderSelectorSheet(
                             .background(cardBg)
                             .border(if (isSelected) 2.dp else 1.dp, cardBorder, RoundedCornerShape(14.dp))
                             .clickable {
-                                if (isMaster) {
+                                if (isAllowed) {
                                     previewStyle = style
                                 } else {
                                     showVipDialog = true
@@ -227,9 +223,9 @@ fun MasterBorderSelectorSheet(
                                 maxLines = 1
                             )
 
-                            if (!isMaster) {
+                            if (!isAllowed) {
                                 Text(
-                                    text = "🔒 Terkunci",
+                                    text = "Terkunci",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.Bold
@@ -242,7 +238,7 @@ fun MasterBorderSelectorSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (!isMaster) {
+            if (!isAllowed) {
                 Button(
                     onClick = { showVipDialog = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -259,7 +255,7 @@ fun MasterBorderSelectorSheet(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("👑 Beli VIP untuk Buka Semua Border (Mulai Rp 5.000)", fontWeight = FontWeight.Bold)
+                    Text("Beli VIP untuk Buka Semua Border (Mulai Rp 5.000)", fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(10.dp))
             } else {

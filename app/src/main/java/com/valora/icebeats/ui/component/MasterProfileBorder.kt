@@ -45,20 +45,26 @@ fun MasterProfileBorder(
     totalListenMs: Long? = null,
     forceShowMaster: Boolean = false,
     borderStyle: MasterBorderStyle? = null,
+    isSelf: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
     val vipManager = remember { VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
+    val isLocalVip by vipManager.isVip.collectAsState(initial = false)
 
-    val isMaster = forceShowMaster || isVip || remember(userRank, totalListenMs) {
-        val rankQualified = userRank != null && userRank.ordinal >= icebeatsRank.Master.ordinal
-        val hoursQualified = totalListenMs != null && totalListenMs >= (150L * 3600L * 1000L)
-        rankQualified || hoursQualified
+    val borderPreferenceManager = remember { BorderPreferenceManager(context) }
+    val userSavedStyle by borderPreferenceManager.selectedBorder.collectAsState(initial = MasterBorderStyle.ROYAL_CROWN)
+
+    // Logika Border Premium: Hanya yang membeli VIP/Premium yang berhak menggunakan border.
+    // Untuk orang lain di leaderboard/chat: hanya tampil jika orang tersebut punya borderStyle sendiri dari server.
+    val effectiveStyle: MasterBorderStyle? = when {
+        forceShowMaster -> borderStyle ?: userSavedStyle
+        isSelf -> if (isLocalVip) (borderStyle ?: userSavedStyle) else null
+        else -> borderStyle // Orang lain: pakai borderStyle miliknya sendiri, jangan fallback ke userSavedStyle
     }
 
-    if (!isMaster) {
-        // Pengguna non-Master & non-VIP: tampilkan avatar normal tanpa border
+    if (effectiveStyle == null) {
+        // Pengguna tanpa border: tampilkan avatar normal tanpa border
         Box(
             modifier = modifier.size(avatarSize),
             contentAlignment = Alignment.Center
@@ -68,9 +74,7 @@ fun MasterProfileBorder(
         return
     }
 
-    val borderPreferenceManager = remember { BorderPreferenceManager(context) }
-    val userSavedStyle by borderPreferenceManager.selectedBorder.collectAsState(initial = MasterBorderStyle.ROYAL_CROWN)
-    val activeStyle = borderStyle ?: userSavedStyle
+    val activeStyle = effectiveStyle
 
     // Cek resource drawable untuk style aktif, fallback ke master_profile_border
     val borderResId = remember(activeStyle) {
@@ -115,7 +119,7 @@ fun MasterProfileBorder(
             content()
         }
 
-        // 2. LAYER ATAS (z-index: 10): BORDER / ORNAMEN OVERLAY
+        // 2. LAYER ATAS (z-index: 99f): BORDER / ORNAMEN OVERLAY
         // Ornamen berada di layer paling atas mengelilingi dan menutupi tepi avatar
         if (borderResId != null) {
             Image(
@@ -123,7 +127,7 @@ fun MasterProfileBorder(
                 contentDescription = activeStyle.title,
                 modifier = Modifier
                     .requiredSize(borderOverlaySize)
-                    .zIndex(10f)
+                    .zIndex(99f)
                     .alpha(pulseGlow)
             )
         } else {
@@ -134,7 +138,7 @@ fun MasterProfileBorder(
                     .size(avatarSize)
                     .clip(CircleShape)
                     .border(borderWidth, Color(0xFFFFD700).copy(alpha = pulseGlow), CircleShape)
-                    .zIndex(10f)
+                    .zIndex(99f)
             )
         }
     }

@@ -148,17 +148,34 @@ fun ChatListScreen(
         )
     }
 
-    // Refresh semua data
+    // Refresh semua data (Cache-First: tampilkan lokal instan, lalu sync dari cloud)
     fun refreshData(uid: String) {
         if (uid.isBlank()) return
         scope.launch {
-            isLoading = true
-            val convs = supabaseClient.getChatConversations(uid).getOrDefault(emptyList())
-            val friends = supabaseClient.getFriendsList(uid).getOrDefault(emptyList())
-            val reqs = supabaseClient.getPendingFriendRequests(uid).getOrDefault(emptyList())
-            conversations = convs
-            friendsList = friends
-            pendingRequests = reqs
+            // Tampilkan cache lokal terlebih dahulu jika belum ada di state
+            if (conversations.isEmpty()) {
+                val cached = com.valora.icebeats.supabase.ChatLocalCache.getConversations(context, uid)
+                if (cached.isNotEmpty()) {
+                    conversations = cached
+                    isLoading = false
+                }
+            }
+
+            // Sinkronkan data terbaru dari server
+            val convsResult = supabaseClient.getChatConversations(uid)
+            val friendsResult = supabaseClient.getFriendsList(uid)
+            val reqsResult = supabaseClient.getPendingFriendRequests(uid)
+
+            convsResult.getOrNull()?.let { convs ->
+                conversations = convs
+                com.valora.icebeats.supabase.ChatLocalCache.saveConversations(context, uid, convs)
+            }
+            friendsResult.getOrNull()?.let { friends ->
+                friendsList = friends
+            }
+            reqsResult.getOrNull()?.let { reqs ->
+                pendingRequests = reqs
+            }
             isLoading = false
         }
     }
@@ -166,6 +183,12 @@ fun ChatListScreen(
     LaunchedEffect(Unit) {
         val uid = IceBeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager)
         currentUserId = uid
+        // Muat seketika riwayat chat dari cache lokal agar tidak pernah hilang
+        val cached = com.valora.icebeats.supabase.ChatLocalCache.getConversations(context, uid)
+        if (cached.isNotEmpty()) {
+            conversations = cached
+            isLoading = false
+        }
         refreshData(uid)
     }
 
@@ -242,11 +265,20 @@ fun ChatListScreen(
                         contentColor = Color.Black
                     )
                 ) {
-                    Text(
-                        text = "👑 Aktifkan VIP (Mulai Rp 5.000)",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_vip_crown),
+                            contentDescription = null,
+                            tint = Color.Black,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Aktifkan VIP (Mulai Rp 5.000)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -310,7 +342,8 @@ fun ChatListScreen(
                             avatarSize = 24.dp,
                             userRank = myChatUser.rank,
                             totalListenMs = myChatUser.totalListenMs,
-                            borderStyle = selectedBorder
+                            borderStyle = selectedBorder,
+                            isSelf = true
                         ) {
                             Surface(
                                 shape = CircleShape,
@@ -522,7 +555,8 @@ fun ChatListScreen(
                                             avatarSize = 34.dp,
                                             userRank = reqUser.rank,
                                             totalListenMs = reqUser.totalListenMs,
-                                            borderStyle = reqUser.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                            borderStyle = reqUser.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                                            isSelf = false
                                         ) {
                                             Surface(
                                                 shape = CircleShape,
@@ -555,13 +589,22 @@ fun ChatListScreen(
                                             .weight(1f)
                                             .clickable { selectedUserForProfile = reqUser }
                                     ) {
-                                        Text(
-                                            text = reqUser.name,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = reqUser.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                                                verificationBadge = reqUser.verificationBadge
+                                            )
+                                            if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 13.dp)
+                                            }
+                                        }
                                         Text(
                                             text = "Level ${reqUser.rank?.name ?: "Echo"} • Ketuk untuk lihat profil",
                                             style = MaterialTheme.typography.bodySmall,
@@ -659,7 +702,8 @@ fun ChatListScreen(
                                             avatarSize = 34.dp,
                                             userRank = friend.rank,
                                             totalListenMs = friend.totalListenMs,
-                                            borderStyle = friend.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                            borderStyle = friend.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                                            isSelf = false
                                         ) {
                                             Surface(
                                                 shape = CircleShape,
@@ -845,7 +889,8 @@ fun ChatListScreen(
                                                 avatarSize = 34.dp,
                                                 userRank = user.rank,
                                                 totalListenMs = user.totalListenMs,
-                                                borderStyle = user.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                                borderStyle = user.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                                                isSelf = false
                                             ) {
                                                 Surface(
                                                     shape = CircleShape,
@@ -882,6 +927,13 @@ fun ChatListScreen(
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
+                                                val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                                                    verificationBadge = user.verificationBadge
+                                                )
+                                                if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 13.dp)
+                                                }
                                                 user.rank?.let { r ->
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     RankBadge(rank = r, displayedRank = null, size = 16.dp)
@@ -982,7 +1034,8 @@ fun ChatListScreen(
                                 avatarSize = 34.dp,
                                 userRank = other.rank,
                                 totalListenMs = other.totalListenMs,
-                                borderStyle = other.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                borderStyle = other.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                                isSelf = false
                             ) {
                                 Surface(
                                     shape = CircleShape,
@@ -1021,6 +1074,13 @@ fun ChatListScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                                    verificationBadge = other.verificationBadge
+                                )
+                                if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 15.dp)
+                                }
                                 other.rank?.let { r ->
                                     Spacer(modifier = Modifier.width(6.dp))
                                     RankBadge(rank = r, displayedRank = null, size = 18.dp)
@@ -1200,7 +1260,8 @@ fun ChatListScreen(
                                 avatarSize = 34.dp,
                                 userRank = friend.rank,
                                 totalListenMs = friend.totalListenMs,
-                                borderStyle = friend.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                                borderStyle = friend.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                                isSelf = false
                             ) {
                                 Surface(
                                     shape = CircleShape,
@@ -1239,6 +1300,13 @@ fun ChatListScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                                    verificationBadge = friend.verificationBadge
+                                )
+                                if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 15.dp)
+                                }
                                 friend.rank?.let { r ->
                                     Spacer(modifier = Modifier.width(6.dp))
                                     RankBadge(rank = r, displayedRank = null, size = 18.dp)
@@ -1443,7 +1511,8 @@ private fun ConversationItem(
                 avatarSize = 34.dp,
                 userRank = other.rank,
                 totalListenMs = other.totalListenMs,
-                borderStyle = other.borderStyle?.let { MasterBorderStyle.fromId(it) }
+                borderStyle = other.borderStyle?.let { MasterBorderStyle.fromIdOrNull(it) },
+                isSelf = false
             ) {
                 Surface(
                     shape = CircleShape,

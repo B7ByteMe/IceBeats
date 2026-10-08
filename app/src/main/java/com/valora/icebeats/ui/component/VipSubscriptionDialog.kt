@@ -14,6 +14,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -69,12 +70,16 @@ fun VipSubscriptionDialog(
     val (userEmail) = rememberPreference(AccountEmailKey, defaultValue = "")
 
     var selectedPlan by remember { mutableStateOf(initialSelectedPlan) }
+    var showConfirmationDialog by remember { mutableStateOf(false) }
     var showQrisStep by remember { mutableStateOf(false) }
     var voucherCode by remember { mutableStateOf("") }
     var showVoucherField by remember { mutableStateOf(false) }
     var isRedeeming by remember { mutableStateOf(false) }
     var isCheckingStatus by remember { mutableStateOf(false) }
     var isApprovedBanner by remember { mutableStateOf(false) }
+
+    val adminWaNumber = "6288983660479"
+    val adminWaDisplay = "088983660479"
 
     fun openUrl(url: String) {
         runCatching {
@@ -103,12 +108,13 @@ Halo Admin Valora / IceBeats, saya sudah melakukan pembayaran langganan VIP:
 • Paket: ${plan.title}
 • Nominal: ${plan.formattedPrice}
 • Nama / Email Akun: $userIdentifier
+• Tujuan Admin: $adminWaDisplay
 
-Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses aktivasi akun VIP saya ya. Terima kasih!
+Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses verifikasi dan aktivasi akun VIP saya ya. Terima kasih!
             """.trimIndent()
 
             val encodedMessage = URLEncoder.encode(message, "UTF-8")
-            val waUrl = "https://api.whatsapp.com/send?phone=6285759719395&text=$encodedMessage"
+            val waUrl = "https://api.whatsapp.com/send?phone=$adminWaNumber&text=$encodedMessage"
             openUrl(waUrl)
         }
     }
@@ -121,7 +127,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                 val check = vipManager.checkCloudSubscriptionStatus().getOrDefault(false)
                 if (check) {
                     isApprovedBanner = true
-                    Toast.makeText(context, "🎉 Selamat! Pembayaran terverifikasi. Paket VIP Anda telah aktif!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Selamat! Pembayaran terverifikasi. Paket VIP Anda telah aktif!", Toast.LENGTH_LONG).show()
                     break
                 }
             }
@@ -377,12 +383,66 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                         QrisStepItem(number = "1", text = "Screenshot (SS) layar QRIS di atas ini.")
                         QrisStepItem(number = "2", text = "Buka Bank/e-Wallet (BCA, Dana, GoPay, OVO, ShopeePay, dll) & scan QRIS.")
                         QrisStepItem(number = "3", text = "Transfer tepat sesuai nominal: ${selectedPlan.formattedPrice}.")
-                        QrisStepItem(number = "4", text = "Klik tombol di bawah untuk kirim bukti SS transfer ke WhatsApp Admin.")
+                        QrisStepItem(number = "4", text = "Klik tombol di bawah untuk kirim bukti SS transfer ke WhatsApp Admin ($adminWaDisplay).")
                         QrisStepItem(number = "5", text = "Admin akan memverifikasi bukti transfer, dan akun VIP langsung aktif otomatis!")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Card Nomor WhatsApp Admin
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF102416))
+                        .border(1.dp, Color(0xFF25D366).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_whatsapp),
+                                contentDescription = "WhatsApp",
+                                tint = Color(0xFF25D366),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "WhatsApp Konfirmasi Admin:",
+                                    fontSize = 11.sp,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = adminWaDisplay,
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF25D366),
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { copyToClipboard("Nomor WhatsApp", adminWaDisplay) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF25D366).copy(alpha = 0.2f),
+                                contentColor = Color(0xFF25D366)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("Salin", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Tombol Kirim Bukti ke WhatsApp Admin
                 Button(
@@ -416,9 +476,9 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Kirim Bukti ke WhatsApp Admin",
+                            text = "Kirim Bukti ke WhatsApp ($adminWaDisplay)",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             color = Color.Black
                         )
                     }
@@ -426,7 +486,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Tombol Manual Cek Status Aktivasi
+                // Tombol Cek Status VIP (Prem)
                 OutlinedButton(
                     onClick = {
                         isCheckingStatus = true
@@ -435,9 +495,9 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                             isCheckingStatus = false
                             if (ok) {
                                 isApprovedBanner = true
-                                Toast.makeText(context, "🎉 Pembayaran Berhasil Diverifikasi! Paket VIP Anda Aktif!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Selamat! Pembayaran berhasil diverifikasi. Paket VIP Anda telah aktif!", Toast.LENGTH_LONG).show()
                             } else {
-                                Toast.makeText(context, "Sedang memverifikasi pembayaran. Pastikan bukti transfer sudah dikirim ke WhatsApp ya!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Sedang diverifikasi oleh admin. Pastikan bukti transfer sudah dikirim ke WhatsApp ya!", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
@@ -446,7 +506,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                         .fillMaxWidth()
                         .height(46.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.5f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.6f))
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -460,8 +520,45 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isCheckingStatus) "Memeriksa Status..." else "Periksa Status Aktivasi",
+                            text = if (isCheckingStatus) "Memeriksa Status..." else "Cek Status VIP",
                             color = GoldPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Tombol Batalkan Pembelian (Kembali ke menu paket 1, 2, 5 bulan)
+                OutlinedButton(
+                    onClick = {
+                        showQrisStep = false
+                        Toast.makeText(context, "Pembelian dibatalkan. Silakan pilih paket lainnya.", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFFF5252)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.close),
+                            contentDescription = null,
+                            tint = Color(0xFFFF5252),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Batalkan Pembelian",
+                            color = Color(0xFFFF5252),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -487,12 +584,31 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                 ) {
                     VipPlan.entries.forEach { plan ->
                         val isSelected = selectedPlan == plan
+                        val isThisPlanActive = isVipActive && (
+                            currentPlanName.contains(plan.title, ignoreCase = true) ||
+                            (plan == VipPlan.FIVE_MONTHS && currentPlanName.contains("5", ignoreCase = true)) ||
+                            (plan == VipPlan.TWO_MONTHS && currentPlanName.contains("2", ignoreCase = true)) ||
+                            (plan == VipPlan.ONE_MONTH && currentPlanName.contains("1", ignoreCase = true))
+                        )
+
+                        val targetBorderColor = when {
+                            isThisPlanActive -> Color(0xFF25D366) // Hijau neon jika paket aktif
+                            isSelected -> GoldPrimary
+                            else -> DarkCardBorder
+                        }
                         val cardBorderColor by animateColorAsState(
-                            targetValue = if (isSelected) GoldPrimary else DarkCardBorder,
+                            targetValue = targetBorderColor,
                             label = "card_border"
                         )
+
+                        val targetBgColor = when {
+                            isThisPlanActive && isSelected -> Color(0xFF142B1A)
+                            isThisPlanActive -> Color(0xFF0E2214)
+                            isSelected -> Color(0xFF221F14)
+                            else -> DarkCardBg
+                        }
                         val cardBgColor by animateColorAsState(
-                            targetValue = if (isSelected) Color(0xFF221F14) else DarkCardBg,
+                            targetValue = targetBgColor,
                             label = "card_bg"
                         )
 
@@ -502,11 +618,14 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(cardBgColor)
                                 .border(
-                                    width = if (isSelected) 2.dp else 1.dp,
+                                    width = if (isThisPlanActive || isSelected) 2.dp else 1.dp,
                                     color = cardBorderColor,
                                     shape = RoundedCornerShape(18.dp)
                                 )
-                                .clickable { selectedPlan = plan }
+                                .clickable {
+                                    selectedPlan = plan
+                                    showConfirmationDialog = true
+                                }
                                 .padding(16.dp)
                         ) {
                             Row(
@@ -520,10 +639,29 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                                             text = plan.title,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 17.sp,
-                                            color = if (isSelected) GoldPrimary else Color.White
+                                            color = when {
+                                                isThisPlanActive -> Color(0xFF25D366)
+                                                isSelected -> GoldPrimary
+                                                else -> Color.White
+                                            }
                                         )
 
-                                        if (plan.badge != null) {
+                                        if (isThisPlanActive) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(Color(0xFF25D366))
+                                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "SEDANG BERLANGGANAN",
+                                                    color = Color.Black,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.ExtraBold
+                                                )
+                                            }
+                                        } else if (plan.badge != null) {
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Box(
                                                 modifier = Modifier
@@ -550,6 +688,16 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                                         fontSize = 12.sp,
                                         color = Color.White.copy(alpha = 0.65f)
                                     )
+
+                                    if (isThisPlanActive) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Masa aktif: Hingga ${VipSubscriptionManager.formatExpiryDate(vipExpiresAt)}",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF25D366),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
 
                                 Column(horizontalAlignment = Alignment.End) {
@@ -557,15 +705,25 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                                         text = plan.formattedPrice,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 18.sp,
-                                        color = if (isSelected) GoldPrimary else Color.White
+                                        color = when {
+                                            isThisPlanActive -> Color(0xFF25D366)
+                                            isSelected -> GoldPrimary
+                                            else -> Color.White
+                                        }
                                     )
 
                                     Icon(
                                         painter = painterResource(
-                                            if (isSelected) R.drawable.radio_button_checked else R.drawable.radio_button_unchecked
+                                            if (isThisPlanActive) R.drawable.check_circle
+                                            else if (isSelected) R.drawable.radio_button_checked
+                                            else R.drawable.radio_button_unchecked
                                         ),
                                         contentDescription = null,
-                                        tint = if (isSelected) GoldPrimary else Color.White.copy(alpha = 0.3f),
+                                        tint = when {
+                                            isThisPlanActive -> Color(0xFF25D366)
+                                            isSelected -> GoldPrimary
+                                            else -> Color.White.copy(alpha = 0.3f)
+                                        },
                                         modifier = Modifier
                                             .padding(top = 4.dp)
                                             .size(18.dp)
@@ -578,9 +736,9 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Tombol Bayar via QRIS (Membuka QRIS)
+                // Tombol Beli / Konfirmasi Paket Terpilih
                 Button(
-                    onClick = { showQrisStep = true },
+                    onClick = { showConfirmationDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
@@ -602,13 +760,13 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.donate),
-                            contentDescription = "QRIS",
+                            contentDescription = "Beli Paket",
                             tint = Color.Black,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Bayar via QRIS (${selectedPlan.formattedPrice})",
+                            text = "Beli Paket ${selectedPlan.title} (${selectedPlan.formattedPrice})",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = Color.Black
@@ -751,6 +909,147 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses akt
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    // Dialog Konfirmasi Pembelian Paket
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            containerColor = Color(0xFF18181C),
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(GoldPrimary.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_vip_crown),
+                            contentDescription = null,
+                            tint = GoldPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Text(
+                        text = "Konfirmasi Pembelian",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp,
+                        color = Color.White
+                    )
+                }
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Apakah Anda ingin melanjutkan pembelian paket langganan ini?",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+
+                    // Card Rincian Paket
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF221F14))
+                            .border(1.5.dp, GoldPrimary.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Paket ${selectedPlan.title}",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 16.sp,
+                                    color = GoldPrimary
+                                )
+                                Text(
+                                    text = selectedPlan.formattedPrice,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 16.sp,
+                                    color = Color.White
+                                )
+                            }
+                            Text(
+                                text = "Durasi Akses: ${selectedPlan.durationDays} Hari (${selectedPlan.description})",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    // Card Info Pembayaran & Bukti WA
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.05f))
+                            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                            .padding(12.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Alur Pembayaran & Konfirmasi:",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = GoldSecondary
+                            )
+                            Text(
+                                text = "1. Anda akan diarahkan ke layar QRIS Valora Store.\n2. Lakukan transfer sesuai nominal (${selectedPlan.formattedPrice}).\n3. Kirim bukti screenshot ke WhatsApp Admin ($adminWaDisplay) untuk aktivasi otomatis.",
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.75f),
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmationDialog = false
+                        showQrisStep = true
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GoldPrimary,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Lanjut Pembayaran",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showConfirmationDialog = false },
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+                ) {
+                    Text(
+                        text = "Batal",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        )
     }
 }
 

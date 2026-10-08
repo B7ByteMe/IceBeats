@@ -59,19 +59,23 @@ constructor(
     val indexChips = MutableStateFlow(0)
     val globalStats = MutableStateFlow(GlobalStatsUiState())
 
+    private val statsPreferences =
+        context.getSharedPreferences("icebeats_global_stats", Context.MODE_PRIVATE)
+    private val cloudClient = icebeatsStatsCloudClient()
+
     val totalListenHours: Flow<Double> = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = Long.MAX_VALUE)
         .map { songs ->
             val totalMs = songs.sumOf { it.timeListened?.toLong() ?: 0L }
-            totalMs.toDouble() / (3600.0 * 1000.0)
+            val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager)
+            val userKey = "saved_max_total_listen_ms_${uid}"
+            val savedMs = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
+            val effectiveMs = maxOf(totalMs, savedMs)
+            effectiveMs.toDouble() / (3600.0 * 1000.0)
         }
 
     val currentRank: Flow<icebeatsRank?> = totalListenHours.map { hours ->
         if (hours >= 1.0) icebeatsRank.fromHours(hours.toInt()) else null
     }
-
-    private val cloudClient = icebeatsStatsCloudClient()
-    private val statsPreferences =
-        context.getSharedPreferences("icebeats_global_stats", Context.MODE_PRIVATE)
 
     val mostPlayedSongsStats =
         combine(

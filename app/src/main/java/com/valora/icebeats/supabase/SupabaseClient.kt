@@ -190,6 +190,8 @@ class SupabaseClient(private val context: Context) {
                     )
                 }
 
+                runCatching { com.valora.icebeats.ui.component.VipSubscriptionManager(context).checkCloudSubscriptionStatus() }
+
                 "Berhasil masuk!"
             }
         }
@@ -261,6 +263,8 @@ class SupabaseClient(private val context: Context) {
                         AvatarSelection.Custom(uri = avatarUrl, cloudUrl = avatarUrl)
                     )
                 }
+
+                runCatching { com.valora.icebeats.ui.component.VipSubscriptionManager(context).checkCloudSubscriptionStatus() }
 
                 "Berhasil masuk dengan akun Google!"
             }
@@ -350,6 +354,8 @@ class SupabaseClient(private val context: Context) {
                     val diceBear = "https://api.dicebear.com/9.x/initials/svg?seed=$encodedSeed&backgroundType=gradientLinear"
                     avatarPref.saveAvatarSelection(AvatarSelection.DiceBear(diceBear))
                 }
+
+                runCatching { com.valora.icebeats.ui.component.VipSubscriptionManager(context).checkCloudSubscriptionStatus() }
 
                 "Berhasil masuk!"
             }
@@ -580,6 +586,7 @@ class SupabaseClient(private val context: Context) {
                 runCatching { httpClient.newCall(request).execute() }
             }
             authManager.clearSession()
+            com.valora.icebeats.ui.component.VipSubscriptionManager(context).resetVipState()
         }
     }
 
@@ -628,6 +635,49 @@ class SupabaseClient(private val context: Context) {
                 true
             }
         }.getOrDefault(false)
+    }
+
+    /**
+     * Dapatkan token otentikasi yang valid.
+     * Otomatis memvalidasi apakah JWT access token sudah kadaluarsa (expired).
+     * Jika expired, otomatis refresh session menggunakan refresh_token.
+     * Jika tidak login atau refresh gagal, fallback ke anonKey agar query publik tetap berjalan.
+     */
+    suspend fun getValidAuthToken(): String {
+        if (authManager.accessToken == null && authManager.refreshToken != null) {
+            authManager.loadSession()
+        }
+        val currentToken = authManager.accessToken
+        if (currentToken.isNullOrBlank()) {
+            return anonKey
+        }
+        if (isJwtExpired(currentToken)) {
+            val success = refreshSession()
+            if (success) {
+                val newToken = authManager.accessToken
+                if (!newToken.isNullOrBlank()) return newToken
+            }
+            return anonKey
+        }
+        return currentToken
+    }
+
+    private fun isJwtExpired(token: String): Boolean {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return false
+            val payloadBytes = android.util.Base64.decode(
+                parts[1],
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP
+            )
+            val json = JSONObject(String(payloadBytes, Charsets.UTF_8))
+            val exp = json.optLong("exp", 0L)
+            if (exp == 0L) return false
+            val nowSec = System.currentTimeMillis() / 1000
+            nowSec >= (exp - 60)
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun executePostWithRetry(url: String, jsonArray: JSONArray, token: String): Boolean {
@@ -1361,13 +1411,14 @@ class SupabaseClient(private val context: Context) {
      */
     suspend fun searchChatUsers(query: String, currentUserId: String): Result<List<ChatUser>> = withContext(Dispatchers.IO) {
         runCatching {
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val trimmed = query.trim()
+            val cleanQuery = trimmed.replace("*", "").replace("%", "")
+            val encPattern = "%25" + URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8.name()) + "%25"
             val url = if (trimmed.isBlank()) {
-                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms,border_style&order=total_listen_ms.desc&limit=30"
+                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms,border_style,banner_url&order=total_listen_ms.desc&limit=30"
             } else {
-                val encoded = URLEncoder.encode(trimmed, StandardCharsets.UTF_8.name())
-                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms,border_style&or=(name.ilike.*$encoded*,email.ilike.*$encoded*)&order=total_listen_ms.desc&limit=30"
+                "$baseUrl/rest/v1/user_stats?select=id,name,profile_url,total_listen_ms,border_style,banner_url&or=(name.ilike.$encPattern,email.ilike.$encPattern)&order=total_listen_ms.desc&limit=30"
             }
 
             val request = Request.Builder()
@@ -1378,38 +1429,105 @@ class SupabaseClient(private val context: Context) {
                 .get()
                 .build()
 
+            val rawUsers = mutableListOf<Triple<JSONObject, String, String?>>()
+            val userIds = mutableListOf<String>()
+
+            var bodyStr = ""
             httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use emptyList()
-                val bodyStr = response.body?.string().orEmpty()
-                val jsonArr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
-                val result = mutableListOf<ChatUser>()
-
-                for (i in 0 until jsonArr.length()) {
-                    val obj = jsonArr.optJSONObject(i) ?: continue
-                    val id = obj.optString("id").ifBlank { obj.optString("uuid") }
-                    if (id.isBlank() || id == currentUserId) continue
-
-                    val name = obj.optString("name", "User IceBeats")
-                    val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
-                    val totalMs = obj.optLong("total_listen_ms", 0L)
-                    val totalHours = (totalMs / (1000 * 3600)).toInt()
-                    val rank = if (totalHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours) else null
-                    val bStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
-
-                    result.add(
-                        ChatUser(
-                            id = id,
-                            name = name,
-                            profileUrl = profileUrl,
-                            totalListenMs = totalMs,
-                            rank = rank,
-                            borderStyle = bStyle
-                        )
-                    )
+                if (response.code == 401 && token != anonKey) {
+                    // Retry dengan anonKey jika terjadi 401
+                    val fallbackReq = Request.Builder()
+                        .url(url)
+                        .header("apikey", anonKey)
+                        .header("Authorization", "Bearer $anonKey")
+                        .header("Cache-Control", "no-cache")
+                        .get()
+                        .build()
+                    httpClient.newCall(fallbackReq).execute().use { fResp ->
+                        if (fResp.isSuccessful) {
+                            bodyStr = fResp.body?.string().orEmpty()
+                        }
+                    }
+                } else if (response.isSuccessful) {
+                    bodyStr = response.body?.string().orEmpty()
                 }
-                result
             }
+
+            if (bodyStr.isBlank()) return@runCatching emptyList()
+            val jsonArr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@runCatching emptyList()
+
+            for (i in 0 until jsonArr.length()) {
+                val obj = jsonArr.optJSONObject(i) ?: continue
+                val id = obj.optString("id").ifBlank { obj.optString("uuid") }
+                if (id.isBlank() || id == currentUserId) continue
+
+                userIds.add(id)
+                rawUsers.add(Triple(obj, id, obj.optString("role").takeIf { it.isNotBlank() }))
+            }
+
+            val subsMap = fetchSubscriptionsForUsers(userIds, token)
+            val result = mutableListOf<ChatUser>()
+
+            for ((obj, id, role) in rawUsers) {
+                val name = obj.optString("name", "User IceBeats")
+                val profileUrl = obj.optString("profile_url").takeIf { it.isNotBlank() && it != "null" }
+                val totalMs = obj.optLong("total_listen_ms", 0L)
+                val totalHours = (totalMs / (1000 * 3600)).toInt()
+                val rank = if (totalHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours) else null
+                val bStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
+                val bannerUrl = obj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
+                val subPlan = subsMap[id]
+                val vBadge = when {
+                    role.equals("developer", ignoreCase = true) || subPlan?.contains("developer", ignoreCase = true) == true -> "developer"
+                    subPlan != null -> "premium"
+                    else -> null
+                }
+
+                result.add(
+                    ChatUser(
+                        id = id,
+                        name = name,
+                        profileUrl = profileUrl,
+                        totalListenMs = totalMs,
+                        rank = rank,
+                        borderStyle = bStyle,
+                        verificationBadge = vBadge,
+                        bannerUrl = bannerUrl
+                    )
+                )
+            }
+            result
         }
+    }
+
+    private suspend fun fetchSubscriptionsForUsers(userIds: List<String>, token: String): Map<String, String> {
+        if (userIds.isEmpty()) return emptyMap()
+        return runCatching {
+            val inQ = userIds.distinct().joinToString(",")
+            val url = "$baseUrl/rest/v1/user_subscriptions?user_id=in.($inQ)&or=(is_active.eq.true,status.eq.approved)&select=user_id,plan_name"
+            val req = Request.Builder()
+                .url(url)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Cache-Control", "no-cache")
+                .get()
+                .build()
+            val map = mutableMapOf<String, String>()
+            httpClient.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    val arr = runCatching { JSONArray(resp.body?.string().orEmpty()) }.getOrNull()
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            val o = arr.optJSONObject(i) ?: continue
+                            val uid = o.optString("user_id")
+                            val plan = o.optString("plan_name", "")
+                            if (uid.isNotBlank()) map[uid] = plan
+                        }
+                    }
+                }
+            }
+            map
+        }.getOrDefault(emptyMap())
     }
 
     /**
@@ -1418,7 +1536,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun getChatConversations(currentUserId: String): Result<List<ChatConversation>> = withContext(Dispatchers.IO) {
         runCatching {
             if (currentUserId.isBlank()) return@runCatching emptyList()
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
 
             val convUrl = "$baseUrl/rest/v1/chat_conversations?or=(user1_id.eq.$currentUserId,user2_id.eq.$currentUserId)&order=last_message_at.desc&limit=50"
             val convReq = Request.Builder()
@@ -1430,20 +1548,39 @@ class SupabaseClient(private val context: Context) {
                 .build()
 
             val rawConversations = mutableListOf<Triple<String, String, String>>() // convId, otherUserId, lastMsg
+            var bodyStr = ""
             httpClient.newCall(convReq).execute().use { response ->
-                if (!response.isSuccessful) return@use
-                val bodyStr = response.body?.string().orEmpty()
-                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use
-                for (i in 0 until arr.length()) {
-                    val obj = arr.optJSONObject(i) ?: continue
-                    val id = obj.optString("id")
-                    val u1 = obj.optString("user1_id")
-                    val u2 = obj.optString("user2_id")
-                    val otherId = if (u1 == currentUserId) u2 else u1
-                    val lastMsg = obj.optString("last_message")
-                    val lastMsgAt = obj.optString("last_message_at")
-                    if (id.isNotBlank() && otherId.isNotBlank()) {
-                        rawConversations.add(Triple(id, otherId, lastMsg))
+                if (response.code == 401 && token != anonKey) {
+                    val fallbackReq = Request.Builder()
+                        .url(convUrl)
+                        .header("apikey", anonKey)
+                        .header("Authorization", "Bearer $anonKey")
+                        .header("Cache-Control", "no-cache")
+                        .get()
+                        .build()
+                    httpClient.newCall(fallbackReq).execute().use { fResp ->
+                        if (fResp.isSuccessful) {
+                            bodyStr = fResp.body?.string().orEmpty()
+                        }
+                    }
+                } else if (response.isSuccessful) {
+                    bodyStr = response.body?.string().orEmpty()
+                }
+            }
+
+            if (bodyStr.isNotBlank()) {
+                val arr = runCatching { JSONArray(bodyStr) }.getOrNull()
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.optJSONObject(i) ?: continue
+                        val id = obj.optString("id")
+                        val u1 = obj.optString("user1_id")
+                        val u2 = obj.optString("user2_id")
+                        val otherId = if (u1 == currentUserId) u2 else u1
+                        val lastMsg = obj.optString("last_message")
+                        if (id.isNotBlank() && otherId.isNotBlank()) {
+                            rawConversations.add(Triple(id, otherId, lastMsg))
+                        }
                     }
                 }
             }
@@ -1452,10 +1589,11 @@ class SupabaseClient(private val context: Context) {
 
             // Ambil info profil user lain
             val otherUserIds = rawConversations.map { it.second }.distinct()
+            val subsMap = fetchSubscriptionsForUsers(otherUserIds, token)
             val userMap = mutableMapOf<String, ChatUser>()
             for (batch in otherUserIds.chunked(20)) {
                 val inQuery = batch.joinToString(",")
-                val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style"
+                val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style,banner_url,role"
                 val userReq = Request.Builder()
                     .url(userUrl)
                     .header("apikey", anonKey)
@@ -1475,7 +1613,15 @@ class SupabaseClient(private val context: Context) {
                                 val hours = (ms / (1000 * 3600)).toInt()
                                 val rank = if (hours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(hours) else null
                                 val bStyle = uObj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
-                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, bStyle)
+                                val bannerUrl = uObj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
+                                val role = uObj.optString("role")
+                                val subPlan = subsMap[uid]
+                                val vBadge = when {
+                                    role.equals("developer", ignoreCase = true) || subPlan?.contains("developer", ignoreCase = true) == true -> "developer"
+                                    subPlan != null -> "premium"
+                                    else -> null
+                                }
+                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, bStyle, vBadge, bannerUrl)
                             }
                         }
                     }
@@ -1499,7 +1645,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun getOrCreateConversation(currentUserId: String, otherUserId: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             if (currentUserId.isBlank() || otherUserId.isBlank()) throw IllegalArgumentException("User ID tidak valid")
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
 
             val (u1, u2) = if (currentUserId < otherUserId) currentUserId to otherUserId else otherUserId to currentUserId
 
@@ -1562,7 +1708,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun deleteConversation(conversationId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
             if (conversationId.isBlank()) return@runCatching false
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
 
             // 1. Hapus seluruh pesan di chat_messages
             val msgUrl = "$baseUrl/rest/v1/chat_messages?conversation_id=eq.$conversationId"
@@ -1593,7 +1739,7 @@ class SupabaseClient(private val context: Context) {
      */
     suspend fun getChatMessages(conversationId: String): Result<List<ChatMessage>> = withContext(Dispatchers.IO) {
         runCatching {
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val url = "$baseUrl/rest/v1/chat_messages?conversation_id=eq.$conversationId&order=created_at.asc&limit=100"
 
             val request = Request.Builder()
@@ -1604,10 +1750,28 @@ class SupabaseClient(private val context: Context) {
                 .get()
                 .build()
 
+            var bodyStr = ""
             httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use emptyList()
-                val bodyStr = response.body?.string().orEmpty()
-                val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@use emptyList()
+                if (response.code == 401 && token != anonKey) {
+                    val fallbackReq = Request.Builder()
+                        .url(url)
+                        .header("apikey", anonKey)
+                        .header("Authorization", "Bearer $anonKey")
+                        .header("Cache-Control", "no-cache")
+                        .get()
+                        .build()
+                    httpClient.newCall(fallbackReq).execute().use { fResp ->
+                        if (fResp.isSuccessful) {
+                            bodyStr = fResp.body?.string().orEmpty()
+                        }
+                    }
+                } else if (response.isSuccessful) {
+                    bodyStr = response.body?.string().orEmpty()
+                }
+            }
+
+            if (bodyStr.isBlank()) return@runCatching emptyList()
+            val arr = runCatching { JSONArray(bodyStr) }.getOrNull() ?: return@runCatching emptyList()
                 val list = mutableListOf<ChatMessage>()
 
                 for (i in 0 until arr.length()) {
@@ -1665,7 +1829,7 @@ class SupabaseClient(private val context: Context) {
         runCatching {
             val sanitized = content.trim()
             if (sanitized.isEmpty()) throw IllegalArgumentException("Pesan tidak boleh kosong")
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
 
             val payload = JSONObject().apply {
                 put("conversation_id", conversationId)
@@ -1718,8 +1882,8 @@ class SupabaseClient(private val context: Context) {
         note: String = ""
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val token = authManager.accessToken ?: anonKey
-            val displayNote = note.trim().ifEmpty { "🎵 Berbagi lagu: ${media.title} - ${media.artistName}" }
+            val token = getValidAuthToken()
+            val displayNote = note.trim().ifEmpty { "Berbagi lagu: ${media.title} - ${media.artistName}" }
 
             val mediaJson = JSONObject().apply {
                 put("song_id", media.songId)
@@ -1755,7 +1919,7 @@ class SupabaseClient(private val context: Context) {
 
             // Update status percakapan terakhir
             val updatePayload = JSONObject().apply {
-                put("last_message", "🎵 ${media.title}")
+                put("last_message", "Lagu: ${media.title}")
                 put("last_message_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US).format(Date()))
             }
             val updateReq = Request.Builder()
@@ -1776,7 +1940,7 @@ class SupabaseClient(private val context: Context) {
      */
     suspend fun markChatAsRead(conversationId: String, currentUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val updatePayload = JSONObject().apply {
                 put("is_read", true)
             }
@@ -1801,7 +1965,7 @@ class SupabaseClient(private val context: Context) {
             if (myUserId.isBlank() || targetUserId.isBlank() || myUserId == targetUserId) {
                 return@runCatching FriendshipStatus.NONE
             }
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val url = "$baseUrl/rest/v1/chat_friendships?or=(and(sender_id.eq.$myUserId,receiver_id.eq.$targetUserId),and(sender_id.eq.$targetUserId,receiver_id.eq.$myUserId))&limit=1"
             val req = Request.Builder()
                 .url(url)
@@ -1835,7 +1999,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun sendFriendRequest(myUserId: String, targetUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
             if (myUserId.isBlank() || targetUserId.isBlank() || myUserId == targetUserId) return@runCatching false
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val payload = JSONObject().apply {
                 put("sender_id", myUserId)
                 put("receiver_id", targetUserId)
@@ -1862,7 +2026,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun acceptFriendRequest(myUserId: String, targetUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
             if (myUserId.isBlank() || targetUserId.isBlank()) return@runCatching false
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val payload = JSONObject().apply {
                 put("status", "accepted")
             }
@@ -1887,7 +2051,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun rejectOrRemoveFriend(myUserId: String, targetUserId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
             if (myUserId.isBlank() || targetUserId.isBlank()) return@runCatching false
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val url = "$baseUrl/rest/v1/chat_friendships?or=(and(sender_id.eq.$myUserId,receiver_id.eq.$targetUserId),and(sender_id.eq.$targetUserId,receiver_id.eq.$myUserId))"
             val req = Request.Builder()
                 .url(url)
@@ -1908,7 +2072,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun getPendingFriendRequests(myUserId: String): Result<List<ChatUser>> = withContext(Dispatchers.IO) {
         runCatching {
             if (myUserId.isBlank()) return@runCatching emptyList()
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val url = "$baseUrl/rest/v1/chat_friendships?receiver_id=eq.$myUserId&status=eq.pending&order=created_at.desc&limit=50"
             val req = Request.Builder()
                 .url(url)
@@ -1967,7 +2131,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun getFriendsList(myUserId: String): Result<List<ChatUser>> = withContext(Dispatchers.IO) {
         runCatching {
             if (myUserId.isBlank()) return@runCatching emptyList()
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val url = "$baseUrl/rest/v1/chat_friendships?or=(sender_id.eq.$myUserId,receiver_id.eq.$myUserId)&status=eq.accepted&order=updated_at.desc&limit=100"
             val req = Request.Builder()
                 .url(url)
@@ -1994,7 +2158,8 @@ class SupabaseClient(private val context: Context) {
             if (friendIds.isEmpty()) return@runCatching emptyList()
 
             val inQuery = friendIds.distinct().joinToString(",")
-            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style"
+            val subsMap = fetchSubscriptionsForUsers(friendIds, token)
+            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style,role"
             val userReq = Request.Builder()
                 .url(userUrl)
                 .header("apikey", anonKey)
@@ -2016,7 +2181,14 @@ class SupabaseClient(private val context: Context) {
                     val totalMs = obj.optLong("total_listen_ms", 0L)
                     val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                     val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
-                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle))
+                    val role = obj.optString("role")
+                    val subPlan = subsMap[id]
+                    val vBadge = when {
+                        role.equals("developer", ignoreCase = true) || subPlan?.contains("developer", ignoreCase = true) == true -> "developer"
+                        subPlan != null -> "premium"
+                        else -> null
+                    }
+                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, verificationBadge = vBadge))
                 }
                 result
             }
@@ -2029,8 +2201,9 @@ class SupabaseClient(private val context: Context) {
     suspend fun getUserProfile(userId: String): Result<ChatUser> = withContext(Dispatchers.IO) {
         runCatching {
             if (userId.isBlank()) throw IllegalArgumentException("User ID kosong")
-            val token = authManager.accessToken ?: anonKey
-            val url = "$baseUrl/rest/v1/user_stats?id=eq.$userId&select=id,name,profile_url,total_listen_ms,border_style&limit=1"
+            val token = getValidAuthToken()
+            val subsMap = fetchSubscriptionsForUsers(listOf(userId), token)
+            val url = "$baseUrl/rest/v1/user_stats?id=eq.$userId&select=id,name,profile_url,total_listen_ms,border_style,banner_url,role&limit=1"
             val req = Request.Builder()
                 .url(url)
                 .header("apikey", anonKey)
@@ -2049,7 +2222,15 @@ class SupabaseClient(private val context: Context) {
                 val totalMs = obj.optLong("total_listen_ms", 0L)
                 val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                 val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
-                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle)
+                val bannerUrl = obj.optString("banner_url").takeIf { it.isNotBlank() && it != "null" }
+                val role = obj.optString("role")
+                val subPlan = subsMap[id]
+                val vBadge = when {
+                    role.equals("developer", ignoreCase = true) || subPlan?.contains("developer", ignoreCase = true) == true -> "developer"
+                    subPlan != null -> "premium"
+                    else -> null
+                }
+                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, verificationBadge = vBadge, bannerUrl = bannerUrl)
             }
         }
     }
@@ -2060,7 +2241,7 @@ class SupabaseClient(private val context: Context) {
     suspend fun getUserPublicPlaylists(userId: String): Result<List<UserPublicPlaylist>> = withContext(Dispatchers.IO) {
         runCatching {
             if (userId.isBlank()) return@runCatching emptyList()
-            val token = authManager.accessToken ?: anonKey
+            val token = getValidAuthToken()
             val url = "$baseUrl/rest/v1/user_playlists?user_id=eq.$userId&order=updated_at.desc&limit=20"
             val req = Request.Builder()
                 .url(url)
@@ -2113,7 +2294,9 @@ data class ChatUser(
     val profileUrl: String? = null,
     val totalListenMs: Long = 0L,
     val rank: com.valora.icebeats.ui.component.icebeatsRank? = null,
-    val borderStyle: String? = null
+    val borderStyle: String? = null,
+    val verificationBadge: String? = null,
+    val bannerUrl: String? = null
 )
 
 data class ChatSharedMedia(

@@ -216,7 +216,8 @@ fun PlayfulHomeScreen(
                                     )
                                 }
 
-                                currentRank?.let { rank ->
+                                val effectiveRank = displayedRank ?: currentRank
+                                effectiveRank?.let { rank ->
                                     Spacer(modifier = Modifier.width(8.dp))
                                     var showBadgeSelector by remember { mutableStateOf(false) }
                                     com.valora.icebeats.ui.component.RankBadge(
@@ -226,7 +227,7 @@ fun PlayfulHomeScreen(
                                         modifier = Modifier.clickable { showBadgeSelector = true }
                                     )
                                     if (showBadgeSelector) {
-                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours)
+                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, displayedRank)
                                         com.valora.icebeats.ui.component.BadgeSelector(
                                             unlockedRanks = unlocked,
                                             currentDisplayed = displayedRank,
@@ -250,6 +251,14 @@ fun PlayfulHomeScreen(
                                 )
                             }
                         }
+
+                        // Top 1 Listener Banner (Kompak & Elegan)
+                        com.valora.icebeats.ui.component.TopListenerHomeSection(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 6.dp),
+                            navController = navController
+                        )
 
                         Row(
                             modifier = Modifier

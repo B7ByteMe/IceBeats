@@ -1066,7 +1066,7 @@ fun ModernHomeTopBarInline(
             val currentRank by rankPreferenceManager.displayedRank.collectAsState(initial = null)
 
             Box(
-                modifier = Modifier.size(72.dp),
+                modifier = Modifier.size(48.dp),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -1087,12 +1087,13 @@ fun ModernHomeTopBarInline(
                 )
 
                 com.valora.icebeats.ui.component.MasterProfileBorder(
-                    avatarSize = 60.dp,
-                    userRank = currentRank
+                    avatarSize = 36.dp,
+                    userRank = currentRank,
+                    isSelf = true
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
                             .combinedClickable(
                                 onClick = { showMyProfileSheet = true },
@@ -1138,7 +1139,7 @@ fun ModernHomeTopBarInline(
                                         painter = painterResource(R.drawable.person),
                                         contentDescription = null,
                                         tint = Color.White,
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
                             }
@@ -1218,6 +1219,20 @@ fun ModernHomeTopBarInline(
                 )
             )
 
+            if (!isDefaultGreeting) {
+                val homeVipPlan by vipManager.vipPlan.collectAsState(initial = "")
+                val homeVerType = remember(isVip, homeVipPlan) {
+                    com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+                        planName = homeVipPlan,
+                        isVip = isVip
+                    )
+                }
+                if (homeVerType != com.valora.icebeats.ui.component.VerificationType.NONE) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    com.valora.icebeats.ui.component.VerificationBadge(type = homeVerType, size = 18.dp)
+                }
+            }
+
             val context = LocalContext.current
             val rankPrefMgr = remember { RankPreferenceManager(context) }
             val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
@@ -1226,7 +1241,8 @@ fun ModernHomeTopBarInline(
             val totalHours by (viewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
             val coroutineScope = rememberCoroutineScope()
 
-            currentRank?.let { rank ->
+            val effectiveRank = displayedRank ?: currentRank
+            effectiveRank?.let { rank ->
                 Spacer(modifier = Modifier.width(12.dp))
                 var showBadgeSelector by remember { mutableStateOf(false) }
                 RankBadge(
@@ -1236,7 +1252,7 @@ fun ModernHomeTopBarInline(
                     modifier = Modifier.clickable { showBadgeSelector = true }
                 )
                 if (showBadgeSelector) {
-                    val unlocked = unlockedRanksFromHours(totalHours)
+                    val unlocked = unlockedRanksFromHours(totalHours, displayedRank)
                     BadgeSelector(
                         unlockedRanks = unlocked,
                         currentDisplayed = displayedRank,
@@ -1251,6 +1267,14 @@ fun ModernHomeTopBarInline(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Top 1 Listener Banner (Kompak & Elegan)
+        com.valora.icebeats.ui.component.TopListenerHomeSection(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            navController = navController
+        )
     }
 
     if (showMyProfileSheet) {

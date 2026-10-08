@@ -51,7 +51,8 @@ fun AvatarDisplay(
         modifier = modifier,
         userRank = userRank,
         totalListenMs = totalListenMs,
-        forceShowMaster = forceShowMaster
+        forceShowMaster = forceShowMaster,
+        isSelf = true
     ) {
         val displayModifier = if (showBorder) {
             Modifier

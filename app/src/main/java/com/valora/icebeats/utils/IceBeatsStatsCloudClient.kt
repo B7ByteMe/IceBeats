@@ -21,6 +21,7 @@ data class GlobalStatsUser(
     val rank: Int = 0,
     val fcmToken: String? = null,
     val borderStyle: String? = null,
+    val verificationBadge: String? = null,
 )
 
 data class GlobalStatsBoard(
@@ -69,11 +70,44 @@ class icebeatsStatsCloudClient {
                         error("HTTP ${response.code}: $text")
                     }
                     val jsonArray = JSONArray(text)
+                    val subsMap = mutableMapOf<String, String>()
+                    runCatching {
+                        val subsUrl = "${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL}/rest/v1/user_subscriptions?select=user_id,plan_name,is_active,status"
+                        val subReq = Request.Builder()
+                            .url(subsUrl)
+                            .header("apikey", com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY)
+                            .header("Authorization", "Bearer ${com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY}")
+                            .get()
+                            .build()
+                        client.newCall(subReq).execute().use { subResp ->
+                            if (subResp.isSuccessful) {
+                                val subArr = JSONArray(subResp.body?.string().orEmpty())
+                                for (s in 0 until subArr.length()) {
+                                    val sObj = subArr.optJSONObject(s) ?: continue
+                                    val uid = sObj.optString("user_id")
+                                    val active = sObj.optBoolean("is_active", false)
+                                    val st = sObj.optString("status")
+                                    val plan = sObj.optString("plan_name")
+                                    if (uid.isNotBlank() && (active || st.equals("approved", ignoreCase = true))) {
+                                        subsMap[uid] = plan
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     val userList = mutableListOf<GlobalStatsUser>()
                     for (i in 0 until jsonArray.length()) {
                         val obj = jsonArray.optJSONObject(i) ?: continue
                         val parsedId = obj.optString("id").ifBlank { obj.optString("uuid") }
                         if (parsedId.isBlank()) continue
+                        val subPlan = subsMap[parsedId]
+                        val roleStr = obj.optString("role")
+                        val vBadge = when {
+                            roleStr.equals("developer", ignoreCase = true) || subPlan?.contains("developer", ignoreCase = true) == true -> "developer"
+                            subPlan != null -> "premium"
+                            else -> null
+                        }
                         userList.add(
                             GlobalStatsUser(
                                 id = parsedId,
@@ -85,7 +119,8 @@ class icebeatsStatsCloudClient {
                                 lastUpdatedAt = obj.optLong("last_updated_at", 0L),
                                 rank = i + 1,
                                 fcmToken = obj.optString("fcm_token").trim().takeIf { it.isNotBlank() && it != "null" },
-                                borderStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
+                                borderStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" },
+                                verificationBadge = vBadge
                             )
                         )
                     }
