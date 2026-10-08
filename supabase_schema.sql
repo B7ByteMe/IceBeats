@@ -1,5 +1,5 @@
 -- ==============================================================================
--- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.0.9)
+-- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.1.6)
 -- Jalankan skrip ini di: Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- Aman dijalankan berulang kali (Idempotent & Anti-Crash)
 -- ==============================================================================
@@ -253,6 +253,7 @@ ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS weekly_listen_ms BIGINT D
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS last_updated_at BIGINT DEFAULT 0;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS fcm_token TEXT;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS border_style TEXT DEFAULT 'royal_crown';
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS banner_url TEXT;
 
 -- Validasi Constraint Keamanan (Anti-Injeksi dan Nilai Positif)
 ALTER TABLE public.user_stats 
