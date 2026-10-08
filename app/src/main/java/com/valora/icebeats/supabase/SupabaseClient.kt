@@ -1815,7 +1815,6 @@ class SupabaseClient(private val context: Context) {
                 list
             }
         }
-    }
 
     /**
      * Kirim pesan teks
