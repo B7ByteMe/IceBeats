@@ -70,9 +70,11 @@ object icebeatsStatsCloudSync {
             when (val avatar = AvatarPreferenceManager(context).getAvatarSelection.first()) {
                 is AvatarSelection.DiceBear -> avatar.url
                 is AvatarSelection.Custom -> avatar.cloudUrl
+                is AvatarSelection.Gif -> avatar.url
                 else -> null
             }
         val borderStyle = com.valora.icebeats.ui.component.BorderPreferenceManager(context).selectedBorder.first().id
+        val bannerUrl = com.valora.icebeats.ui.component.BannerPreferenceManager(context).bannerUrl.first()
         return LocalStatsUpload(
             userId = userId,
             name = name,
@@ -80,7 +82,8 @@ object icebeatsStatsCloudSync {
             email = email,
             totalListenMs = totalListenMs,
             weeklyListenMs = weeklyListenMs,
-            borderStyle = borderStyle
+            borderStyle = borderStyle,
+            bannerUrl = bannerUrl
         )
     }
 

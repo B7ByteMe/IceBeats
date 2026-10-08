@@ -38,6 +38,7 @@ data class LocalStatsUpload(
     val weeklyListenMs: Long,
     val fcmToken: String? = null,
     val borderStyle: String? = null,
+    val bannerUrl: String? = null,
 )
 
 class icebeatsStatsCloudClient {
@@ -169,6 +170,9 @@ class icebeatsStatsCloudClient {
                     put("fcm_token", upload.fcmToken ?: JSONObject.NULL)
                     if (upload.borderStyle != null) {
                         put("border_style", upload.borderStyle)
+                    }
+                    if (upload.bannerUrl != null) {
+                        put("banner_url", upload.bannerUrl)
                     }
                 }
 
