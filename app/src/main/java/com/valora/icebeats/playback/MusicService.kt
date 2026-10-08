@@ -384,7 +384,13 @@ class MusicService :
         }
 
         dataStore.data
-            .map { it[DynamicIslandKey] ?: false }
+            .map { prefs ->
+                val isVip = prefs[com.valora.icebeats.constants.VipStatusKey] ?: false
+                val expiresAt = prefs[com.valora.icebeats.constants.VipExpiresAtKey] ?: 0L
+                val validVip = isVip && (expiresAt <= 0L || System.currentTimeMillis() < expiresAt)
+                val enabled = prefs[DynamicIslandKey] ?: false
+                validVip && enabled
+            }
             .distinctUntilChanged()
             .collect(scope) { enabled ->
                 if (enabled && Settings.canDrawOverlays(this)) {

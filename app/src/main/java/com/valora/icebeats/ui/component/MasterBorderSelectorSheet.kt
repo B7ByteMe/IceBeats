@@ -66,7 +66,11 @@ fun MasterBorderSelectorSheet(
 
     var previewStyle by remember(currentSavedStyle) { mutableStateOf(currentSavedStyle) }
 
-    val isMaster = remember(userRank, totalListenMs) {
+    val vipManager = remember { VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    var showVipDialog by remember { mutableStateOf(false) }
+
+    val isMaster = isVip || remember(userRank, totalListenMs) {
         val rankQualified = userRank != null && userRank.ordinal >= icebeatsRank.Master.ordinal
         val hoursQualified = totalListenMs != null && totalListenMs >= (150L * 3600L * 1000L)
         rankQualified || hoursQualified
@@ -102,17 +106,28 @@ fun MasterBorderSelectorSheet(
             } else {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFFFD700).copy(alpha = 0.15f))
+                        .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                        .clickable { showVipDialog = true }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    Text(
-                        text = "🔒 Terkunci • Capai Level Master (150 Jam) untuk membuka!",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_vip_crown),
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "👑 Buka via VIP (Mulai Rp 5.000) atau Master (150 Jam)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFFD700),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
@@ -170,8 +185,12 @@ fun MasterBorderSelectorSheet(
                             .clip(RoundedCornerShape(14.dp))
                             .background(cardBg)
                             .border(if (isSelected) 2.dp else 1.dp, cardBorder, RoundedCornerShape(14.dp))
-                            .clickable(enabled = isMaster) {
-                                previewStyle = style
+                            .clickable {
+                                if (isMaster) {
+                                    previewStyle = style
+                                } else {
+                                    showVipDialog = true
+                                }
                             }
                             .padding(12.dp)
                     ) {
@@ -220,36 +239,54 @@ fun MasterBorderSelectorSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Tombol Simpan
-            Button(
-                onClick = {
-                    if (isMaster) {
+            if (!isMaster) {
+                Button(
+                    onClick = { showVipDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFD700),
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_vip_crown),
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("👑 Beli VIP untuk Buka Semua Border (Mulai Rp 5.000)", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            } else {
+                Button(
+                    onClick = {
                         scope.launch {
                             borderPreferenceManager.saveSelectedBorder(previewStyle)
                             onDismiss()
                         }
-                    }
-                },
-                enabled = isMaster,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                Icon(
-                    painter = painterResource(if (isMaster) R.drawable.check else R.drawable.lock),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(if (isMaster) "Gunakan Border Ini" else "🔒 Terkunci (Perlu Level Master 150 Jam)")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.check),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Gunakan Border Ini", fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.height(18.dp))
         }
+    }
+
+    if (showVipDialog) {
+        VipSubscriptionDialog(onDismiss = { showVipDialog = false })
     }
 }

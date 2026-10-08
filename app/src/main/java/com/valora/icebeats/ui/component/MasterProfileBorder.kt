@@ -47,14 +47,18 @@ fun MasterProfileBorder(
     borderStyle: MasterBorderStyle? = null,
     content: @Composable () -> Unit
 ) {
-    val isMaster = forceShowMaster || remember(userRank, totalListenMs) {
+    val context = LocalContext.current
+    val vipManager = remember { VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+
+    val isMaster = forceShowMaster || isVip || remember(userRank, totalListenMs) {
         val rankQualified = userRank != null && userRank.ordinal >= icebeatsRank.Master.ordinal
         val hoursQualified = totalListenMs != null && totalListenMs >= (150L * 3600L * 1000L)
         rankQualified || hoursQualified
     }
 
     if (!isMaster) {
-        // Pengguna non-Master: tampilkan avatar normal tanpa border
+        // Pengguna non-Master & non-VIP: tampilkan avatar normal tanpa border
         Box(
             modifier = modifier.size(avatarSize),
             contentAlignment = Alignment.Center
@@ -64,7 +68,6 @@ fun MasterProfileBorder(
         return
     }
 
-    val context = LocalContext.current
     val borderPreferenceManager = remember { BorderPreferenceManager(context) }
     val userSavedStyle by borderPreferenceManager.selectedBorder.collectAsState(initial = MasterBorderStyle.ROYAL_CROWN)
     val activeStyle = borderStyle ?: userSavedStyle

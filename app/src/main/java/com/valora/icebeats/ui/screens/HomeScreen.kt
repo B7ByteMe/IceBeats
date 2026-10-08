@@ -1041,6 +1041,9 @@ fun ModernHomeTopBarInline(
     }
 
     var showMyProfileSheet by remember { mutableStateOf(false) }
+    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    var showVipDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1153,7 +1156,13 @@ fun ModernHomeTopBarInline(
 
                 CircleIconButton(
                     icon = R.drawable.chat,
-                    onClick = { navController.navigate("chats") }
+                    onClick = {
+                        if (isVip) {
+                            navController.navigate("chats")
+                        } else {
+                            showVipDialog = true
+                        }
+                    }
                 )
 
                 CircleIconButton(
@@ -1277,6 +1286,10 @@ fun ModernHomeTopBarInline(
                 navController.navigate("settings/account")
             }
         )
+    }
+
+    if (showVipDialog) {
+        com.valora.icebeats.ui.component.VipSubscriptionDialog(onDismiss = { showVipDialog = false })
     }
 
     if (showUpdateDialog) {

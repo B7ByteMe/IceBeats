@@ -65,14 +65,14 @@ jobs:
           for file in app/build/outputs/apk/release/*.apk; do
             filename=$(basename "$file")
             if [[ "$filename" == *"universal"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.3-universal.apk"
-              cp "$file" "release-apks/IceBeats-v7.1.3.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.5-universal.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.5.apk"
             elif [[ "$filename" == *"arm64-v8a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.3-arm64-v8a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.5-arm64-v8a.apk"
             elif [[ "$filename" == *"armeabi-v7a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.3-armeabi-v7a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.5-armeabi-v7a.apk"
             elif [[ "$filename" == *"x86_64"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.3-x86_64.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.5-x86_64.apk"
             else
               cp "$file" "release-apks/$filename"
             fi
@@ -83,7 +83,7 @@ jobs:
       - name: Upload All APK Variants
         uses: actions/upload-artifact@v4
         with:
-          name: IceBeats-v7.1.3-Multi-Arch-APKs
+          name: IceBeats-v7.1.5-Multi-Arch-APKs
           path: release-apks/*.apk
           retention-days: 14
 
@@ -91,24 +91,30 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.4' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.4' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.5' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.5' }}
           body: |
-            ## 🎵 IceBeats v7.1.4
+            ## 🎵 IceBeats v7.1.5 - Sistem Langganan VIP & Tema Eksklusif
 
-            ### ✨ Fitur Baru & Peningkatan di v7.1.4:
-            - **👑 Border Home Chat Rapi & Proporsional**: Ukuran avatar dan border khusus di halaman daftar obrolan (Home Chat) diperkecil secara seimbang (`34.dp` dalam container `54.dp`) sehingga animasi border tidak lagi menabrak tepi card atau menutupi teks nama, tetap mulus dan presisi tanpa celah.
-            - **👆 Menu Tekan Lama (Long Press) Obrolan**: Tekan lama pada salah satu obrolan untuk membuka menu aksi cepat:
-              - **Lihat Profil**: Menampilkan profil lengkap, status tier, jam didengarkan, dan playlist.
-              - **Hapus Pertemanan**: Menghapus status pertemanan dengan akun tersebut secara instan.
-              - **Hapus Obrolan**: Menghapus seluruh riwayat pesan percakapan secara permanen.
-            - **🕒 Jam & Status Pesan WhatsApp Style**: Penunjuk waktu jam:menit dan centang status terkirim/dibaca di setiap bubble pesan.
-            - **👥 Sistem Pertemanan Terintegrasi**: Tab Obrolan dan Tab Teman & Permintaan untuk mengelola relasi pertemanan.
-            - **📱 Multi-Architecture Support**:
-              - `IceBeats-v7.1.4.apk` & `IceBeats-v7.1.4-universal.apk`: Universal untuk semua HP Android.
-              - `IceBeats-v7.1.4-arm64-v8a.apk`: Khusus HP 64-bit modern.
-              - `IceBeats-v7.1.4-armeabi-v7a.apk`: Khusus HP 32-bit.
-              - `IceBeats-v7.1.4-x86_64.apk`: Untuk Emulator Android PC.
+            ### 👑 Paket Langganan VIP IceBeats:
+            - **1 Bulan**: Rp 5.000
+            - **2 Bulan**: Rp 7.000 (Paling Populer - Hemat Rp 3.000)
+            - **5 Bulan**: Rp 12.000 (Paling Hemat - Cuma Rp 2.400/bulan)
+
+            ### ✨ Fitur Eksklusif VIP:
+            - **🎨 Akses Bebas Semua Tema Home Screen**: Tema Playful, Neon, Spotify, Apple khusus member VIP (Versi Gratis: Classic).
+            - **🧭 Akses Bebas Semua Tema Nav Bar**: Tema Liquid Glass, Spotify, Apple, Neon, New Classic khusus member VIP (Versi Gratis: Classic).
+            - **🏝️ Dynamic Island Mini Player**: Mini player mengambang interaktif ala iOS eksklusif untuk member VIP.
+            - **💬 IceBeats Chat & Bagi Musik**: Mengobrol bersama teman pendengar musik dan berbagi lagu favorit secara real-time.
+            - **👑 4 Border Animasi Profil Bergerak Master**: Mahkota Royal Crown, Sayap Crimson Wings, Api Fire Flame Ring, dan Tameng Golden Champion.
+            - **✨ Badge Mahkota VIP Emas**: Tampilan badge eksklusif di profil.
+            - **🎟️ Sistem Voucher & Konfirmasi WhatsApp**: Aktivasi instan via kode voucher atau konfirmasi langsung dengan Admin via WhatsApp.
+
+            ### 📱 Multi-Architecture Support:
+            - `IceBeats-v7.1.5.apk` & `IceBeats-v7.1.5-universal.apk`: Universal untuk semua HP Android.
+            - `IceBeats-v7.1.5-arm64-v8a.apk`: Khusus HP 64-bit modern.
+            - `IceBeats-v7.1.5-armeabi-v7a.apk`: Khusus HP 32-bit.
+            - `IceBeats-v7.1.5-x86_64.apk`: Untuk Emulator Android PC.
           files: release-apks/*.apk
           draft: false
           prerelease: false

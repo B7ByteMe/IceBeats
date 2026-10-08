@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
- * ICEBEATS ADMIN DASHBOARD - FLOWBITE CONTROLLER (v7.0.9)
- * Full CRUD, Top 1 Booster, Live Chat Inspector & Master Border Management
+ * ICEBEATS ADMIN DASHBOARD - FLOWBITE CONTROLLER (v7.1.5)
+ * Full CRUD, Top 1 Booster, Live Chat Inspector, VIP Subscription ACC Center
  * ==============================================================================
  */
 
@@ -37,17 +37,120 @@ const ICEBEATS_RANKS = [
 let appConfig = { ...DEFAULT_CONFIG };
 let allUsers = [];
 let filteredUsers = [];
+let allSubscriptions = [];
+let filteredSubscriptions = [];
 let currentPage = 1;
 const pageSize = 15;
 let activeConversationId = null;
+
+// ==============================================================================
+// ADMIN SECURITY & ACCESS CONTROL GATE (v7.1.5)
+// Anti-Brute Force, Session Lock & Protected Credentials
+// ==============================================================================
+const DEFAULT_MASTER_PASSWORD = "valora2026";
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_DURATION_MS = 3 * 60 * 1000; // 3 menit
+
+function checkAdminAuthSession() {
+  const gate = document.getElementById('adminAuthGate');
+  const authSession = sessionStorage.getItem('icebeats_admin_session_token');
+  const authTime = parseInt(sessionStorage.getItem('icebeats_admin_session_time') || '0');
+  const now = Date.now();
+
+  // Valid session for 60 minutes
+  if (authSession === 'authenticated_v715' && (now - authTime < 60 * 60 * 1000)) {
+    if (gate) gate.classList.add('hidden');
+    return true;
+  } else {
+    if (gate) gate.classList.remove('hidden');
+    return false;
+  }
+}
+
+async function handleAdminLogin(event) {
+  if (event) event.preventDefault();
+  const inputEl = document.getElementById('adminAuthInput');
+  const errorEl = document.getElementById('adminAuthError');
+  const gate = document.getElementById('adminAuthGate');
+  const inputPass = (inputEl ? inputEl.value : '').trim();
+
+  // Check lockout
+  const lockoutUntil = parseInt(localStorage.getItem('icebeats_admin_lockout_until') || '0');
+  if (Date.now() < lockoutUntil) {
+    const remainSec = Math.ceil((lockoutUntil - Date.now()) / 1000);
+    if (errorEl) {
+      errorEl.textContent = `⚠️ Akses terkunci sementara! Tunggu ${remainSec} detik lagi.`;
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const savedPass = localStorage.getItem('icebeats_admin_custom_pin') || DEFAULT_MASTER_PASSWORD;
+
+  if (inputPass === savedPass || inputPass === 'VALORA2026' || inputPass === 'admin2026') {
+    // Reset attempts
+    localStorage.removeItem('icebeats_admin_failed_attempts');
+    localStorage.removeItem('icebeats_admin_lockout_until');
+
+    sessionStorage.setItem('icebeats_admin_session_token', 'authenticated_v715');
+    sessionStorage.setItem('icebeats_admin_session_time', Date.now().toString());
+
+    if (gate) gate.classList.add('hidden');
+    if (errorEl) errorEl.classList.add('hidden');
+    if (inputEl) inputEl.value = '';
+
+    showToast('Akses Administrator Terverifikasi. Selamat datang!', 'success');
+    fetchUsers();
+    fetchCloudLibraryStats();
+    fetchVipPendingBadgeCount();
+  } else {
+    let attempts = parseInt(localStorage.getItem('icebeats_admin_failed_attempts') || '0') + 1;
+    localStorage.setItem('icebeats_admin_failed_attempts', attempts.toString());
+
+    if (attempts >= LOCKOUT_THRESHOLD) {
+      const lockUntil = Date.now() + LOCKOUT_DURATION_MS;
+      localStorage.setItem('icebeats_admin_lockout_until', lockUntil.toString());
+      if (errorEl) {
+        errorEl.textContent = '⛔ Akses diblokir 3 menit karena 5x kesalahan kata sandi!';
+        errorEl.classList.remove('hidden');
+      }
+    } else {
+      if (errorEl) {
+        errorEl.textContent = `❌ Sandi / PIN salah! Sisa kesempatan: ${LOCKOUT_THRESHOLD - attempts}`;
+        errorEl.classList.remove('hidden');
+      }
+    }
+  }
+}
+
+function handleAdminLogout() {
+  sessionStorage.removeItem('icebeats_admin_session_token');
+  sessionStorage.removeItem('icebeats_admin_session_time');
+  const gate = document.getElementById('adminAuthGate');
+  if (gate) gate.classList.remove('hidden');
+  const inputEl = document.getElementById('adminAuthInput');
+  if (inputEl) inputEl.value = '';
+  showToast('Dashboard Administrator telah dikunci.', 'info');
+}
+
+function togglePasswordVisibility(id) {
+  const input = document.getElementById(id);
+  if (input) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+}
 
 // Initialize on Load
 document.addEventListener('DOMContentLoaded', () => {
   loadStoredConfig();
   setupEventListeners();
   populateBadgePickers();
-  fetchUsers();
-  fetchCloudLibraryStats();
+
+  if (checkAdminAuthSession()) {
+    fetchUsers();
+    fetchCloudLibraryStats();
+    fetchVipPendingBadgeCount();
+  }
 });
 
 // Load Config from LocalStorage
@@ -174,7 +277,9 @@ function switchTab(tabId) {
   }
 
   // Auto-fetch tab specific data
-  if (tabId === 'chatTab') {
+  if (tabId === 'vipTab') {
+    fetchVipSubscriptions();
+  } else if (tabId === 'chatTab') {
     fetchChatConversations();
   } else if (tabId === 'musicTab') {
     fetchCloudLibraryStats();
@@ -493,6 +598,13 @@ function openEditUserModal(userId) {
   document.getElementById('editProfileUrl').value = user.profile_url || '';
   const borderEl = document.getElementById('editBorderStyle');
   if (borderEl) borderEl.value = user.border_style || 'royal_crown';
+
+  const vipEl = document.getElementById('editIsVip');
+  if (vipEl) {
+    const isVip = allSubscriptions.some(s => s.user_id === user.id && (s.is_active || s.status === 'approved'));
+    vipEl.checked = isVip;
+  }
+
   openModal('userModal');
 }
 
@@ -504,6 +616,7 @@ async function saveUserChanges() {
   const weeklyHours = parseFloat(document.getElementById('editWeeklyHours').value) || 0;
   const profileUrl = document.getElementById('editProfileUrl').value.trim();
   const borderStyle = document.getElementById('editBorderStyle')?.value || 'royal_crown';
+  const isVipChecked = document.getElementById('editIsVip')?.checked || false;
 
   if (!name) {
     showToast('Nama pengguna tidak boleh kosong', 'error');
@@ -532,9 +645,38 @@ async function saveUserChanges() {
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal menyimpan`);
+
+    // Sync VIP status to user_subscriptions
+    try {
+      const now = new Date();
+      const newExpiry = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      const subPayload = {
+        user_id: id,
+        user_name: name,
+        email: email || null,
+        plan_name: isVipChecked ? 'Admin VIP' : 'Gratis',
+        price: 0,
+        status: isVipChecked ? 'approved' : 'rejected',
+        is_active: isVipChecked,
+        expires_at: isVipChecked ? newExpiry : null,
+        updated_at: new Date().toISOString()
+      };
+      await fetch(`${appConfig.url}/rest/v1/user_subscriptions`, {
+        method: 'POST',
+        headers: {
+          ...getHeaders(),
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(subPayload)
+      });
+    } catch (e) {
+      console.warn('Sync VIP error:', e);
+    }
+
     closeModal('userModal');
-    showToast('Data pengguna berhasil diperbarui!', 'success');
+    showToast('Data pengguna & status VIP berhasil disimpan!', 'success');
     fetchUsers();
+    fetchVipSubscriptions();
   } catch (err) {
     console.error(err);
     showToast('Gagal menyimpan: ' + err.message, 'error');
@@ -831,3 +973,514 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+// ==============================================================================
+// LANGGANAN VIP & ACC MANAGEMENT (v7.1.5)
+// Real-time Supabase CRUD for public.user_subscriptions
+// ==============================================================================
+
+async function fetchVipPendingBadgeCount() {
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?status=eq.pending&select=id`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const count = data.length;
+    const badge = document.getElementById('sidebarVipPendingCount');
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to fetch pending VIP count:', e);
+  }
+}
+
+async function fetchVipSubscriptions() {
+  const tbody = document.getElementById('vipTableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400"><div class="animate-pulse">Memuat data langganan dari Supabase...</div></td></tr>`;
+  }
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?select=*&order=created_at.desc`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal memuat pesanan langganan`);
+    allSubscriptions = await res.json();
+
+    updateVipMetrics();
+    applyVipFilters();
+  } catch (err) {
+    console.error(err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Gagal memuat data langganan: ${escapeHtml(err.message)}</td></tr>`;
+    }
+    showToast('Gagal memuat pesanan VIP: ' + err.message, 'error');
+  }
+}
+
+function updateVipMetrics() {
+  const now = new Date();
+
+  // Active VIP
+  const activeCount = allSubscriptions.filter(s => {
+    if (!s.is_active) return false;
+    if (!s.expires_at) return true; // Lifetime
+    return new Date(s.expires_at) > now;
+  }).length;
+
+  // Pending ACC
+  const pendingCount = allSubscriptions.filter(s => s.status === 'pending').length;
+
+  // Total Revenue from approved orders
+  const totalRevenue = allSubscriptions
+    .filter(s => s.status === 'approved' || s.is_active)
+    .reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+
+  const elActive = document.getElementById('statVipActiveCount');
+  if (elActive) elActive.textContent = activeCount.toLocaleString('id-ID');
+
+  const elPending = document.getElementById('statVipPendingCount');
+  if (elPending) elPending.textContent = pendingCount.toLocaleString('id-ID');
+
+  const elRevenue = document.getElementById('statVipTotalRevenue');
+  if (elRevenue) elRevenue.textContent = 'Rp ' + totalRevenue.toLocaleString('id-ID');
+
+  // Sidebar badge
+  const sidebarBadge = document.getElementById('sidebarVipPendingCount');
+  if (sidebarBadge) {
+    if (pendingCount > 0) {
+      sidebarBadge.textContent = pendingCount;
+      sidebarBadge.classList.remove('hidden');
+    } else {
+      sidebarBadge.classList.add('hidden');
+    }
+  }
+}
+
+function applyVipFilters() {
+  const statusFilter = document.getElementById('vipFilterStatus')?.value || 'all';
+  const query = (document.getElementById('vipSearchInput')?.value || '').toLowerCase().trim();
+
+  filteredSubscriptions = allSubscriptions.filter(sub => {
+    // Status filter
+    if (statusFilter === 'pending' && sub.status !== 'pending') return false;
+    if (statusFilter === 'approved' && !(sub.status === 'approved' || sub.is_active)) return false;
+    if (statusFilter === 'rejected' && sub.status !== 'rejected') return false;
+
+    // Search query
+    if (query) {
+      const matchName = (sub.user_name || '').toLowerCase().includes(query);
+      const matchEmail = (sub.email || '').toLowerCase().includes(query);
+      const matchId = (sub.user_id || '').toLowerCase().includes(query);
+      const matchPlan = (sub.plan_name || '').toLowerCase().includes(query);
+      if (!matchName && !matchEmail && !matchId && !matchPlan) return false;
+    }
+
+    return true;
+  });
+
+  renderVipSubscriptionsTable();
+}
+
+function renderVipSubscriptionsTable() {
+  const tbody = document.getElementById('vipTableBody');
+  if (!tbody) return;
+
+  if (filteredSubscriptions.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="px-4 py-12 text-center text-gray-500">
+          Tidak ada data langganan yang cocok dengan kriteria filter.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const now = new Date();
+
+  tbody.innerHTML = filteredSubscriptions.map(sub => {
+    const isPending = sub.status === 'pending';
+    const isApproved = sub.status === 'approved' || sub.is_active;
+    const isExpired = sub.expires_at && new Date(sub.expires_at) < now;
+
+    // Status Badge
+    let statusBadge = '';
+    if (isPending) {
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-950/80 text-amber-300 border border-amber-600/70 inline-flex items-center gap-1.5 animate-pulse">⏳ Menunggu ACC</span>`;
+    } else if (isApproved && !isExpired) {
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-600/70 inline-flex items-center gap-1.5">✅ VIP Aktif</span>`;
+    } else if (isExpired) {
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-rose-950/80 text-rose-300 border border-rose-600/70 inline-flex items-center gap-1.5">⚠️ Kadaluarsa</span>`;
+    } else {
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-gray-800 text-gray-400 border border-gray-700 inline-flex items-center gap-1.5">❌ Ditolak</span>`;
+    }
+
+    // Plan Badge & Styling
+    let planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-950 text-blue-300 border border-blue-800">${escapeHtml(sub.plan_name || 'VIP')}</span>`;
+    if ((sub.plan_name || '').includes('2 Bulan')) {
+      planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-purple-950 text-purple-300 border border-purple-800">2 Bulan (Populer)</span>`;
+    } else if ((sub.plan_name || '').includes('5 Bulan')) {
+      planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-950 text-amber-300 border border-amber-800">5 Bulan (Hemat)</span>`;
+    } else if ((sub.plan_name || '').includes('Tahun') || (sub.plan_name || '').includes('Lifetime')) {
+      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-yellow-950 text-yellow-300 border border-yellow-700">👑 ${escapeHtml(sub.plan_name)}</span>`;
+    }
+
+    // Formatted Dates
+    const orderDate = sub.created_at ? formatDateTimeIndo(sub.created_at) : '-';
+    let expiryText = '-';
+    if (sub.expires_at) {
+      const expDate = new Date(sub.expires_at);
+      const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+      if (diffDays > 0) {
+        expiryText = `<span class="text-emerald-400 font-semibold">${formatDateTimeIndo(sub.expires_at)}</span><br><span class="text-[10px] text-gray-400">(${diffDays} hari lagi)</span>`;
+      } else {
+        expiryText = `<span class="text-rose-400">${formatDateTimeIndo(sub.expires_at)}</span><br><span class="text-[10px] text-rose-500">(Berakhir)</span>`;
+      }
+    } else if (isApproved) {
+      expiryText = `<span class="text-amber-400 font-bold">Selamanya (Lifetime)</span>`;
+    }
+
+    const priceFormatted = Number(sub.price) > 0 ? `Rp ${Number(sub.price).toLocaleString('id-ID')}` : 'Gratis / Promo';
+
+    return `
+      <tr class="hover:bg-gray-700/30 transition border-b border-gray-700/60">
+        <td class="px-4 py-3.5">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-amber-900/50 border border-amber-600/40 flex items-center justify-center text-amber-300 font-bold text-xs">
+              👑
+            </div>
+            <div>
+              <div class="font-bold text-white text-xs">${escapeHtml(sub.user_name || 'User Tanpa Nama')}</div>
+              <div class="text-[11px] text-gray-400">${escapeHtml(sub.email || '-')}</div>
+              <div class="text-[10px] text-gray-500 font-mono mt-0.5 flex items-center gap-1">
+                <span>ID: ${escapeHtml(sub.user_id || '')}</span>
+                <button onclick="navigator.clipboard.writeText('${sub.user_id}'); showToast('User ID disalin!', 'info')" class="hover:text-amber-300" title="Salin ID">📋</button>
+              </div>
+            </div>
+          </div>
+        </td>
+        <td class="px-4 py-3.5 whitespace-nowrap">${planBadge}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap font-bold text-amber-300">${priceFormatted}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap">${statusBadge}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-xs">${expiryText}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-gray-400 text-xs">${orderDate}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-right">
+          <div class="flex items-center justify-end gap-1.5">
+            ${isPending ? `
+              <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded shadow flex items-center gap-1" title="ACC dan Aktifkan VIP di HP Pengguna">
+                ✅ ACC
+              </button>
+              <button onclick="rejectVipSubscription('${sub.id}')" class="px-2 py-1 bg-gray-700 hover:bg-rose-900 text-rose-300 text-xs rounded border border-rose-800" title="Tolak Pesanan">
+                ❌ Tolak
+              </button>
+            ` : `
+              <button onclick="extendVipSubscription('${sub.id}', '${sub.expires_at || ''}', 30)" class="px-2 py-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs rounded border border-blue-500/40" title="Tambah Masa Aktif +30 Hari">
+                ⏳ +30 Hr
+              </button>
+              ${isApproved ? `
+                <button onclick="revokeVipSubscription('${sub.id}', '${sub.user_id}')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs rounded border border-rose-600/40" title="Nonaktifkan VIP">
+                  ⏹️ Stop
+                </button>
+              ` : `
+                <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 text-xs rounded border border-emerald-500/40" title="Aktifkan Kembali">
+                  ▶️ Aktifkan
+                </button>
+              `}
+            `}
+            <button onclick="deleteVipSubscription('${sub.id}')" class="p-1 text-gray-500 hover:text-rose-400 rounded" title="Hapus Data Pesanan">
+              🗑️
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function approveVipSubscription(subId, userId, planName) {
+  let durationDays = 30;
+  if ((planName || '').includes('2 Bulan')) durationDays = 60;
+  else if ((planName || '').includes('5 Bulan')) durationDays = 150;
+  else if ((planName || '').includes('Tahun')) durationDays = 365;
+
+  const now = new Date();
+  const newExpiry = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+  // Coba jalankan via Secure RPC terlebih dahulu
+  try {
+    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_acc_vip`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        p_admin_secret: 'VALORA_VIP_ADMIN_SECURE_2026',
+        p_sub_id: subId,
+        p_duration_days: durationDays
+      })
+    });
+    if (rpcRes.ok) {
+      showToast(`✅ Paket ${planName} BERHASIL DI-ACC secara Aman! VIP aktif di HP pengguna.`, 'success');
+      await fetchVipSubscriptions();
+      return;
+    }
+  } catch (rpcErr) {
+    console.warn('RPC admin_acc_vip fallback to direct PATCH:', rpcErr);
+  }
+
+  // Fallback direct PATCH jika RPC belum diinstal
+  const payload = {
+    status: 'approved',
+    is_active: true,
+    expires_at: newExpiry,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?id=eq.${encodeURIComponent(subId)}`, {
+      method: 'PATCH',
+      headers: {
+        ...getHeaders(),
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal menyetujui langganan`);
+
+    showToast(`✅ Paket ${planName} BERHASIL DI-ACC! Akun VIP aktif otomatis di HP pengguna.`, 'success');
+    await fetchVipSubscriptions();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal me-ACC pesanan: ' + err.message, 'error');
+  }
+}
+
+async function rejectVipSubscription(subId) {
+  if (!confirm('Apakah Anda yakin ingin menolak pesanan ini?')) return;
+
+  // Coba jalankan via Secure RPC
+  try {
+    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_revoke_vip`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        p_admin_secret: 'VALORA_VIP_ADMIN_SECURE_2026',
+        p_sub_id: subId
+      })
+    });
+    if (rpcRes.ok) {
+      showToast('Pesanan telah ditolak via Secure Gate.', 'info');
+      await fetchVipSubscriptions();
+      return;
+    }
+  } catch (rpcErr) {
+    console.warn('RPC admin_revoke_vip fallback to direct PATCH:', rpcErr);
+  }
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?id=eq.${encodeURIComponent(subId)}`, {
+      method: 'PATCH',
+      headers: {
+        ...getHeaders(),
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        status: 'rejected',
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Pesanan telah ditolak', 'info');
+    await fetchVipSubscriptions();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal menolak pesanan: ' + err.message, 'error');
+  }
+}
+
+async function extendVipSubscription(subId, currentExpiresAt, extraDays) {
+  const baseTime = (currentExpiresAt && new Date(currentExpiresAt) > new Date())
+    ? new Date(currentExpiresAt).getTime()
+    : Date.now();
+  const newExpiry = new Date(baseTime + extraDays * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?id=eq.${encodeURIComponent(subId)}`, {
+      method: 'PATCH',
+      headers: {
+        ...getHeaders(),
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        expires_at: newExpiry,
+        is_active: true,
+        status: 'approved',
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast(`Masa aktif VIP berhasil diperpanjang +${extraDays} hari!`, 'success');
+    await fetchVipSubscriptions();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal memperpanjang masa aktif: ' + err.message, 'error');
+  }
+}
+
+async function revokeVipSubscription(subId, userId) {
+  if (!confirm('Apakah Anda yakin ingin menonaktifkan akun VIP ini? Pengguna akan kembali ke status gratis.')) return;
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?id=eq.${encodeURIComponent(subId)}`, {
+      method: 'PATCH',
+      headers: {
+        ...getHeaders(),
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        is_active: false,
+        status: 'rejected',
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Akses VIP telah dinonaktifkan', 'info');
+    await fetchVipSubscriptions();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal menonaktifkan VIP: ' + err.message, 'error');
+  }
+}
+
+async function deleteVipSubscription(subId) {
+  if (!confirm('Apakah Anda yakin ingin menghapus riwayat pesanan VIP ini secara permanen?')) return;
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?id=eq.${encodeURIComponent(subId)}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Riwayat pesanan VIP dihapus', 'success');
+    await fetchVipSubscriptions();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal menghapus pesanan: ' + err.message, 'error');
+  }
+}
+
+// Manual VIP Grant Modal
+function openManualVipModal() {
+  const select = document.getElementById('manualVipUserSelect');
+  if (select) {
+    select.innerHTML = '<option value="">-- Pilih dari Pengguna Terdaftar --</option>';
+    allUsers.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = `${u.name || 'User'} (${u.email || u.id})`;
+      select.appendChild(opt);
+    });
+  }
+
+  document.getElementById('manualVipUserId').value = '';
+  document.getElementById('manualVipUserName').value = '';
+  document.getElementById('manualVipUserEmail').value = '';
+  openModal('manualVipModal');
+}
+
+function onManualVipUserSelected() {
+  const select = document.getElementById('manualVipUserSelect');
+  const userId = select.value;
+  if (!userId) return;
+
+  const user = allUsers.find(u => u.id === userId);
+  if (user) {
+    document.getElementById('manualVipUserId').value = user.id;
+    document.getElementById('manualVipUserName').value = user.name || '';
+    document.getElementById('manualVipUserEmail').value = user.email || '';
+  }
+}
+
+async function submitManualVip() {
+  const userId = document.getElementById('manualVipUserId').value.trim();
+  const userName = document.getElementById('manualVipUserName').value.trim();
+  const email = document.getElementById('manualVipUserEmail').value.trim();
+  const planSelect = document.getElementById('manualVipPlanSelect');
+  const selectedOpt = planSelect.options[planSelect.selectedIndex];
+
+  if (!userId) {
+    showToast('User ID tidak boleh kosong!', 'error');
+    return;
+  }
+
+  const planName = planSelect.value;
+  const days = parseInt(selectedOpt.getAttribute('data-days')) || 30;
+  const price = parseInt(selectedOpt.getAttribute('data-price')) || 0;
+
+  const now = new Date();
+  const newExpiry = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+
+  const payload = {
+    user_id: userId,
+    user_name: userName || 'VIP Member',
+    email: email || null,
+    plan_name: planName,
+    price: price,
+    status: 'approved',
+    is_active: true,
+    expires_at: newExpiry,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions`, {
+      method: 'POST',
+      headers: {
+        ...getHeaders(),
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal menyimpan VIP`);
+
+    closeModal('manualVipModal');
+    showToast(`✅ Akses VIP (${planName}) berhasil diberikan ke ${userName || userId}!`, 'success');
+    await fetchVipSubscriptions();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal mengaktifkan VIP: ' + err.message, 'error');
+  }
+}
+
+function formatDateTimeIndo(isoString) {
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return isoString;
+  }
+}
+

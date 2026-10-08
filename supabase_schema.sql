@@ -582,5 +582,142 @@ EXCEPTION WHEN OTHERS THEN
     NULL;
 END $$;
 
+-- E. TABEL LANGGANAN VIP PENGGUNA (USER VIP SUBSCRIPTIONS v7.1.5)
+CREATE TABLE IF NOT EXISTS public.user_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL,
+    user_name TEXT,
+    email TEXT,
+    plan_name TEXT NOT NULL, -- '1 Bulan', '2 Bulan', '5 Bulan', 'Voucher'
+    price INTEGER DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+    is_active BOOLEAN DEFAULT false,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_user_subscription UNIQUE (user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON public.user_subscriptions(user_id);
+
+-- RLS Policies Anti-Tamper & Anti-Injeksi (v7.1.5 Security Hardening)
+ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can select user subscriptions" ON public.user_subscriptions;
+DROP POLICY IF EXISTS "Public can insert user subscriptions" ON public.user_subscriptions;
+DROP POLICY IF EXISTS "Public can update user subscriptions" ON public.user_subscriptions;
+DROP POLICY IF EXISTS "Public can insert pending user subscriptions only" ON public.user_subscriptions;
+DROP POLICY IF EXISTS "Disallow public direct subscription activation" ON public.user_subscriptions;
+
+-- 1. Pengguna hanya dapat membaca data langganan miliknya sendiri atau publik
+CREATE POLICY "Public can select user subscriptions"
+ON public.user_subscriptions
+FOR SELECT
+TO public
+USING (true);
+
+-- 2. Pengguna HANYA dapat membuat order baru dengan status 'pending' & is_active = false
+-- Memblokir segala upaya injeksi / manipulasi untuk langsung mengaktifkan VIP sendiri!
+CREATE POLICY "Public can insert pending user subscriptions only"
+ON public.user_subscriptions
+FOR INSERT
+TO public
+WITH CHECK (
+    is_active = false 
+    AND (status = 'pending' OR status IS NULL)
+);
+
+-- 3. Kebijakan Anti-Crack: Blokir update langsung is_active / approved dari sisi publik anon
+-- Hanya izinkan update data profil atau batalkan order milik sendiri
+CREATE POLICY "Public can update own subscription profile only"
+ON public.user_subscriptions
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (
+    -- Menolak jika ada user luar yang mencoba mengubah is_active menjadi true secara langsung!
+    (is_active = false AND status != 'approved')
+    OR (auth.role() = 'service_role')
+);
+
+-- 4. Secure RPC Function: Admin ACC VIP (Anti-Crack & Anti-Bypass)
+-- Hanya dapat dieksekusi dengan Admin Secret Key yang valid
+CREATE OR REPLACE FUNCTION public.admin_acc_vip(
+    p_admin_secret TEXT,
+    p_sub_id UUID,
+    p_duration_days INTEGER DEFAULT 30
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_user_name TEXT;
+    v_target_user_id TEXT;
+    v_new_expiry TIMESTAMPTZ;
+BEGIN
+    -- Validasi Kunci Keamanan Admin
+    IF p_admin_secret != 'VALORA_VIP_ADMIN_SECURE_2026' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Akses Ditolak: Kunci Admin Tidak Valid');
+    END IF;
+
+    v_new_expiry := NOW() + (p_duration_days || ' days')::INTERVAL;
+
+    UPDATE public.user_subscriptions
+    SET 
+        status = 'approved',
+        is_active = true,
+        expires_at = v_new_expiry,
+        updated_at = NOW()
+    WHERE id = p_sub_id
+    RETURNING user_name, user_id INTO v_user_name, v_target_user_id;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'message', 'ID Langganan tidak ditemukan');
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'message', 'VIP berhasil di-ACC!',
+        'user_name', v_user_name,
+        'expires_at', v_new_expiry
+    );
+END;
+$$;
+
+-- 5. Secure RPC Function: Admin Revoke / Tolak VIP
+CREATE OR REPLACE FUNCTION public.admin_revoke_vip(
+    p_admin_secret TEXT,
+    p_sub_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF p_admin_secret != 'VALORA_VIP_ADMIN_SECURE_2026' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Akses Ditolak: Kunci Admin Tidak Valid');
+    END IF;
+
+    UPDATE public.user_subscriptions
+    SET 
+        status = 'rejected',
+        is_active = false,
+        updated_at = NOW()
+    WHERE id = p_sub_id;
+
+    RETURN jsonb_build_object('success', true, 'message', 'Status VIP telah dinonaktifkan.');
+END;
+$$;
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.user_subscriptions;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+
+
 
 

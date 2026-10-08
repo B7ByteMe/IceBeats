@@ -1089,6 +1089,12 @@ fun SettingsScreen(
                 // ─── Main content body ──────────────────────────
 
                 val context = LocalContext.current
+                val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+                val isVip by vipManager.isVip.collectAsState(initial = false)
+                val vipExpiresAt by vipManager.vipExpiresAt.collectAsState(initial = 0L)
+                val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "")
+                var showVipDialog by remember { mutableStateOf(false) }
+
                 val avatarManager = remember { AvatarPreferenceManager(context) }
                 val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
                 val accountName by rememberPreference(AccountNameKey, "")
@@ -1104,7 +1110,87 @@ fun SettingsScreen(
                     currentSelection = currentSelection
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // VIP Subscription Card
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF2B2206),
+                                    Color(0xFF19160E),
+                                    Color(0xFF141311)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                listOf(Color(0xFFFFD700).copy(alpha = 0.6f), Color(0xFFB8860B).copy(alpha = 0.2f))
+                            ),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .clickable { showVipDialog = true }
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD700).copy(alpha = 0.18f))
+                                .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.5f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_vip_crown),
+                                contentDescription = null,
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isVip) "IceBeats VIP Member" else "Upgrade ke IceBeats VIP",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color(0xFFFFD700)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isVip) {
+                                    "Paket $currentVipPlan • Aktif hingga ${com.valora.icebeats.ui.component.VipSubscriptionManager.formatExpiryDate(vipExpiresAt)}"
+                                } else {
+                                    "Mulai Rp 5.000 • Buka semua tema, Dynamic Island, Chat & Border!"
+                                },
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.75f),
+                                lineHeight = 16.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Icon(
+                            painter = painterResource(R.drawable.chevron_right),
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700).copy(alpha = 0.7f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Settings Categories
                 Column(
@@ -1385,6 +1471,10 @@ fun SettingsScreen(
                     }
                 }
             }
+    }
+
+        if (showVipDialog) {
+            VipSubscriptionDialog(onDismiss = { showVipDialog = false })
         }
     }
 }

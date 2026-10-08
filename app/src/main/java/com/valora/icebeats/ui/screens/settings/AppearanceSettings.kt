@@ -100,9 +100,14 @@ fun AppearanceSettings(
     val (navBarStyle, onNavBarStyleChange) =
         rememberEnumPreference(
             NavBarStyleKey,
-            defaultValue = NavBarStyle.APPLE,
+            defaultValue = NavBarStyle.CLASSIC,
         )
     val isPlayful = homeScreenStyle == HomeScreenStyle.PLAYFUL
+
+    val context = LocalContext.current
+    val vipManager = remember { VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    var showVipDialog by rememberSaveable { mutableStateOf(false) }
 
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (colourfullPlayerColor, onColourfullPlayerColorChange) = rememberPreference(
@@ -418,6 +423,10 @@ fun AppearanceSettings(
         }
     }
 
+    if (showVipDialog) {
+        VipSubscriptionDialog(onDismiss = { showVipDialog = false })
+    }
+
     if (showIslandAdjustmentDialog) {
         val context = LocalContext.current
         val (islandOffsetX, onIslandOffsetXChange) = rememberPreference(DynamicIslandOffsetXKey, defaultValue = 0)
@@ -537,34 +546,58 @@ fun AppearanceSettings(
                 SettingsGeneralCategory(
                     title = stringResource(R.string.theme),
                     items = listOf(
+                        {PreferenceEntry(
+                            title = {
+                                Text(
+                                    if (isVip) "👑 IceBeats VIP Aktif" else "👑 Buka Semua Tema dengan VIP",
+                                    color = Color(0xFFFFD700),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            description = if (isVip) "Ketuk untuk melihat status atau perpanjang paket VIP" else "Mulai Rp 5.000 untuk buka Dynamic Island, tema kustom, chat & border!",
+                            icon = { Icon(painterResource(R.drawable.ic_vip_crown), null, tint = Color(0xFFFFD700)) },
+                            onClick = { showVipDialog = true }
+                        )},
                         {EnumListPreference(
                             title = { Text(stringResource(R.string.home_screen_style)) },
                             icon = { Icon(painterResource(R.drawable.home), null) },
-                            selectedValue = homeScreenStyle,
-                            onValueSelected = onHomeScreenStyleChange,
+                            selectedValue = if (isVip) homeScreenStyle else HomeScreenStyle.CLASSIC,
+                            onValueSelected = { newStyle ->
+                                if (newStyle != HomeScreenStyle.CLASSIC && !isVip) {
+                                    showVipDialog = true
+                                } else {
+                                    onHomeScreenStyleChange(newStyle)
+                                }
+                            },
                             valueText = {
                                 when (it) {
-                                    HomeScreenStyle.CLASSIC -> "Classic"
-                                    HomeScreenStyle.PLAYFUL -> "Playful"
-                                    HomeScreenStyle.NEON -> "Neon"
-                                    HomeScreenStyle.SPOTIFY -> "Spotify"
-                                    HomeScreenStyle.APPLE -> "Apple"
+                                    HomeScreenStyle.CLASSIC -> "Classic (Gratis)"
+                                    HomeScreenStyle.PLAYFUL -> "👑 Playful (VIP)"
+                                    HomeScreenStyle.NEON -> "👑 Neon (VIP)"
+                                    HomeScreenStyle.SPOTIFY -> "👑 Spotify (VIP)"
+                                    HomeScreenStyle.APPLE -> "👑 Apple (VIP)"
                                 }
                             },
                         )},
                         {EnumListPreference(
                             title = { Text(stringResource(R.string.navigation_bar_style)) },
                             icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-                            selectedValue = navBarStyle,
-                            onValueSelected = onNavBarStyleChange,
+                            selectedValue = if (isVip) navBarStyle else NavBarStyle.CLASSIC,
+                            onValueSelected = { newStyle ->
+                                if (newStyle != NavBarStyle.CLASSIC && !isVip) {
+                                    showVipDialog = true
+                                } else {
+                                    onNavBarStyleChange(newStyle)
+                                }
+                            },
                             valueText = {
                                 when (it) {
-                                    NavBarStyle.CLASSIC -> "Classic"
-                                    NavBarStyle.LIQUID_GLASS -> "Liquid Glass"
-                                    NavBarStyle.SPOTIFY -> "Spotify"
-                                    NavBarStyle.APPLE -> "Apple"
-                                    NavBarStyle.NEON -> "Neon"
-                                    NavBarStyle.NEW_CLASSIC -> "New Classic"
+                                    NavBarStyle.CLASSIC -> "Classic (Gratis)"
+                                    NavBarStyle.LIQUID_GLASS -> "👑 Liquid Glass (VIP)"
+                                    NavBarStyle.SPOTIFY -> "👑 Spotify (VIP)"
+                                    NavBarStyle.APPLE -> "👑 Apple (VIP)"
+                                    NavBarStyle.NEON -> "👑 Neon (VIP)"
+                                    NavBarStyle.NEW_CLASSIC -> "👑 New Classic (VIP)"
                                 }
                             },
                         )},
@@ -597,12 +630,14 @@ fun AppearanceSettings(
                         {
                             val context = LocalContext.current
                             SwitchPreference(
-                                title = { Text(stringResource(R.string.enable_dynamic_island)) },
+                                title = { Text(stringResource(R.string.enable_dynamic_island) + if (!isVip) " 👑 (VIP)" else "") },
                                 description = stringResource(R.string.enable_dynamic_island_desc),
                                 icon = { Icon(painterResource(R.drawable.music_note), null) },
-                                checked = enableDynamicIsland,
+                                checked = if (isVip) enableDynamicIsland else false,
                                 onCheckedChange = { newValue ->
-                                    if (newValue && !Settings.canDrawOverlays(context)) {
+                                    if (newValue && !isVip) {
+                                        showVipDialog = true
+                                    } else if (newValue && !Settings.canDrawOverlays(context)) {
                                         val intent = Intent(
                                             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                                             Uri.parse("package:${context.packageName}")

@@ -52,6 +52,7 @@ import com.valora.icebeats.ui.screens.settings.PrivacySettings
 import com.valora.icebeats.ui.screens.settings.SettingsScreen
 import com.valora.icebeats.ui.screens.settings.StorageSettings
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +61,18 @@ import com.valora.icebeats.utils.rememberPreference
 import com.valora.icebeats.constants.NeverShowSupportValoraKey
 import com.valora.icebeats.constants.LastSupportValoraShownTimeKey
 import com.valora.icebeats.ui.component.SupportValoraDialog
+
+@Composable
+private fun rememberEffectiveHomeScreenStyle(): HomeScreenStyle {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    val (rawStyle, _) = rememberEnumPreference(
+        HomeScreenStyleKey,
+        defaultValue = HomeScreenStyle.CLASSIC
+    )
+    return if (isVip) rawStyle else HomeScreenStyle.CLASSIC
+}
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @SuppressLint("UnrememberedMutableState")
@@ -72,10 +85,7 @@ fun NavGraphBuilder.navigationBuilder(
     onSearchClick: () -> Unit,
 ) {
     composable(Screens.Home.route) {
-        val (homeScreenStyle, _) = rememberEnumPreference(
-            HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
-        )
+        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
 
         val (neverShowSupport, setNeverShowSupport) = rememberPreference(
             NeverShowSupportValoraKey,
@@ -125,10 +135,7 @@ fun NavGraphBuilder.navigationBuilder(
     composable(
         Screens.Library.route,
     ) {
-        val (homeScreenStyle, _) = rememberEnumPreference(
-            HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
-        )
+        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
 
         if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
             PlayfulLibraryScreen(
@@ -147,10 +154,7 @@ fun NavGraphBuilder.navigationBuilder(
         }
     }
     composable(Screens.Explore.route) {
-        val (homeScreenStyle, _) = rememberEnumPreference(
-            HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
-        )
+        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
 
         if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
             PlayfulExploreScreen(
@@ -169,10 +173,7 @@ fun NavGraphBuilder.navigationBuilder(
         }
     }
     composable(Screens.Search.route) {
-        val (homeScreenStyle, _) = rememberEnumPreference(
-            HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
-        )
+        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
         if (homeScreenStyle == HomeScreenStyle.NEON) {
             com.valora.icebeats.ui.screens.search.NeonSearchScreen(navController = navController)
         } else if (homeScreenStyle == HomeScreenStyle.APPLE) {
@@ -196,10 +197,7 @@ fun NavGraphBuilder.navigationBuilder(
         com.valora.icebeats.ui.screens.search.NeonSearchScreen(navController = navController)
     }
     composable("stats") {
-        val (homeScreenStyle, _) = rememberEnumPreference(
-            HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
-        )
+        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
         if (homeScreenStyle == HomeScreenStyle.APPLE) {
             com.valora.icebeats.ui.screens.apple.AppleStatsScreen(navController = navController)
         } else {

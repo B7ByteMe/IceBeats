@@ -93,6 +93,10 @@ fun UserProfileSheet(
     var isLoadingPlaylists by remember { mutableStateOf(true) }
     var showBorderSelector by remember { mutableStateOf(false) }
 
+    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    var showVipDialog by remember { mutableStateOf(false) }
+
     // Hitung jam dengar & rank
     val totalHours = (targetUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
     val userRank = targetUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
@@ -435,8 +439,12 @@ fun UserProfileSheet(
                             ) {
                                 Button(
                                     onClick = {
-                                        onDismiss()
-                                        onStartChat?.invoke(targetUser)
+                                        if (isVip) {
+                                            onDismiss()
+                                            onStartChat?.invoke(targetUser)
+                                        } else {
+                                            showVipDialog = true
+                                        }
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp)
@@ -580,6 +588,12 @@ fun UserProfileSheet(
             onDismiss = { showBorderSelector = false },
             userRank = userRank,
             totalListenMs = targetUser.totalListenMs
+        )
+    }
+
+    if (showVipDialog) {
+        com.valora.icebeats.ui.component.VipSubscriptionDialog(
+            onDismiss = { showVipDialog = false }
         )
     }
 }

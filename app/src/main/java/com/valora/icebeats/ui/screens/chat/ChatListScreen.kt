@@ -104,6 +104,10 @@ fun ChatListScreen(
     val myName by namePreferenceManager.userName.collectAsState(initial = "")
     val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
 
+    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    var showVipDialog by remember { mutableStateOf(false) }
+
     var currentUserId by remember { mutableStateOf("") }
     var conversations by remember { mutableStateOf<List<ChatConversation>>(emptyList()) }
     var friendsList by remember { mutableStateOf<List<ChatUser>>(emptyList()) }
@@ -180,6 +184,91 @@ fun ChatListScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        if (!isVip) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFD700).copy(alpha = 0.15f))
+                        .border(2.dp, Color(0xFFFFD700), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_vip_crown),
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(44.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "IceBeats Chat Khusus VIP",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFFFFD700),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Fitur chat real-time, berbagi musik, dan pertemanan adalah fitur eksklusif untuk member VIP IceBeats.\n\nNikmati obrolan seru dan bagikan lagu favoritmu sekarang!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                Button(
+                    onClick = { showVipDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFD700),
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text(
+                        text = "👑 Aktifkan VIP (Mulai Rp 5.000)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(text = "Kembali ke Beranda")
+                }
+            }
+
+            if (showVipDialog) {
+                com.valora.icebeats.ui.component.VipSubscriptionDialog(
+                    onDismiss = { showVipDialog = false }
+                )
+            }
+            return@Box
+        }
+
         Column(modifier = Modifier.fillMaxSize()) {
             // Header Top Bar
             Row(

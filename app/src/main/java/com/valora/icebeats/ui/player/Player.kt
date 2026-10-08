@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import android.content.Context
 import android.content.Intent
@@ -867,10 +867,14 @@ fun BottomSheetPlayer(
             else MaterialTheme.colorScheme.surfaceContainer
     }
 
-    val navBarStyle by rememberEnumPreference(
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+    val isVip by vipManager.isVip.collectAsState(initial = false)
+    val rawNavBarStyle by rememberEnumPreference(
         com.valora.icebeats.constants.NavBarStyleKey,
         defaultValue = com.valora.icebeats.constants.NavBarStyle.CLASSIC
     )
+    val navBarStyle = if (isVip) rawNavBarStyle else com.valora.icebeats.constants.NavBarStyle.CLASSIC
     val isNeon = navBarStyle == com.valora.icebeats.constants.NavBarStyle.NEON
 
     BottomSheet(
@@ -961,10 +965,6 @@ fun BottomSheetPlayer(
             playerConnection.player.clearMediaItems()
         },
         collapsedContent = {
-            val (navBarStyle, _) = com.valora.icebeats.utils.rememberEnumPreference<com.valora.icebeats.constants.NavBarStyle>(
-                com.valora.icebeats.constants.NavBarStyleKey,
-                defaultValue = com.valora.icebeats.constants.NavBarStyle.CLASSIC
-            )
             if (navBarStyle == com.valora.icebeats.constants.NavBarStyle.NEW_CLASSIC) {
                 NewClassicMiniPlayer(
                     position = position,

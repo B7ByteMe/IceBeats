@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.constants
+package com.valora.icebeats.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -29,6 +29,11 @@ val NavBarStyleKey = stringPreferencesKey("navBarStyle")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
 
 val ColourfullPlayerColorKey = intPreferencesKey("colourfullPlayerColor")
+
+val VipStatusKey = booleanPreferencesKey("vip_status")
+val VipExpiresAtKey = longPreferencesKey("vip_expires_at")
+val VipPlanKey = stringPreferencesKey("vip_plan")
+val VipSignatureKey = stringPreferencesKey("vip_sig_token")
 
 enum class SliderStyle {
     DEFAULT,

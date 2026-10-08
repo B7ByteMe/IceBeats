@@ -524,9 +524,18 @@ class MainActivity : ComponentActivity() {
 
             var showFullscreenLyrics by remember { mutableStateOf(false) }
 
+            val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(this) }
+            val isVip by vipManager.isVip.collectAsState(initial = false)
+
+            LaunchedEffect(Unit) {
+                vipManager.checkExpiryAndRevertIfNeeded()
+            }
+
             val playerScreenStyle by rememberEnumPreference<PlayerScreenStyle>(PlayerScreenStyleKey, defaultValue = PlayerScreenStyle.IOS_STYLED)
-            val homeScreenStyle by rememberEnumPreference(HomeScreenStyleKey, defaultValue = HomeScreenStyle.CLASSIC)
-            val navBarStyle by rememberEnumPreference(NavBarStyleKey, defaultValue = NavBarStyle.APPLE)
+            val rawHomeScreenStyle by rememberEnumPreference(HomeScreenStyleKey, defaultValue = HomeScreenStyle.CLASSIC)
+            val rawNavBarStyle by rememberEnumPreference(NavBarStyleKey, defaultValue = NavBarStyle.CLASSIC)
+            val homeScreenStyle = if (isVip) rawHomeScreenStyle else HomeScreenStyle.CLASSIC
+            val navBarStyle = if (isVip) rawNavBarStyle else NavBarStyle.CLASSIC
             val enableNewLyricsScreen by rememberPreference(com.valora.icebeats.constants.EnableNewLyricsScreenKey, defaultValue = true)
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
