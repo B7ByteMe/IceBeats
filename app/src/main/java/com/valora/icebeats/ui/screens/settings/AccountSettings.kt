@@ -345,7 +345,7 @@ fun AccountSettings(
                     )
                     com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
                     com.valora.icebeats.ui.component.VipSubscriptionManager(context).resetVipState()
-                    com.valora.icebeats.ui.component.BannerPreferenceManager(context).clearBanner()
+                    com.valora.icebeats.ui.component.BannerPreferenceManager(context).clearBannerUrl()
 
                     Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
                     navController.navigate("onboarding") {
@@ -808,28 +808,13 @@ fun AccountSettings(
 
                 if (showAvatarGifDialog) {
                     com.valora.icebeats.ui.component.AnimatedAvatarGifDialog(
-                        currentGifUrl = if (currentAvatarSelection is com.valora.icebeats.ui.component.AvatarSelection.Gif)
-                            (currentAvatarSelection as com.valora.icebeats.ui.component.AvatarSelection.Gif).url else null,
-                        onDismiss = { showAvatarGifDialog = false },
-                        onGifSaved = { url ->
-                            avatarManager.saveAvatarSelection(com.valora.icebeats.ui.component.AvatarSelection.Gif(url))
-                        },
-                        onGifRemoved = {
-                            avatarManager.saveAvatarSelection(com.valora.icebeats.ui.component.AvatarSelection.Default)
-                        }
+                        onDismiss = { showAvatarGifDialog = false }
                     )
                 }
 
                 if (showBannerGifDialog) {
                     com.valora.icebeats.ui.component.AnimatedBannerGifDialog(
-                        currentBannerUrl = myBannerUrl,
-                        onDismiss = { showBannerGifDialog = false },
-                        onBannerSaved = { url ->
-                            bannerPrefManager.saveBannerUrl(url)
-                        },
-                        onBannerRemoved = {
-                            bannerPrefManager.clearBannerUrl()
-                        }
+                        onDismiss = { showBannerGifDialog = false }
                     )
                 }
 
