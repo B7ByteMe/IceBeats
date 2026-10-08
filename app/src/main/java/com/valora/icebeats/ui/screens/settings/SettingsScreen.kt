@@ -1084,9 +1084,12 @@ fun SettingsScreen(
 
     MaterialTheme(colorScheme = neonGreenColorScheme) {
         val uriHandler = LocalUriHandler.current
-    var showTranslateDialog by remember { mutableStateOf(false) }
-    var showChangelogSheet by remember { mutableStateOf(false) }
-    var showVipDialog by remember { mutableStateOf(false) }
+        var showTranslateDialog by remember { mutableStateOf(false) }
+        var showChangelogSheet by remember { mutableStateOf(false) }
+        var showVipDialog by remember { mutableStateOf(false) }
+        var showBorderSelectorSheet by remember { mutableStateOf(false) }
+        var showAvatarGifDialog by remember { mutableStateOf(false) }
+        var showBannerGifDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1147,12 +1150,9 @@ fun SettingsScreen(
                 val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "")
                 val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
                 val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
-                var showBorderSelectorSheet by remember { mutableStateOf(false) }
 
                 val bannerPrefManager = remember { com.valora.icebeats.ui.component.BannerPreferenceManager(context) }
                 val myBannerUrl by bannerPrefManager.bannerUrl.collectAsState(initial = null)
-                var showAvatarGifDialog by remember { mutableStateOf(false) }
-                var showBannerGifDialog by remember { mutableStateOf(false) }
 
                 val avatarManager = remember { AvatarPreferenceManager(context) }
                 val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
@@ -1795,29 +1795,16 @@ fun SettingsScreen(
 
         if (showAvatarGifDialog) {
             com.valora.icebeats.ui.component.AnimatedAvatarGifDialog(
-                currentGifUrl = if (currentSelection is AvatarSelection.Gif) (currentSelection as AvatarSelection.Gif).url else null,
-                onDismiss = { showAvatarGifDialog = false },
-                onGifSaved = { url ->
-                    avatarManager.saveAvatarSelection(AvatarSelection.Gif(url))
-                },
-                onGifRemoved = {
-                    avatarManager.saveAvatarSelection(AvatarSelection.Default)
-                }
+                onDismiss = { showAvatarGifDialog = false }
             )
         }
 
         if (showBannerGifDialog) {
             com.valora.icebeats.ui.component.AnimatedBannerGifDialog(
-                currentBannerUrl = myBannerUrl,
-                onDismiss = { showBannerGifDialog = false },
-                onBannerSaved = { url ->
-                    bannerPrefManager.saveBannerUrl(url)
-                },
-                onBannerRemoved = {
-                    bannerPrefManager.clearBannerUrl()
-                }
+                onDismiss = { showBannerGifDialog = false }
             )
         }
     }
 }
 }
+
