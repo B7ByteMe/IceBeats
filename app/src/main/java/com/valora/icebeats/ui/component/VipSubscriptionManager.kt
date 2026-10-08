@@ -11,6 +11,8 @@ import com.valora.icebeats.constants.VipExpiresAtKey
 import com.valora.icebeats.constants.VipPlanKey
 import com.valora.icebeats.constants.VipStatusKey
 import com.valora.icebeats.constants.VipSignatureKey
+import com.valora.icebeats.constants.AccountEmailKey
+import com.valora.icebeats.constants.AccountNameKey
 import java.security.MessageDigest
 import com.valora.icebeats.utils.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -98,13 +100,12 @@ class VipSubscriptionManager @Inject constructor(
             false
         } else {
             // Anti-Mod / Anti-Crack Check:
-            // Validasi tanda tangan kriptografi SHA-256
-            val nameManager = NamePreferenceManager(context)
-            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+            // Gunakan stableUserId (blocking) karena Flow.map bukan suspend context
+            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
             val expectedSig = generateSecuritySignature(userId, expiresAt, plan)
 
             if (token != expectedSig) {
-                // Modifikasi ilegal / cracker SharedPreferences terdeteksi!
+                // Modifikasi ilegal / cracker terdeteksi!
                 false
             } else {
                 val now = System.currentTimeMillis()
@@ -129,8 +130,7 @@ class VipSubscriptionManager @Inject constructor(
         val token = prefs[VipSignatureKey] ?: ""
 
         if (!active) return false
-        val nameManager = NamePreferenceManager(context)
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
         val expectedSig = generateSecuritySignature(userId, expiresAt, plan)
 
         return if (token != expectedSig) false else (expiresAt <= 0L || System.currentTimeMillis() < expiresAt)
@@ -148,8 +148,7 @@ class VipSubscriptionManager @Inject constructor(
             now + durationMillis
         }
 
-        val nameManager = NamePreferenceManager(context)
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
         val signature = generateSecuritySignature(userId, newExpiry, plan.title)
 
         context.dataStore.edit { prefs ->
@@ -173,8 +172,7 @@ class VipSubscriptionManager @Inject constructor(
             now + durationMillis
         }
 
-        val nameManager = NamePreferenceManager(context)
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
         val signature = generateSecuritySignature(userId, newExpiry, planTitle)
 
         context.dataStore.edit { prefs ->
@@ -218,10 +216,9 @@ class VipSubscriptionManager @Inject constructor(
      */
     suspend fun submitPendingPayment(plan: VipPlan): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val nameManager = NamePreferenceManager(context)
-            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
-            val email = nameManager.accountEmail.first().trim()
-            val userName = nameManager.userName.first().trim()
+            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+            val email = (context.dataStore.data.first()[com.valora.icebeats.constants.AccountEmailKey] ?: "").trim()
+            val userName = (context.dataStore.data.first()[com.valora.icebeats.constants.AccountNameKey] ?: "").trim()
             val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
             val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
             val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
@@ -261,8 +258,7 @@ class VipSubscriptionManager @Inject constructor(
      */
     suspend fun checkCloudSubscriptionStatus(): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val nameManager = NamePreferenceManager(context)
-            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+            val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
             val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
             val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
             val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
@@ -313,8 +309,7 @@ class VipSubscriptionManager @Inject constructor(
                     expiryMillis = System.currentTimeMillis() + (matchedPlan.durationDays * 24L * 60L * 60L * 1000L)
                 }
 
-                val nameManager = NamePreferenceManager(context)
-                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
                 val signature = generateSecuritySignature(userId, expiryMillis, matchedPlan.title)
 
                 context.dataStore.edit { prefs ->
@@ -338,8 +333,7 @@ class VipSubscriptionManager @Inject constructor(
         val token = prefs[VipSignatureKey] ?: ""
         val now = System.currentTimeMillis()
 
-        val nameManager = NamePreferenceManager(context)
-        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+        val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
         val expectedSig = generateSecuritySignature(userId, expiresAt, plan)
 
         // Validasi Anti-Tamper & Validasi Kadaluarsa
@@ -367,10 +361,10 @@ class VipSubscriptionManager @Inject constructor(
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
-                val nameManager = NamePreferenceManager(context)
-                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
-                val email = nameManager.accountEmail.first().trim()
-                val userName = nameManager.userName.first().trim()
+                val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.stableUserId(context)
+                val prefs = context.dataStore.data.first()
+                val email = (prefs[com.valora.icebeats.constants.AccountEmailKey] ?: "").trim()
+                val userName = (prefs[com.valora.icebeats.constants.AccountNameKey] ?: "").trim()
                 val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
                 val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
                 val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
