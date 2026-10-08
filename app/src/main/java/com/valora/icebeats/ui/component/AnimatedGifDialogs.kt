@@ -162,7 +162,7 @@ fun AnimatedAvatarGifDialog(
                     }
                 } else {
                     Icon(
-                        painter = painterResource(R.drawable.movie),
+                        painter = painterResource(R.drawable.image),
                         contentDescription = null,
                         tint = Color.White.copy(alpha = 0.4f),
                         modifier = Modifier.size(42.dp)
@@ -364,7 +364,7 @@ fun AnimatedBannerGifDialog(
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            painter = painterResource(R.drawable.movie),
+                            painter = painterResource(R.drawable.image),
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.4f),
                             modifier = Modifier.size(36.dp)

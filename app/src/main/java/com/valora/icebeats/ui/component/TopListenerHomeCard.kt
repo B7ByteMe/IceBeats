@@ -259,7 +259,7 @@ fun TopListenerHomeSection(
                         RankBadge(rank = userRank, displayedRank = null, size = 14.dp)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = userRank.title,
+                            text = userRank.name,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color.White.copy(alpha = 0.75f)
