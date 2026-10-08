@@ -73,6 +73,7 @@ import com.valora.icebeats.constants.InnerTubeCookieKey
 import com.valora.icebeats.ui.component.AvatarPreferenceManager
 import com.valora.icebeats.ui.component.AvatarSelection
 import com.valora.icebeats.ui.component.ChangelogScreen
+import com.valora.icebeats.ui.component.VipSubscriptionDialog
 import com.valora.icebeats.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -1035,6 +1036,7 @@ fun SettingsScreen(
         val uriHandler = LocalUriHandler.current
     var showTranslateDialog by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
+    var showVipDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1093,7 +1095,6 @@ fun SettingsScreen(
                 val isVip by vipManager.isVip.collectAsState(initial = false)
                 val vipExpiresAt by vipManager.vipExpiresAt.collectAsState(initial = 0L)
                 val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "")
-                var showVipDialog by remember { mutableStateOf(false) }
 
                 val avatarManager = remember { AvatarPreferenceManager(context) }
                 val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)

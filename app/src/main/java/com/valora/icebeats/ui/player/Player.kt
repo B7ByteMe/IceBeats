@@ -867,7 +867,6 @@ fun BottomSheetPlayer(
             else MaterialTheme.colorScheme.surfaceContainer
     }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
     val isVip by vipManager.isVip.collectAsState(initial = false)
     val rawNavBarStyle by rememberEnumPreference(
