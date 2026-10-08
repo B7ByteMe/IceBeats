@@ -254,6 +254,7 @@ ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS last_updated_at BIGINT DE
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS fcm_token TEXT;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS border_style TEXT DEFAULT 'royal_crown';
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
 
 -- Validasi Constraint Keamanan (Anti-Injeksi dan Nilai Positif)
 ALTER TABLE public.user_stats 
@@ -600,6 +601,7 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON public.user_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_email ON public.user_subscriptions(email);
 
 -- RLS Policies Anti-Tamper & Anti-Injeksi (v7.1.5 Security Hardening)
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
