@@ -65,14 +65,14 @@ jobs:
           for file in app/build/outputs/apk/release/*.apk; do
             filename=$(basename "$file")
             if [[ "$filename" == *"universal"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.6-universal.apk"
-              cp "$file" "release-apks/IceBeats-v7.1.6.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.7-universal.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.7.apk"
             elif [[ "$filename" == *"arm64-v8a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.6-arm64-v8a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.7-arm64-v8a.apk"
             elif [[ "$filename" == *"armeabi-v7a"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.6-armeabi-v7a.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.7-armeabi-v7a.apk"
             elif [[ "$filename" == *"x86_64"* ]]; then
-              cp "$file" "release-apks/IceBeats-v7.1.6-x86_64.apk"
+              cp "$file" "release-apks/IceBeats-v7.1.7-x86_64.apk"
             else
               cp "$file" "release-apks/$filename"
             fi
@@ -83,7 +83,7 @@ jobs:
       - name: Upload All APK Variants
         uses: actions/upload-artifact@v4
         with:
-          name: IceBeats-v7.1.6-Multi-Arch-APKs
+          name: IceBeats-v7.1.7-Multi-Arch-APKs
           path: release-apks/*.apk
           retention-days: 14
 
@@ -91,28 +91,28 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.6' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.6' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v7.1.7' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'IceBeats v7.1.7' }}
           body: |
-            ## 🎵 IceBeats v7.1.6 - Fitur Baru & Peningkatan Stabilitas
+            ## 🎵 IceBeats v7.1.7 - Koleksi Border Animasi Baru & Isolasi Akun
 
-            ### 🚀 Pembaruan di Versi 7.1.6:
-            - **🎬 Banner Profil Bergerak (GIF)**: Pengguna VIP IceBeats kini dapat memasang URL GIF untuk banner profil animasi bergerak yang indah.
-            - **🏆 Top 1 Listener di Semua Tema Home**: Kartu profil otomatis untuk pendengar musik peringkat 1 (Top Listener) di semua gaya Home Screen (Playful, Neon, Spotify, Apple, Classic) lengkap dengan border animasi dan tombol profil.
-            - **💬 Perbaikan Fitur Chat & Cache Lokal (Cache-First)**:
-              - Riwayat chat dan pesan tidak akan hilang saat keluar aplikasi dalam waktu lama.
-              - Perbaikan pencarian user di database Supabase (PostgREST ILIKE wildcard).
-              - Auto-refresh session token Supabase saat token JWT kedaluwarsa.
-            - **🔒 Perbaikan Sistem Langganan VIP Multi-Akun**:
-              - Pengikatan status langganan kini berbasis akun (User ID & Email), bukan ke perangkat fisik (Device ID).
-              - Reset status VIP otomatis saat logout sehingga akun baru yang tidak berlangganan tidak ikut menjadi premium.
-              - Validasi otomatis status cloud saat login akun baru.
+            ### 🚀 Pembaruan di Versi 7.1.7:
+            - **👑 14 Koleksi Border Profil Animasi Premium**:
+              - Penambahan 10 border animasi baru yang menawan: *Shadow Mask*, *Electro Shogun*, *Starlight Elysia*, *Furina Chess*, *Crimson Bloom*, *Dragon Kirin*, *Phoenix Feather*, *Void Raven Wings*, *Clockwork Star*, dan *Cosmic Nebula*.
+              - Seluruh border telah dikalibrasi presisi pada canvas 800x800 dengan lubang lingkaran cutout yang 100% pas dan simetris mengelilingi foto profil avatar pengguna.
+            - **🎬 Desain Banner Profil Baru**:
+              - Banner kini menjangkau hingga ke tengah-tengah lingkaran avatar dengan gradien transparan lembut (*seamless fade-out*).
+              - Menghilangkan garis kuning pembatas agar banner menyatu sempurna dengan latar belakang sheet profil.
+            - **🔒 Isolasi Penuh Antar-Akun**:
+              - **Banner Profil Per-Akun**: Banner animasi tersimpan dan terisolasi per User ID di penyimpanan lokal dan cloud Supabase. Mengganti banner tidak akan lagi mengubah banner akun lain.
+              - **Rank & Jam Dengar Terisolasi**: Status jam dengar dan rank akun baru tidak lagi tercampur atau tertular dari akun sebelumnya.
+              - **Fleksibilitas Badge Kosmetik**: Akun dengan rank tinggi (seperti Master) kini bebas memilih badge kosmetik mana pun tanpa mengunci kembali rank di atasnya.
 
             ### 📱 Multi-Architecture Support:
-            - `IceBeats-v7.1.6.apk` & `IceBeats-v7.1.6-universal.apk`: Universal untuk semua HP Android.
-            - `IceBeats-v7.1.6-arm64-v8a.apk`: Khusus HP 64-bit modern.
-            - `IceBeats-v7.1.6-armeabi-v7a.apk`: Khusus HP 32-bit.
-            - `IceBeats-v7.1.6-x86_64.apk`: Untuk Emulator Android PC.
+            - `IceBeats-v7.1.7.apk` & `IceBeats-v7.1.7-universal.apk`: Universal untuk semua HP Android.
+            - `IceBeats-v7.1.7-arm64-v8a.apk`: Khusus HP 64-bit modern.
+            - `IceBeats-v7.1.7-armeabi-v7a.apk`: Khusus HP 32-bit.
+            - `IceBeats-v7.1.7-x86_64.apk`: Untuk Emulator Android PC.
           files: release-apks/*.apk
           draft: false
           prerelease: false

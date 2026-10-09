@@ -1,5 +1,5 @@
 -- ==============================================================================
--- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.1.6)
+-- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.1.7)
 -- Jalankan skrip ini di: Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- Aman dijalankan berulang kali (Idempotent & Anti-Crash)
 -- ==============================================================================
