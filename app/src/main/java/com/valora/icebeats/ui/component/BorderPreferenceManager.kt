@@ -53,6 +53,46 @@ enum class MasterBorderStyle(
         drawableResName = "border_golden_shield",
         scaleMultiplier = 1.62f,
         offsetYRatio = 0f
+    ),
+    SHADOW_MASK(
+        id = "shadow_mask",
+        title = "Shadow Mask",
+        description = "Topeng Iblis Kuno, Api Biru & Sayap Bayangan",
+        drawableResName = "border_shadow_mask",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    RAIDEN_SHOGUN(
+        id = "raiden_shogun",
+        title = "Electro Shogun",
+        description = "Petir Abadi Inazuma, Kipas Sakura & Chibi Shogun",
+        drawableResName = "border_raiden_shogun",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    ELYSIA_PINK(
+        id = "elysia_pink",
+        title = "Starlight Elysia",
+        description = "Planet Bintang, Sayap Kristal & Chibi Peri Imut",
+        drawableResName = "border_elysia_pink",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    FURINA_CHESS(
+        id = "furina_chess",
+        title = "Furina Chess",
+        description = "Bidak Catur Kristal Fontaine, Mahkota & Api Dingin",
+        drawableResName = "border_furina_chess",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    CRIMSON_BLOOM(
+        id = "crimson_bloom",
+        title = "Crimson Bloom",
+        description = "Kelopak Bunga Darah, Kristal Suci & Chibi Karismatik",
+        drawableResName = "border_crimson_bloom",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
     );
 
     companion object {

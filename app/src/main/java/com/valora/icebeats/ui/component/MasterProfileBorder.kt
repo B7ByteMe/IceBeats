@@ -31,7 +31,7 @@ import androidx.compose.ui.zIndex
  * Komponen Border Profil Khusus Level Master v7.0.9
  * 
  * Fitur:
- * 1. Pilihan 4 Tema Border Mahkota & Sayap (Royal Crown, Crimson Wings, Fire Flame, Golden Champion).
+ * 1. Pilihan 9 Tema Border Animasi Eksklusif (Royal Crown, Crimson Wings, Fire Flame, Golden Champion, Shadow Mask, Electro Shogun, Starlight Elysia, Furina Chess, Crimson Bloom).
  * 2. Posisi lingkaran border 100% pas dan presisi dengan lingkaran avatar.
  * 3. Layer border berada di atas (overlay z-index teratas) mengelilingi foto profil.
  * 4. Efek animasi ambient shimmer glow yang halus dan hemat baterai/GPU.

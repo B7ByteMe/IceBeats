@@ -658,7 +658,7 @@ fun AccountSettings(
                                     )
                                 },
                                 description = if (isVip) selectedBorder.description
-                                else "Beli paket IceBeats Premium untuk membuka dan mengganti 4 pilihan border animasi eksklusif!",
+                                else "Beli paket IceBeats Premium untuk membuka dan mengganti 9 pilihan border animasi eksklusif!",
                                 icon = {
                                     Icon(
                                         painter = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),

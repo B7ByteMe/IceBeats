@@ -164,10 +164,12 @@ fun MasterBorderSelectorSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 4 Pilihan Border
+            // Pilihan 9 Border Premium
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
