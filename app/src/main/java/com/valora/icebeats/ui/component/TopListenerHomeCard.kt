@@ -96,17 +96,18 @@ fun TopListenerHomeSection(
     }
 
     val userRank = if (totalHours >= 1L) icebeatsRank.fromHours(totalHours.toInt()) else null
-    val borderStyle = MasterBorderStyle.fromIdOrNull(currentTopUser.borderStyle)
     val verType = VerificationHelper.parseVerificationType(verificationBadge = currentTopUser.verificationBadge)
+    val isVipListener = verType != VerificationType.NONE
+    val borderStyle = if (isVipListener) MasterBorderStyle.fromIdOrNull(currentTopUser.borderStyle) else null
 
-    val targetChatUser = remember(currentTopUser, userRank) {
+    val targetChatUser = remember(currentTopUser, userRank, isVipListener) {
         ChatUser(
             id = currentTopUser.id,
             name = currentTopUser.name,
             profileUrl = currentTopUser.profileUrl,
             totalListenMs = currentTopUser.totalListenMs,
             rank = userRank,
-            borderStyle = currentTopUser.borderStyle,
+            borderStyle = if (isVipListener) currentTopUser.borderStyle else null,
             verificationBadge = currentTopUser.verificationBadge
         )
     }
@@ -146,7 +147,7 @@ fun TopListenerHomeSection(
                     userRank = userRank,
                     totalListenMs = currentTopUser.totalListenMs,
                     borderStyle = borderStyle,
-                    forceShowMaster = true,
+                    forceShowMaster = false,
                     isSelf = false
                 ) {
                     if (!currentTopUser.profileUrl.isNullOrBlank()) {

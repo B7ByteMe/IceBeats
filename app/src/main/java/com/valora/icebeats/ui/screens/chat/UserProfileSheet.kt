@@ -107,7 +107,11 @@ fun UserProfileSheet(
     // Hitung jam dengar & rank
     val totalHours = (targetUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
     val userRank = targetUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
-    val borderStyle = MasterBorderStyle.fromIdOrNull(targetUser.borderStyle)
+    val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
+        verificationBadge = targetUser.verificationBadge
+    )
+    val isTargetVip = if (isSelf) isVip else (verType != com.valora.icebeats.ui.component.VerificationType.NONE)
+    val borderStyle = if (isTargetVip) MasterBorderStyle.fromIdOrNull(targetUser.borderStyle) else null
 
     // Muat data status pertemanan & playlist
     LaunchedEffect(targetUser.id, currentUserId) {
@@ -360,7 +364,13 @@ fun UserProfileSheet(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Button(
-                            onClick = { showBorderSelector = true },
+                            onClick = {
+                                if (isVip) {
+                                    showBorderSelector = true
+                                } else {
+                                    showVipDialog = true
+                                }
+                            },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {

@@ -1289,14 +1289,18 @@ fun ModernHomeTopBarInline(
             statsPrefs.getLong("saved_max_total_listen_ms_$currentUserId", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
         }
 
-        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, selectedBorder) {
+        val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
+        val isVip by vipManager.isVip.collectAsState(initial = false)
+
+        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, selectedBorder, isVip) {
             com.valora.icebeats.supabase.ChatUser(
                 id = currentUserId,
                 name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
                 profileUrl = null,
                 totalListenMs = myListenMs,
                 rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
-                borderStyle = selectedBorder.id
+                borderStyle = if (isVip) selectedBorder.id else null,
+                verificationBadge = if (isVip) "premium" else null
             )
         }
 

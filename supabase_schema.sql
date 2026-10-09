@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS public.user_stats (
     weekly_listen_ms BIGINT DEFAULT 0,
     last_updated_at BIGINT DEFAULT 0,
     fcm_token TEXT,
-    border_style TEXT DEFAULT 'royal_crown'
+    border_style TEXT DEFAULT NULL
 );
 
 -- Pastikan semua kolom tersedia jika tabel dibuat di versi terdahulu
@@ -252,9 +252,20 @@ ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS total_listen_ms BIGINT DE
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS weekly_listen_ms BIGINT DEFAULT 0;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS last_updated_at BIGINT DEFAULT 0;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS fcm_token TEXT;
-ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS border_style TEXT DEFAULT 'royal_crown';
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS border_style TEXT DEFAULT NULL;
+ALTER TABLE public.user_stats ALTER COLUMN border_style SET DEFAULT NULL;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS banner_url TEXT;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+
+-- Bersihkan nilai border_style untuk pengguna non-VIP yang sebelumnya terisi 'royal_crown' secara otomatis
+UPDATE public.user_stats 
+SET border_style = NULL 
+WHERE id NOT IN (
+    SELECT user_id 
+    FROM public.user_subscriptions 
+    WHERE is_active = true OR status = 'approved'
+)
+AND (role IS NULL OR role != 'developer');
 
 -- Validasi Constraint Keamanan (Anti-Injeksi dan Nilai Positif)
 ALTER TABLE public.user_stats 

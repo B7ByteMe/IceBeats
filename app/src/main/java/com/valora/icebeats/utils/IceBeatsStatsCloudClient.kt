@@ -109,6 +109,7 @@ class icebeatsStatsCloudClient {
                             subPlan != null -> "premium"
                             else -> null
                         }
+                        val isUserVip = vBadge != null
                         userList.add(
                             GlobalStatsUser(
                                 id = parsedId,
@@ -120,7 +121,7 @@ class icebeatsStatsCloudClient {
                                 lastUpdatedAt = obj.optLong("last_updated_at", 0L),
                                 rank = i + 1,
                                 fcmToken = obj.optString("fcm_token").trim().takeIf { it.isNotBlank() && it != "null" },
-                                borderStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" },
+                                borderStyle = if (isUserVip) obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" } else null,
                                 verificationBadge = vBadge
                             )
                         )
@@ -168,12 +169,8 @@ class icebeatsStatsCloudClient {
                     put("weekly_listen_ms", safeWeeklyListenMs)
                     put("last_updated_at", System.currentTimeMillis())
                     put("fcm_token", upload.fcmToken ?: JSONObject.NULL)
-                    if (upload.borderStyle != null) {
-                        put("border_style", upload.borderStyle)
-                    }
-                    if (upload.bannerUrl != null) {
-                        put("banner_url", upload.bannerUrl)
-                    }
+                    put("border_style", upload.borderStyle ?: JSONObject.NULL)
+                    put("banner_url", upload.bannerUrl ?: JSONObject.NULL)
                 }
 
                 // Gunakan auth token user jika tersedia untuk memenuhi RLS policy Supabase.

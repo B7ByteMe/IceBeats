@@ -519,14 +519,14 @@ function renderUsersTable() {
       'crimson_wing': '<i class="fa-solid fa-feather text-rose-400 mr-1"></i> Crimson Wings',
       'fire_flame': '<i class="fa-solid fa-fire text-orange-400 mr-1"></i> Fire Flame',
       'golden_shield': '<i class="fa-solid fa-shield-halved text-yellow-400 mr-1"></i> Golden Champion'
-    };
-    const userBorderBadge = isMasterPlus
-      ? `<div class="text-[10px] text-amber-300/90 font-medium mt-0.5">${borderLabels[u.border_style] || '<i class="fa-solid fa-crown text-amber-400 mr-1"></i> Royal Crown'}</div>`
-      : '';
-
     const userSub = allSubscriptions.find(s => s.user_id === u.id && (s.is_active || s.status === 'approved'));
     const isDev = (u.role === 'developer') || (userSub && userSub.plan_name && userSub.plan_name.toLowerCase().includes('developer'));
     const isPrem = !isDev && Boolean(userSub);
+    const hasVipAccess = isDev || isPrem;
+
+    const userBorderBadge = (hasVipAccess && u.border_style && borderLabels[u.border_style])
+      ? `<div class="text-[10px] text-amber-300/90 font-medium mt-0.5">${borderLabels[u.border_style]}</div>`
+      : '';
 
     const verifiedBadgeHtml = isDev
       ? `<span class="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-red-600 text-white text-[9px] shadow-sm" title="Developer (Centang Merah)"><i class="fa-solid fa-check"></i></span>`

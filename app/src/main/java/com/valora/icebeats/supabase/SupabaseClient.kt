@@ -1482,6 +1482,7 @@ class SupabaseClient(private val context: Context) {
                     subPlan != null -> "premium"
                     else -> null
                 }
+                val isUserVip = vBadge != null
 
                 result.add(
                     ChatUser(
@@ -1490,9 +1491,9 @@ class SupabaseClient(private val context: Context) {
                         profileUrl = profileUrl,
                         totalListenMs = totalMs,
                         rank = rank,
-                        borderStyle = bStyle,
+                        borderStyle = if (isUserVip) bStyle else null,
                         verificationBadge = vBadge,
-                        bannerUrl = bannerUrl
+                        bannerUrl = if (isUserVip) bannerUrl else null
                     )
                 )
             }
@@ -1621,7 +1622,8 @@ class SupabaseClient(private val context: Context) {
                                     subPlan != null -> "premium"
                                     else -> null
                                 }
-                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, bStyle, vBadge, bannerUrl)
+                                val isUserVip = vBadge != null
+                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, if (isUserVip) bStyle else null, vBadge, if (isUserVip) bannerUrl else null)
                             }
                         }
                     }
@@ -2187,7 +2189,8 @@ class SupabaseClient(private val context: Context) {
                         subPlan != null -> "premium"
                         else -> null
                     }
-                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, verificationBadge = vBadge))
+                    val isUserVip = vBadge != null
+                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = if (isUserVip) bStyle else null, verificationBadge = vBadge))
                 }
                 result
             }
@@ -2229,7 +2232,8 @@ class SupabaseClient(private val context: Context) {
                     subPlan != null -> "premium"
                     else -> null
                 }
-                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, verificationBadge = vBadge, bannerUrl = bannerUrl)
+                val isUserVip = vBadge != null
+                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = if (isUserVip) bStyle else null, verificationBadge = vBadge, bannerUrl = if (isUserVip) bannerUrl else null)
             }
         }
     }

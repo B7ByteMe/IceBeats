@@ -66,15 +66,16 @@ object icebeatsStatsCloudSync {
         }
         val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
+        val isVip = com.valora.icebeats.ui.component.VipSubscriptionManager(context).isVip.first()
         val profileUrl =
             when (val avatar = AvatarPreferenceManager(context).getAvatarSelection.first()) {
                 is AvatarSelection.DiceBear -> avatar.url
                 is AvatarSelection.Custom -> avatar.cloudUrl
-                is AvatarSelection.Gif -> avatar.url
+                is AvatarSelection.Gif -> if (isVip) avatar.url else null
                 else -> null
             }
-        val borderStyle = com.valora.icebeats.ui.component.BorderPreferenceManager(context).selectedBorder.first().id
-        val bannerUrl = com.valora.icebeats.ui.component.BannerPreferenceManager(context).bannerUrl.first()
+        val borderStyle = if (isVip) com.valora.icebeats.ui.component.BorderPreferenceManager(context).selectedBorder.first().id else null
+        val bannerUrl = if (isVip) com.valora.icebeats.ui.component.BannerPreferenceManager(context).bannerUrl.first() else null
         return LocalStatsUpload(
             userId = userId,
             name = name,

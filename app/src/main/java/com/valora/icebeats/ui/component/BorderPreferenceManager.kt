@@ -84,6 +84,9 @@ class BorderPreferenceManager @Inject constructor(
     }
 
     suspend fun saveSelectedBorder(style: MasterBorderStyle) {
+        val isVip = VipSubscriptionManager(context).isVip.first()
+        if (!isVip) return
+
         context.borderDataStore.edit { prefs ->
             prefs[SELECTED_BORDER_KEY] = style.id
         }
