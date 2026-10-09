@@ -1121,13 +1121,17 @@ class SupabaseClient(private val context: Context) {
                     val syncPrefs = context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE)
                     val globalPrefs = context.getSharedPreferences("icebeats_global_stats", Context.MODE_PRIVATE)
                     val rankManager = com.valora.icebeats.ui.component.RankPreferenceManager(context)
+                    val bannerManager = com.valora.icebeats.ui.component.BannerPreferenceManager(context)
 
                     if (statsObj != null) {
                         val totalMs = statsObj.optLong("total_listen_ms", 0L)
                         val totalHours = (totalMs / (1000 * 3600)).toInt()
+                        val cloudBannerUrl = statsObj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
 
                         syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", totalMs).apply()
                         globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", totalMs).apply()
+
+                        bannerManager.saveBannerForUser(uid, cloudBannerUrl)
 
                         if (totalHours >= 1) {
                             val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours)
@@ -1138,6 +1142,7 @@ class SupabaseClient(private val context: Context) {
                     } else {
                         syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", 0L).apply()
                         globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", 0L).apply()
+                        bannerManager.clearBannerForUser(uid)
                         rankManager.resetAll()
                     }
                 }

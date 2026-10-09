@@ -160,91 +160,153 @@ fun UserProfileSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 0. BANNER PROFIL ANIMASI (JIKA ADA)
-            if (!displayBannerUrl.isNullOrBlank()) {
-                item {
+            // 0. HEADER PROFIL (BANNER + AVATAR DENGAN MASTER BORDER)
+            item {
+                if (!displayBannerUrl.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(125.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1E1E22))
-                            .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                            .height(210.dp),
+                        contentAlignment = Alignment.TopCenter
                     ) {
-                        AsyncImage(
-                            model = displayBannerUrl,
-                            contentDescription = "Banner Animasi ${targetUser.name}",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        // Banner Animasi Latar Belakang (tanpa garis kuning)
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
-                                    )
-                                )
-                        )
-                    }
-                    Spacer(modifier = Modifier.height((-50).dp))
-                }
-            }
-
-            // 1. HEADER AVATAR DENGAN MASTER BORDER
-            item {
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .padding(top = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    MasterProfileBorder(
-                        avatarSize = 70.dp,
-                        userRank = userRank,
-                        totalListenMs = targetUser.totalListenMs,
-                        borderStyle = if (isSelf) null else borderStyle,
-                        isSelf = isSelf
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(70.dp)
+                                .fillMaxWidth()
+                                .height(140.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
                         ) {
-                            if (!targetUser.profileUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = targetUser.profileUrl,
-                                    contentDescription = targetUser.name,
-                                    modifier = Modifier.size(70.dp),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(78.dp)
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.tertiary
-                                                )
+                            AsyncImage(
+                                model = displayBannerUrl,
+                                contentDescription = "Banner Animasi ${targetUser.name}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            // Gradien halus di bagian bawah agar menyatu secara transparan dengan background tanpa garis kuning
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colorStops = arrayOf(
+                                                0.0f to Color.Transparent,
+                                                0.35f to Color.Transparent,
+                                                0.70f to MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                                                1.0f to MaterialTheme.colorScheme.surface
                                             )
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = targetUser.name.take(1).uppercase(),
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        )
                                     )
+                            )
+                        }
+
+                        // Avatar dengan Master Border tepat di tengah batas bawah banner
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 70.dp)
+                                .size(140.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MasterProfileBorder(
+                                avatarSize = 70.dp,
+                                userRank = userRank,
+                                totalListenMs = targetUser.totalListenMs,
+                                borderStyle = if (isSelf) null else borderStyle,
+                                isSelf = isSelf
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(70.dp)
+                                ) {
+                                    if (!targetUser.profileUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = targetUser.profileUrl,
+                                            contentDescription = targetUser.name,
+                                            modifier = Modifier.size(70.dp),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(70.dp)
+                                                .background(
+                                                    Brush.linearGradient(
+                                                        listOf(
+                                                            MaterialTheme.colorScheme.primary,
+                                                            MaterialTheme.colorScheme.tertiary
+                                                        )
+                                                    )
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = targetUser.name.take(1).uppercase(),
+                                                style = MaterialTheme.typography.headlineMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Tampilan avatar normal jika tidak ada banner
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .padding(top = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        MasterProfileBorder(
+                            avatarSize = 70.dp,
+                            userRank = userRank,
+                            totalListenMs = targetUser.totalListenMs,
+                            borderStyle = if (isSelf) null else borderStyle,
+                            isSelf = isSelf
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(70.dp)
+                            ) {
+                                if (!targetUser.profileUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = targetUser.profileUrl,
+                                        contentDescription = targetUser.name,
+                                        modifier = Modifier.size(70.dp),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(70.dp)
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.primary,
+                                                        MaterialTheme.colorScheme.tertiary
+                                                    )
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = targetUser.name.take(1).uppercase(),
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // NAMA & TIER BADGE
                 Row(
