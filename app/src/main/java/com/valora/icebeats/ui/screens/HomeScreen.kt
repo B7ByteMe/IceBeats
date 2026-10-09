@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.valora.icebeats.BuildConfig
 import com.valora.icebeats.checkForUpdates
 import com.valora.icebeats.isNewerVersion
+import com.valora.icebeats.ui.component.icebeatsRank
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow

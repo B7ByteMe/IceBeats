@@ -38,6 +38,7 @@ import com.valora.icebeats.R
 import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.queues.YouTubeQueue
 import com.valora.icebeats.ui.component.LocalUserName
+import com.valora.icebeats.ui.component.icebeatsRank
 import com.valora.icebeats.ui.component.RankPreferenceManager
 import com.valora.icebeats.ui.component.RankBadge
 import com.valora.icebeats.ui.component.BadgeSelector

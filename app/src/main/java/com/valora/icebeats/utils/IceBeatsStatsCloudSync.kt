@@ -144,6 +144,10 @@ object icebeatsStatsCloudSync {
             .remove("last_local_anchor_ms")
             .remove(KEY_LAST_WEEKLY_POPUP)
             .apply()
+        val syncPrefs = context.getSharedPreferences("icebeats_stats_sync", Context.MODE_PRIVATE)
+        syncPrefs.edit()
+            .remove("saved_max_total_listen_ms")
+            .apply()
     }
 
     fun clearCachedUserId(context: Context) {
@@ -188,18 +192,6 @@ object icebeatsStatsCloudSync {
     const val KEY_DEVICE_ID = "global_stats_device_id"
     const val KEY_LAST_UPLOAD_DAY = "last_global_stats_upload_day"
     const val KEY_LAST_WEEKLY_POPUP = "last_weekly_global_popup"
-
-    fun clearUserSessionStats(context: Context) {
-        val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-        prefs.edit()
-            .remove(KEY_USER_ID)
-            .remove("saved_max_total_listen_ms")
-            .apply()
-        val syncPrefs = context.getSharedPreferences("icebeats_stats_sync", Context.MODE_PRIVATE)
-        syncPrefs.edit()
-            .remove("saved_max_total_listen_ms")
-            .apply()
-    }
 }
 
 typealias IceBeatsStatsCloudSync = icebeatsStatsCloudSync

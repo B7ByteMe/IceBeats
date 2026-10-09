@@ -420,9 +420,6 @@ fun AnimatedBannerGifDialog(
                     onClick = {
                         scope.launch {
                             bannerManager.clearBannerUrl()
-                            runCatching {
-                                com.valora.icebeats.utils.IceBeatsStatsCloudSync.uploadCurrentStats(context)
-                            }
                             Toast.makeText(context, "Banner profil dihapus", Toast.LENGTH_SHORT).show()
                             onBannerApplied?.invoke()
                             onDismiss()
@@ -440,9 +437,6 @@ fun AnimatedBannerGifDialog(
                         if (clean.isNotBlank() && (clean.startsWith("http://") || clean.startsWith("https://"))) {
                             scope.launch {
                                 bannerManager.saveBannerUrl(clean)
-                                runCatching {
-                                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.uploadCurrentStats(context)
-                                }
                                 Toast.makeText(context, "Banner Profil Animasi berhasil diterapkan!", Toast.LENGTH_SHORT).show()
                                 onBannerApplied?.invoke()
                                 onDismiss()

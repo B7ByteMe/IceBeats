@@ -67,6 +67,7 @@ constructor(
         .map { songs ->
             val totalMs = songs.sumOf { it.timeListened?.toLong() ?: 0L }
             val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager)
+            val userKey = "saved_max_total_listen_ms_$uid"
             val savedMs = if (!uid.startsWith("device-")) {
                 statsPreferences.getLong(userKey, 0L)
             } else {

@@ -17,7 +17,7 @@ class RankPreferenceManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private fun getCurrentUserId(): String {
-        val nameManager = com.valora.icebeats.utils.NamePreferenceManager(context)
+        val nameManager = NamePreferenceManager(context)
         return com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
     }
 

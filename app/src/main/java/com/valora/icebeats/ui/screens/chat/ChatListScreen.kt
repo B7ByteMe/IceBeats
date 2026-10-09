@@ -137,18 +137,15 @@ fun ChatListScreen(
         } else 0L
     }
 
-    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-    val isChatVip by vipManager.isVip.collectAsState(initial = false)
-
-    val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, myRank, selectedBorder, isChatVip) {
+    val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, myRank, selectedBorder, isVip) {
         ChatUser(
             id = currentUserId,
             name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
             profileUrl = null,
             totalListenMs = myListenMs,
             rank = myRank ?: icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
-            borderStyle = if (isChatVip) selectedBorder.id else null,
-            verificationBadge = if (isChatVip) "premium" else null
+            borderStyle = if (isVip) selectedBorder.id else null,
+            verificationBadge = if (isVip) "premium" else null
         )
     }
 
