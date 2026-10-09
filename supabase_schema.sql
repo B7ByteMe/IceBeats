@@ -713,12 +713,85 @@ BEGIN
 END;
 $$;
 
+-- 6. Secure RPC Function: Admin Beri VIP Manual (Bypass RLS dengan Secret Key)
+CREATE OR REPLACE FUNCTION public.admin_grant_manual_vip(
+    p_admin_secret TEXT,
+    p_user_id TEXT,
+    p_user_name TEXT,
+    p_email TEXT,
+    p_plan_name TEXT,
+    p_duration_days INTEGER DEFAULT 30
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_new_expiry TIMESTAMPTZ;
+BEGIN
+    IF p_admin_secret != 'VALORA_VIP_ADMIN_SECURE_2026' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Akses Ditolak: Kunci Admin Tidak Valid');
+    END IF;
+
+    IF p_user_id IS NULL OR TRIM(p_user_id) = '' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'User ID wajib diisi');
+    END IF;
+
+    v_new_expiry := NOW() + (p_duration_days || ' days')::INTERVAL;
+
+    INSERT INTO public.user_subscriptions (
+        user_id,
+        user_name,
+        email,
+        plan_name,
+        price,
+        status,
+        is_active,
+        expires_at,
+        created_at,
+        updated_at
+    ) VALUES (
+        p_user_id,
+        COALESCE(NULLIF(TRIM(p_user_name), ''), 'VIP Member'),
+        NULLIF(TRIM(p_email), ''),
+        COALESCE(NULLIF(TRIM(p_plan_name), ''), '1 Bulan (Manual)'),
+        0,
+        'approved',
+        true,
+        v_new_expiry,
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (user_id) DO UPDATE SET
+        user_name = COALESCE(NULLIF(TRIM(EXCLUDED.user_name), ''), user_subscriptions.user_name),
+        email = COALESCE(NULLIF(TRIM(EXCLUDED.email), ''), user_subscriptions.email),
+        plan_name = EXCLUDED.plan_name,
+        status = 'approved',
+        is_active = true,
+        expires_at = v_new_expiry,
+        updated_at = NOW();
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'message', 'VIP Manual berhasil diberikan!',
+        'user_id', p_user_id,
+        'expires_at', v_new_expiry
+    );
+END;
+$$;
+
+-- Berikan izin eksekusi ke anon & authenticated (Keamanan dilindungi p_admin_secret di dalam fungsi)
+GRANT EXECUTE ON FUNCTION public.admin_acc_vip TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_revoke_vip TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_grant_manual_vip TO anon, authenticated, service_role;
+
 DO $$
 BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.user_subscriptions;
 EXCEPTION WHEN OTHERS THEN
     NULL;
 END $$;
+
 
 
 

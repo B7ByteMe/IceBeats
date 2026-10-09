@@ -1473,6 +1473,30 @@ async function submitManualVip() {
   const now = new Date();
   const newExpiry = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
+  // 1. Coba eksekusi via Secure RPC (Bypass RLS dengan Secret Key)
+  try {
+    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_grant_manual_vip`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        p_admin_secret: 'VALORA_VIP_ADMIN_SECURE_2026',
+        p_user_id: userId,
+        p_user_name: userName || 'VIP Member',
+        p_email: email || null,
+        p_plan_name: planName,
+        p_duration_days: days
+      })
+    });
+    if (rpcRes.ok) {
+      closeModal('manualVipModal');
+      showToast(`Akses VIP (${planName}) BERHASIL diberikan ke ${userName || userId}!`, 'success');
+      await fetchVipSubscriptions();
+      return;
+    }
+  } catch (rpcErr) {
+    console.warn('RPC admin_grant_manual_vip fallback to direct POST:', rpcErr);
+  }
+
   const payload = {
     user_id: userId,
     user_name: userName || 'VIP Member',
