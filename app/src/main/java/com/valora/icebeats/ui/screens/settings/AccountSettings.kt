@@ -184,31 +184,29 @@ fun AccountSettings(
                     )
                 }
 
-                // Clear cloud-synced items and restore account data from Supabase without wiping local playback history
+                // Clear local items and restore account data from Supabase cleanly
                 if (database != null) {
                     withContext(Dispatchers.IO) {
                         database.clearAllLikes()
                         database.clearUserPlaylists()
                         database.clearAllPlaylistSongs()
-                        // Keep local playback events intact; restoreUserData will merge any missing cloud events
+                        database.clearAllEvents()
                         database.clearAllArtistBookmarks()
                         database.clearAllAlbumBookmarks()
                         val res = supabaseClient.restoreUserData(database)
                         res.onSuccess { count ->
-                            // Setelah restore events dari cloud selesai, perbarui saved_max_total_listen_ms
-                            // agar stats tidak kembali ke nol pada upload berikutnya
                             runCatching {
                                 val now = System.currentTimeMillis()
                                 val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
                                 val restoredTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
-                                val prefs = context.getSharedPreferences(
-                                    com.valora.icebeats.utils.icebeatsStatsCloudSync.PREFERENCES_NAME,
+                                val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
+                                val syncPrefs = context.getSharedPreferences(
+                                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME,
                                     android.content.Context.MODE_PRIVATE
                                 )
-                                val savedTotalMs = prefs.getLong("saved_max_total_listen_ms", 0L)
-                                if (restoredTotalMs > savedTotalMs) {
-                                    prefs.edit().putLong("saved_max_total_listen_ms", restoredTotalMs).apply()
-                                }
+                                val globalPrefs = context.getSharedPreferences("icebeats_global_stats", android.content.Context.MODE_PRIVATE)
+                                syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", restoredTotalMs).apply()
+                                globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", restoredTotalMs).apply()
                             }
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(context, "Berhasil memulihkan $count data akun dari Cloud!", Toast.LENGTH_SHORT).show()
@@ -339,11 +337,13 @@ fun AccountSettings(
                     nameManager.clearGoogleLoginLock()
                     nameManager.clearUser()
                     avatarManager.saveAvatarSelection(AvatarSelection.Default)
-                    RankPreferenceManager(context).saveDisplayedRank(null)
+                    RankPreferenceManager(context).resetAll()
                     com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(
                         com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
                     )
                     com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
+                    context.getSharedPreferences("icebeats_global_stats", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                    context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE).edit().clear().apply()
                     com.valora.icebeats.ui.component.VipSubscriptionManager(context).resetVipState()
                     com.valora.icebeats.ui.component.BannerPreferenceManager(context).clearBannerUrl()
 
@@ -570,16 +570,23 @@ fun AccountSettings(
 
                 // 🏆 LEVEL & RANK BADGE PENGGUNA (v7.0.9)
                 val rankPrefManager = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
-                val currentRank by rankPrefManager.displayedRank.collectAsState(initial = null)
+                val displayedRank by rankPrefManager.displayedRank.collectAsState(initial = null)
+                val highestEarnedRank by rankPrefManager.highestEarnedRank.collectAsState(initial = null)
                 val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
                 val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
-                val savedListenMs = remember(currentRank, currentAccountEmail, isSupabaseLoggedIn) {
+                val savedListenMs = remember(currentAccountEmail, isSupabaseLoggedIn) {
                     val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-                    statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
+                    if (!uid.startsWith("device-")) {
+                        statsPrefs.getLong("saved_max_total_listen_ms_$uid", 0L)
+                    } else {
+                        statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
+                    }
                 }
                 val totalHours = remember(savedListenMs) { (savedListenMs / (1000 * 3600)).toInt() }
-                val activeRank = currentRank
-                val isMaster = (activeRank != null && activeRank.ordinal >= com.valora.icebeats.ui.component.icebeatsRank.Master.ordinal) || totalHours >= 150
+                val earnedRank = if (totalHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours) else null
+                val actualHighestRank = listOfNotNull(earnedRank, highestEarnedRank).maxByOrNull { it.ordinal }
+                val currentRank = displayedRank ?: actualHighestRank
+                val isMaster = (actualHighestRank != null && actualHighestRank.ordinal >= com.valora.icebeats.ui.component.icebeatsRank.Master.ordinal) || totalHours >= 150
 
                 SettingsGeneralCategory(
                     title = "Level & Badge Akun (v${com.valora.icebeats.BuildConfig.VERSION_NAME})",
@@ -588,11 +595,16 @@ fun AccountSettings(
                             PreferenceEntry(
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Tier: ${currentRank?.name ?: "Echo"}")
+                                        val tierLabel = if (displayedRank != null && actualHighestRank != null && displayedRank != actualHighestRank) {
+                                            "Badge: ${displayedRank?.name} (Level ${actualHighestRank.name})"
+                                        } else {
+                                            "Tier: ${actualHighestRank?.name ?: "Echo"}"
+                                        }
+                                        Text(tierLabel)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         com.valora.icebeats.ui.component.RankBadge(
-                                            rank = currentRank ?: com.valora.icebeats.ui.component.icebeatsRank.Echo,
-                                            displayedRank = currentRank,
+                                            rank = actualHighestRank ?: com.valora.icebeats.ui.component.icebeatsRank.Echo,
+                                            displayedRank = displayedRank,
                                             size = 22.dp
                                         )
                                     }
@@ -801,7 +813,7 @@ fun AccountSettings(
                 if (showBorderSelectorSheet) {
                     com.valora.icebeats.ui.component.MasterBorderSelectorSheet(
                         onDismiss = { showBorderSelectorSheet = false },
-                        userRank = currentRank,
+                        userRank = actualHighestRank ?: currentRank,
                         totalListenMs = savedListenMs
                     )
                 }

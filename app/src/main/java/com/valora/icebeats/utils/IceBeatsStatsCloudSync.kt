@@ -56,13 +56,18 @@ object icebeatsStatsCloudSync {
         val weeklyListenMs = weekSongs.sumOf { it.timeListened?.toLong() ?: 0L }
         val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
         val userSpecificKey = "saved_max_total_listen_ms_${userId}"
-        val savedTotalMs = prefs.getLong(userSpecificKey, prefs.getLong("saved_max_total_listen_ms", 0L))
+        val savedTotalMs = if (!userId.startsWith("device-")) {
+            prefs.getLong(userSpecificKey, 0L)
+        } else {
+            prefs.getLong(userSpecificKey, prefs.getLong("saved_max_total_listen_ms", 0L))
+        }
         val totalListenMs = maxOf(calculatedTotalMs, savedTotalMs)
         if (calculatedTotalMs > savedTotalMs) {
-            prefs.edit()
-                .putLong(userSpecificKey, calculatedTotalMs)
-                .putLong("saved_max_total_listen_ms", calculatedTotalMs)
-                .apply()
+            val editor = prefs.edit().putLong(userSpecificKey, calculatedTotalMs)
+            if (userId.startsWith("device-")) {
+                editor.putLong("saved_max_total_listen_ms", calculatedTotalMs)
+            }
+            editor.apply()
         }
         val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
@@ -183,6 +188,18 @@ object icebeatsStatsCloudSync {
     const val KEY_DEVICE_ID = "global_stats_device_id"
     const val KEY_LAST_UPLOAD_DAY = "last_global_stats_upload_day"
     const val KEY_LAST_WEEKLY_POPUP = "last_weekly_global_popup"
+
+    fun clearUserSessionStats(context: Context) {
+        val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .remove(KEY_USER_ID)
+            .remove("saved_max_total_listen_ms")
+            .apply()
+        val syncPrefs = context.getSharedPreferences("icebeats_stats_sync", Context.MODE_PRIVATE)
+        syncPrefs.edit()
+            .remove("saved_max_total_listen_ms")
+            .apply()
+    }
 }
 
 typealias IceBeatsStatsCloudSync = icebeatsStatsCloudSync

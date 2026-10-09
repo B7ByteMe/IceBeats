@@ -794,8 +794,13 @@ private fun SpotifyHeader(
                                 }
                                 val rankPrefMgr = androidx.compose.runtime.remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
                                 val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
+                                val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
 
-                                val effectiveRank = displayedRank ?: currentRank
+                                val actualEarnedRank = androidx.compose.runtime.remember(currentRank, highestEarnedRank) {
+                                    listOfNotNull(currentRank, highestEarnedRank).maxByOrNull { it.ordinal }
+                                }
+
+                                val effectiveRank = displayedRank ?: actualEarnedRank ?: currentRank
                                 effectiveRank?.let { rank ->
                                     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
                                     var showBadgeSelector by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -807,7 +812,7 @@ private fun SpotifyHeader(
                                         modifier = Modifier.clickable { showBadgeSelector = true }
                                     )
                                     if (showBadgeSelector) {
-                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, displayedRank)
+                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, actualEarnedRank)
                                         com.valora.icebeats.ui.component.BadgeSelector(
                                             unlockedRanks = unlocked,
                                             currentDisplayed = displayedRank,

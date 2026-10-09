@@ -509,7 +509,7 @@ fun RankBadgeSelector(
 
     val rankPrefMgr = remember { RankPreferenceManager(context) }
     val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
-    val lastSeenRank by rankPrefMgr.lastSeenRank.collectAsState(initial = null)
+    val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
 
     val nameManager = remember { NamePreferenceManager(context) }
@@ -517,13 +517,17 @@ fun RankBadgeSelector(
     val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
     var savedListenMs by remember(currentAccountEmail) {
         val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-        mutableLongStateOf(statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L)))
+        mutableLongStateOf(
+            if (!uid.startsWith("device-")) statsPrefs.getLong("saved_max_total_listen_ms_$uid", 0L)
+            else statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
+        )
     }
     DisposableEffect(statsPrefs, currentAccountEmail) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            if (key != null && (key.startsWith("saved_max_total_listen_ms") || key == "saved_max_total_listen_ms")) {
-                val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-                savedListenMs = prefs.getLong("saved_max_total_listen_ms_$uid", prefs.getLong("saved_max_total_listen_ms", 0L))
+            val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
+            if (key != null && (key == "saved_max_total_listen_ms_$uid" || (uid.startsWith("device-") && key == "saved_max_total_listen_ms"))) {
+                savedListenMs = if (!uid.startsWith("device-")) prefs.getLong("saved_max_total_listen_ms_$uid", 0L)
+                else prefs.getLong("saved_max_total_listen_ms_$uid", prefs.getLong("saved_max_total_listen_ms", 0L))
             }
         }
         statsPrefs.registerOnSharedPreferenceChangeListener(listener)
@@ -533,16 +537,26 @@ fun RankBadgeSelector(
     }
     val cloudHours = (savedListenMs / (1000.0 * 3600.0))
     val effectiveHours = maxOf(totalHours, cloudHours)
+    val earnedRank = if (effectiveHours >= 1.0) icebeatsRank.fromHours(effectiveHours.toInt()) else null
 
+    // Simpan rank tertinggi yang berhasil diraih agar tidak pernah berkurang saat ganti badge kosmetik
+    LaunchedEffect(earnedRank) {
+        earnedRank?.let { rankPrefMgr.saveHighestEarnedRank(it) }
+    }
+
+    // Rank tertinggi akun ini: HANYA berdasarkan jam dengar & pencapaian nyata (BUKAN displayedRank kosmetik!)
     val highestRank = listOfNotNull(
-        currentRank,
-        if (effectiveHours >= 1.0) icebeatsRank.fromHours(effectiveHours.toInt()) else null,
-        displayedRank,
-        lastSeenRank
+        earnedRank,
+        highestEarnedRank,
+        currentRank
     ).maxByOrNull { it.ordinal }
 
-    val unlockedRanks = remember(effectiveHours, highestRank) {
-        unlockedRanksFromHours(effectiveHours, highestRank).toSet()
+    val unlockedRanks = remember(highestRank) {
+        if (highestRank != null) {
+            icebeatsRank.values().filter { it.ordinal <= highestRank.ordinal }.toSet()
+        } else {
+            emptySet()
+        }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -767,8 +781,8 @@ fun unlockedRanksFromHours(
     activeRank: icebeatsRank? = null
 ): List<icebeatsRank> {
     val h = hours.toInt()
-    val fromHours = icebeatsRank.values().filter { h >= it.thresholdHours }
-    val highest = listOfNotNull(fromHours.maxByOrNull { it.ordinal }, activeRank).maxByOrNull { it.ordinal }
+    val fromHours = if (h >= 1) icebeatsRank.fromHours(h) else null
+    val highest = listOfNotNull(fromHours, activeRank).maxByOrNull { it.ordinal }
     if (highest == null) return emptyList()
     return icebeatsRank.values().filter { it.ordinal <= highest.ordinal }
 }

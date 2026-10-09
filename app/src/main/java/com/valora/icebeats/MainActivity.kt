@@ -396,7 +396,7 @@ class MainActivity : ComponentActivity() {
                     database.clearAllLikes()
                     database.clearUserPlaylists()
                     database.clearAllPlaylistSongs()
-                    // Keep local playback events intact; restoreUserData will merge cloud events
+                    database.clearAllEvents()
                     database.clearAllArtistBookmarks()
                     database.clearAllAlbumBookmarks()
                     client.restoreUserData(database)

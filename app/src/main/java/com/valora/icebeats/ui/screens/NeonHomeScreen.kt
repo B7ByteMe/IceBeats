@@ -74,6 +74,7 @@ fun NeonHomeScreen(
     val context = LocalContext.current
     val rankPrefMgr = remember { RankPreferenceManager(context) }
     val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
+    val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
     val currentRank by (statsViewModel?.currentRank ?: kotlinx.coroutines.flow.flowOf(null)).collectAsState(initial = null)
     val totalHours by (statsViewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
     
@@ -166,7 +167,15 @@ fun NeonHomeScreen(
                     color = if (isDarkTheme) Color.LightGray else Color.DarkGray
                 )
                 
-                val effectiveRank = displayedRank ?: currentRank
+                val actualEarnedRank = remember(totalHours, highestEarnedRank, currentRank) {
+                    listOfNotNull(
+                        if (totalHours >= 1.0) icebeatsRank.fromHours(totalHours.toInt()) else null,
+                        highestEarnedRank,
+                        currentRank
+                    ).maxByOrNull { it.ordinal }
+                }
+
+                val effectiveRank = displayedRank ?: actualEarnedRank ?: currentRank
                 effectiveRank?.let { rank ->
                     Spacer(modifier = Modifier.width(8.dp))
                     var showBadgeSelector by remember { mutableStateOf(false) }
@@ -177,7 +186,7 @@ fun NeonHomeScreen(
                         modifier = Modifier.clickable { showBadgeSelector = true }
                     )
                     if (showBadgeSelector) {
-                        val unlocked = unlockedRanksFromHours(totalHours, displayedRank)
+                        val unlocked = unlockedRanksFromHours(totalHours, actualEarnedRank)
                         BadgeSelector(
                             unlockedRanks = unlocked,
                             currentDisplayed = displayedRank,

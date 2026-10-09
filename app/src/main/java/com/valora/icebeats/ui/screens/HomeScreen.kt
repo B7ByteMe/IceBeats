@@ -1236,12 +1236,21 @@ fun ModernHomeTopBarInline(
             val context = LocalContext.current
             val rankPrefMgr = remember { RankPreferenceManager(context) }
             val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
+            val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
             val viewModel = com.valora.icebeats.ui.utils.safeHiltViewModel<StatsViewModel>()
             val currentRank by (viewModel?.currentRank ?: kotlinx.coroutines.flow.flowOf(null)).collectAsState(initial = null)
             val totalHours by (viewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
             val coroutineScope = rememberCoroutineScope()
 
-            val effectiveRank = displayedRank ?: currentRank
+            val actualEarnedRank = remember(totalHours, highestEarnedRank, currentRank) {
+                listOfNotNull(
+                    if (totalHours >= 1.0) icebeatsRank.fromHours(totalHours.toInt()) else null,
+                    highestEarnedRank,
+                    currentRank
+                ).maxByOrNull { it.ordinal }
+            }
+
+            val effectiveRank = displayedRank ?: actualEarnedRank ?: currentRank
             effectiveRank?.let { rank ->
                 Spacer(modifier = Modifier.width(12.dp))
                 var showBadgeSelector by remember { mutableStateOf(false) }
@@ -1252,7 +1261,7 @@ fun ModernHomeTopBarInline(
                     modifier = Modifier.clickable { showBadgeSelector = true }
                 )
                 if (showBadgeSelector) {
-                    val unlocked = unlockedRanksFromHours(totalHours, displayedRank)
+                    val unlocked = unlockedRanksFromHours(totalHours, actualEarnedRank)
                     BadgeSelector(
                         unlockedRanks = unlocked,
                         currentDisplayed = displayedRank,

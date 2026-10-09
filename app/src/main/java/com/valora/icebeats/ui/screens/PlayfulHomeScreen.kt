@@ -175,6 +175,7 @@ fun PlayfulHomeScreen(
                             val context = androidx.compose.ui.platform.LocalContext.current
                             val rankPrefMgr = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
                             val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
+                            val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
                             val statsViewModel = com.valora.icebeats.ui.utils.safeHiltViewModel<com.valora.icebeats.viewmodels.StatsViewModel>()
                             val currentRank by (statsViewModel?.currentRank ?: kotlinx.coroutines.flow.flowOf(null)).collectAsState(initial = null)
                             val totalHours by (statsViewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
@@ -216,7 +217,15 @@ fun PlayfulHomeScreen(
                                     )
                                 }
 
-                                val effectiveRank = displayedRank ?: currentRank
+                                val actualEarnedRank = remember(totalHours, highestEarnedRank, currentRank) {
+                                    listOfNotNull(
+                                        if (totalHours >= 1.0) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours.toInt()) else null,
+                                        highestEarnedRank,
+                                        currentRank
+                                    ).maxByOrNull { it.ordinal }
+                                }
+
+                                val effectiveRank = displayedRank ?: actualEarnedRank ?: currentRank
                                 effectiveRank?.let { rank ->
                                     Spacer(modifier = Modifier.width(8.dp))
                                     var showBadgeSelector by remember { mutableStateOf(false) }
@@ -227,7 +236,7 @@ fun PlayfulHomeScreen(
                                         modifier = Modifier.clickable { showBadgeSelector = true }
                                     )
                                     if (showBadgeSelector) {
-                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, displayedRank)
+                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, actualEarnedRank)
                                         com.valora.icebeats.ui.component.BadgeSelector(
                                             unlockedRanks = unlocked,
                                             currentDisplayed = displayedRank,
