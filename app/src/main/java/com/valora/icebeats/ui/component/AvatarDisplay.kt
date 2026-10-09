@@ -98,6 +98,7 @@ fun AvatarDisplay(
             }
         }
     }
+}
 
     if (enableMasterBorder) {
         MasterProfileBorder(
