@@ -338,9 +338,7 @@ fun AccountSettings(
                     nameManager.clearUser()
                     avatarManager.saveAvatarSelection(AvatarSelection.Default)
                     RankPreferenceManager(context).resetAll()
-                    com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(
-                        com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
-                    )
+                    com.valora.icebeats.ui.component.BorderPreferenceManager(context).resetBorder()
                     com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
                     context.getSharedPreferences("icebeats_global_stats", android.content.Context.MODE_PRIVATE).edit().clear().apply()
                     context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE).edit().clear().apply()
@@ -679,7 +677,8 @@ fun AccountSettings(
                                         ) {
                                             com.valora.icebeats.ui.component.AvatarDisplay(
                                                 size = 28.dp,
-                                                showBorder = false
+                                                showBorder = false,
+                                                enableMasterBorder = false
                                             )
                                         }
                                     }

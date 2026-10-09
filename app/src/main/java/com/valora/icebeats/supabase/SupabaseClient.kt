@@ -1279,7 +1279,7 @@ class SupabaseClient(private val context: Context) {
                 val anchorKey = "last_local_anchor_ms_${userId}"
 
                 if (arr.length() == 0) {
-                    // Akun baru belum punya data di cloud: set 0 jam & reset rank dan border
+                    // Akun baru belum punya data di cloud: set 0 jam & reset rank
                     prefs.edit()
                         .putLong(userKey, 0L)
                         .putLong("saved_max_total_listen_ms", 0L)
@@ -1287,7 +1287,7 @@ class SupabaseClient(private val context: Context) {
                         .putLong("last_local_anchor_ms", 0L)
                         .apply()
                     rankManager.saveDisplayedRank(null)
-                    borderManager.saveSelectedBorder(com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
+                    // PENTING: Jangan me-reset border pilihan pengguna
                     return@use
                 }
 
@@ -1308,13 +1308,12 @@ class SupabaseClient(private val context: Context) {
                 val newRank = if (serverHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(serverHours) else null
                 rankManager.saveDisplayedRank(newRank)
 
-                // Simpan border yang dipilih di server jika ada, atau default jika belum ada
-                val style = if (serverBorder != null) {
-                    com.valora.icebeats.ui.component.MasterBorderStyle.fromId(serverBorder)
-                } else {
-                    com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
+                // HANYA perbarui border lokal jika server secara eksplisit memiliki nilai borderStyle yang valid!
+                // Jika di server null/kosong, jangan me-reset pilihan border lokal pengguna.
+                if (serverBorder != null) {
+                    val style = com.valora.icebeats.ui.component.MasterBorderStyle.fromId(serverBorder)
+                    borderManager.saveSelectedBorder(style)
                 }
-                borderManager.saveSelectedBorder(style)
             }
         }
     }

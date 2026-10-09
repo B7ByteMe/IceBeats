@@ -40,20 +40,14 @@ fun AvatarDisplay(
     contentDescription: String? = null,
     userRank: icebeatsRank? = null,
     totalListenMs: Long? = null,
-    forceShowMaster: Boolean = false
+    forceShowMaster: Boolean = false,
+    enableMasterBorder: Boolean = true
 ) {
     val context = LocalContext.current
     val avatarManager = remember { AvatarPreferenceManager(context) }
     val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
 
-    MasterProfileBorder(
-        avatarSize = size,
-        modifier = modifier,
-        userRank = userRank,
-        totalListenMs = totalListenMs,
-        forceShowMaster = forceShowMaster,
-        isSelf = true
-    ) {
+    val innerAvatar: @Composable () -> Unit = {
         val displayModifier = if (showBorder) {
             Modifier
                 .size(size)
@@ -104,7 +98,26 @@ fun AvatarDisplay(
             }
         }
     }
-}
+
+    if (enableMasterBorder) {
+        MasterProfileBorder(
+            avatarSize = size,
+            modifier = modifier,
+            userRank = userRank,
+            totalListenMs = totalListenMs,
+            forceShowMaster = forceShowMaster,
+            isSelf = true
+        ) {
+            innerAvatar()
+        }
+    } else {
+        Box(
+            modifier = modifier.size(size),
+            contentAlignment = Alignment.Center
+        ) {
+            innerAvatar()
+        }
+    }
 }
 
 /** Variante peque•a para usar en listas o elementos compactos */

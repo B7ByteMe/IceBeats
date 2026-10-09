@@ -1321,7 +1321,8 @@ fun SettingsScreen(
                                             ) {
                                                 com.valora.icebeats.ui.component.AvatarDisplay(
                                                     size = 24.dp,
-                                                    showBorder = false
+                                                    showBorder = false,
+                                                    enableMasterBorder = false
                                                 )
                                             }
                                         } else {

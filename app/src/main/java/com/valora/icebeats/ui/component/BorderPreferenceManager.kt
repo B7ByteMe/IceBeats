@@ -155,20 +155,31 @@ private val Context.borderDataStore by preferencesDataStore("master_border_prefs
 class BorderPreferenceManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    companion object {
-        private val SELECTED_BORDER_KEY = stringPreferencesKey("selected_master_border")
+    private fun getCurrentUserId(): String {
+        val nameManager = NamePreferenceManager(context)
+        return com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
     }
 
+    private fun userBorderKey(uid: String) = stringPreferencesKey("selected_master_border_${uid}")
+    private val legacyBorderKey = stringPreferencesKey("selected_master_border")
+
     val selectedBorder: Flow<MasterBorderStyle> = context.borderDataStore.data.map { prefs ->
-        MasterBorderStyle.fromId(prefs[SELECTED_BORDER_KEY])
+        val uid = getCurrentUserId()
+        val userVal = if (uid.isNotBlank()) prefs[userBorderKey(uid)] else null
+        val finalVal = userVal ?: prefs[legacyBorderKey]
+        MasterBorderStyle.fromId(finalVal)
     }
 
     suspend fun saveSelectedBorder(style: MasterBorderStyle) {
         val isVip = VipSubscriptionManager(context).isVip.first()
         if (!isVip) return
 
+        val uid = getCurrentUserId()
         context.borderDataStore.edit { prefs ->
-            prefs[SELECTED_BORDER_KEY] = style.id
+            if (uid.isNotBlank()) {
+                prefs[userBorderKey(uid)] = style.id
+            }
+            prefs[legacyBorderKey] = style.id
         }
 
         // Sinkronkan pilihan border ke server Supabase user_stats agar unik per-akun
@@ -176,20 +187,21 @@ class BorderPreferenceManager @Inject constructor(
             runCatching {
                 val nameManager = NamePreferenceManager(context)
                 val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+                val userName = nameManager.userName.first().ifBlank { "IceBeats User" }
                 val email = nameManager.accountEmail.first().trim()
                 val anonKey = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_ANON_KEY
                 val baseUrl = com.valora.icebeats.supabase.SupabaseConfig.SUPABASE_URL
                 val authManager = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context)
                 val token = authManager.accessToken ?: anonKey
 
-                val targetUrl = if (email.isNotBlank()) {
-                    "$baseUrl/rest/v1/user_stats?or=(id.eq.$userId,email.eq.$email)"
-                } else {
-                    "$baseUrl/rest/v1/user_stats?id=eq.$userId"
-                }
-
+                // Upsert aman ke tabel user_stats dengan merge-duplicates
+                val targetUrl = "$baseUrl/rest/v1/user_stats?on_conflict=id"
                 val bodyJson = org.json.JSONObject().apply {
+                    put("id", userId)
+                    put("name", userName)
+                    if (email.isNotBlank()) put("email", email)
                     put("border_style", style.id)
+                    put("last_updated_at", System.currentTimeMillis())
                 }
 
                 val mediaType = "application/json; charset=utf-8".toMediaType()
@@ -199,12 +211,29 @@ class BorderPreferenceManager @Inject constructor(
                     .url(targetUrl)
                     .header("apikey", anonKey)
                     .header("Authorization", "Bearer $token")
+                    .header("Prefer", "resolution=merge-duplicates")
                     .header("Content-Type", "application/json")
-                    .patch(requestBody)
+                    .post(requestBody)
                     .build()
 
-                okhttp3.OkHttpClient().newCall(request).execute().close()
+                okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                    .writeTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                    .newCall(request)
+                    .execute()
+                    .close()
             }
+        }
+    }
+
+    suspend fun resetBorder() {
+        val uid = getCurrentUserId()
+        context.borderDataStore.edit { prefs ->
+            if (uid.isNotBlank()) {
+                prefs.remove(userBorderKey(uid))
+            }
+            prefs.remove(legacyBorderKey)
         }
     }
 }
