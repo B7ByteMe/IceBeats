@@ -1022,6 +1022,9 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                     onClick = {
                         showConfirmationDialog = false
                         showQrisStep = true
+                        scope.launch {
+                            vipManager.submitPendingPayment(selectedPlan)
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GoldPrimary,

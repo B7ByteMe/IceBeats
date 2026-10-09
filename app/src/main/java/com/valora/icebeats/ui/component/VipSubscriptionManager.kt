@@ -286,7 +286,7 @@ class VipSubscriptionManager @Inject constructor(
             val requestBody = bodyJson.toString().toRequestBody(mediaType)
 
             val request = Request.Builder()
-                .url("$baseUrl/rest/v1/user_subscriptions")
+                .url("$baseUrl/rest/v1/user_subscriptions?on_conflict=user_id")
                 .header("apikey", anonKey)
                 .header("Authorization", "Bearer $token")
                 .header("Content-Type", "application/json")
