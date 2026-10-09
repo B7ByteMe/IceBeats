@@ -93,6 +93,46 @@ enum class MasterBorderStyle(
         drawableResName = "border_crimson_bloom",
         scaleMultiplier = 1.68f,
         offsetYRatio = 0f
+    ),
+    DRAGON_KIRIN(
+        id = "dragon_kirin",
+        title = "Dragon Kirin",
+        description = "Naga Oriental Sakti, Ombak Giok & Rumbai Emas",
+        drawableResName = "border_dragon_kirin",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    PHOENIX_FEATHER(
+        id = "phoenix_feather",
+        title = "Phoenix Feather",
+        description = "Bulu Sayap Feniks Merah Muda, Mutiara & Teratai Mekar",
+        drawableResName = "border_phoenix_feather",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    VOID_RAVEN(
+        id = "void_raven",
+        title = "Void Raven Wings",
+        description = "Sayap Gagak Hitam Legam, Permata Rubi & Bola Bayangan Ungu",
+        drawableResName = "border_void_raven",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    CLOCKWORK_STAR(
+        id = "clockwork_star",
+        title = "Clockwork Star",
+        description = "Kompas Mekanikal Merah Menyala & Roda Bintang Berputar",
+        drawableResName = "border_clockwork_star",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
+    ),
+    COSMIC_NEBULA(
+        id = "cosmic_nebula",
+        title = "Cosmic Nebula",
+        description = "Orbit Planet Kristal Ungu, Cincin Galaksi & Bintang Kejora",
+        drawableResName = "border_cosmic_nebula",
+        scaleMultiplier = 1.68f,
+        offsetYRatio = 0f
     );
 
     companion object {
