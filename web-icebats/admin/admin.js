@@ -263,18 +263,21 @@ function setupEventListeners() {
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
   const target = document.getElementById(tabId);
-  if (target) target.classList.remove('hidden');
+  if (target) {
+    target.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
 
   // Update Nav State
   document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
-    btn.classList.remove('bg-blue-600/20', 'text-blue-400');
-    btn.classList.add('text-gray-400');
+    btn.classList.remove('active-nav-pill', 'text-white', 'bg-[#4f46e5]', 'bg-gradient-to-r', 'from-blue-600', 'to-indigo-600', 'shadow-md', 'shadow-indigo-500/25');
+    btn.classList.add('text-slate-600');
   });
 
   const activeBtn = document.getElementById('nav-' + tabId);
   if (activeBtn) {
-    activeBtn.classList.add('bg-blue-600/20', 'text-blue-400');
-    activeBtn.classList.remove('text-gray-400');
+    activeBtn.classList.add('active-nav-pill', 'text-white', 'bg-[#4f46e5]', 'shadow-sm');
+    activeBtn.classList.remove('text-slate-600');
   }
 
   // Close mobile sidebar if open
@@ -417,7 +420,7 @@ function renderTop5Table() {
 
   const top5 = allUsers.slice(0, 5);
   if (top5.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500">Belum ada data pengguna</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada data pengguna</td></tr>';
     return;
   }
 
@@ -426,20 +429,20 @@ function renderTop5Table() {
     const rank = getRankInfo(hours);
     const badgeHtml = rank
       ? `<span class="badge-tier ${rank.class}">${rank.name}</span>`
-      : '<span class="text-gray-500 text-xs">-</span>';
+      : '<span class="text-slate-400 text-xs">-</span>';
 
     return `
-      <tr class="hover:bg-gray-700/30 transition-colors">
-        <td class="px-4 py-3 font-extrabold text-amber-400">#${i + 1}</td>
-        <td class="px-4 py-3 font-semibold text-white flex items-center gap-2.5">
-          <img src="${u.profile_url || '../icebeats_logo.png'}" class="w-7 h-7 rounded-full object-cover" onerror="this.src='../icebeats_logo.png'">
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="px-4 py-3 font-extrabold text-amber-500">#${i + 1}</td>
+        <td class="px-4 py-3 font-semibold text-slate-800 flex items-center gap-2.5">
+          <img src="${u.profile_url || '../icebeats_logo.png'}" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200" onerror="this.src='../icebeats_logo.png'">
           <span>${escapeHtml(u.name)}</span>
         </td>
         <td class="px-4 py-3">${badgeHtml}</td>
-        <td class="px-4 py-3 font-bold text-white">${formatHours(u.total_listen_ms)}</td>
-        <td class="px-4 py-3 text-gray-400">${formatHours(u.weekly_listen_ms)}</td>
+        <td class="px-4 py-3 font-bold text-slate-900">${formatHours(u.total_listen_ms)}</td>
+        <td class="px-4 py-3 text-slate-400 font-medium">${formatHours(u.weekly_listen_ms)}</td>
         <td class="px-4 py-3 text-right">
-          <button onclick="openEditUserModal('${u.id}')" class="text-xs text-blue-400 hover:text-blue-300 font-medium">Edit</button>
+          <button onclick="openEditUserModal('${u.id}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold px-2 py-1 rounded bg-indigo-50">Edit</button>
         </td>
       </tr>
     `;
@@ -519,6 +522,7 @@ function renderUsersTable() {
       'crimson_wing': '<i class="fa-solid fa-feather text-rose-400 mr-1"></i> Crimson Wings',
       'fire_flame': '<i class="fa-solid fa-fire text-orange-400 mr-1"></i> Fire Flame',
       'golden_shield': '<i class="fa-solid fa-shield-halved text-yellow-400 mr-1"></i> Golden Champion'
+    };
     const userSub = allSubscriptions.find(s => s.user_id === u.id && (s.is_active || s.status === 'approved'));
     const isDev = (u.role === 'developer') || (userSub && userSub.plan_name && userSub.plan_name.toLowerCase().includes('developer'));
     const isPrem = !isDev && Boolean(userSub);
@@ -535,38 +539,41 @@ function renderUsersTable() {
       : '';
 
     return `
-      <tr class="hover:bg-gray-700/40 transition-colors border-b border-gray-700/60">
-        <td class="px-4 py-3.5 text-center font-bold text-gray-400">
-          ${rankNumber <= 3 ? `<span class="text-amber-400 text-base font-extrabold">#${rankNumber}</span>` : `#${rankNumber}`}
+      <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
+        <td class="px-4 py-3.5 text-center font-bold text-slate-400">
+          ${rankNumber <= 3 ? `<span class="text-amber-500 text-base font-extrabold">#${rankNumber}</span>` : `#${rankNumber}`}
         </td>
         <td class="px-4 py-3.5">
           <div class="flex items-center gap-3">
             <div class="relative w-8 h-8 flex items-center justify-center">
-              <img src="${u.profile_url || '../icebeats_logo.png'}" class="w-8 h-8 rounded-full object-cover" onerror="this.src='../icebeats_logo.png'">
-              ${isMasterPlus ? '<span class="absolute -top-1 -right-1 text-xs text-amber-400"><i class="fa-solid fa-crown"></i></span>' : ''}
+              <img src="${u.profile_url || '../icebeats_logo.png'}" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" onerror="this.src='../icebeats_logo.png'">
+              ${isMasterPlus ? '<span class="absolute -top-1 -right-1 text-xs text-amber-500"><i class="fa-solid fa-crown"></i></span>' : ''}
             </div>
             <div>
-              <div class="font-bold text-white text-sm flex items-center">
+              <div class="font-bold text-slate-800 text-sm flex items-center">
                 <span>${escapeHtml(u.name || 'User')}</span>
                 ${verifiedBadgeHtml}
               </div>
-              <div class="text-[11px] text-gray-500 font-mono">${escapeHtml(u.id || '')}</div>
+              <div class="text-[11px] text-slate-400 font-mono">${escapeHtml(u.id || '')}</div>
             </div>
           </div>
         </td>
-        <td class="px-4 py-3.5">${badgeHtml}${userBorderBadge}</td>
-        <td class="px-4 py-3.5 font-bold text-white">${formatHours(u.total_listen_ms)}</td>
-        <td class="px-4 py-3.5 text-gray-300 text-xs">${formatHours(u.weekly_listen_ms)}</td>
-        <td class="px-4 py-3.5 text-xs text-gray-400">${escapeHtml(u.email || '-')}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap">${badgeHtml}${userBorderBadge}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap font-bold text-slate-900">${formatHours(u.total_listen_ms)}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-slate-500 text-xs font-medium">${formatHours(u.weekly_listen_ms)}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-400">${escapeHtml(u.email || '-')}</td>
         <td class="px-4 py-3.5 text-right whitespace-nowrap">
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick="boostSingleUser('${u.id}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs rounded border border-amber-500/40 font-medium" title="Jadikan Top 1">
-              <i class="fa-solid fa-rocket mr-1 text-amber-400"></i> Top 1
+            <button onclick="openManualVipModal('${u.id}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs rounded-lg border border-amber-200 font-semibold shadow-sm transition flex items-center gap-1" title="Beri Akses Langganan VIP">
+              <i class="fa-solid fa-crown text-amber-500"></i> Beri VIP
             </button>
-            <button onclick="openEditUserModal('${u.id}')" class="px-2 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs rounded border border-blue-500/40 font-medium">
+            <button onclick="boostSingleUser('${u.id}')" class="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs rounded-lg border border-slate-200 font-semibold shadow-sm transition" title="Jadikan Top 1">
+              <i class="fa-solid fa-rocket mr-1 text-amber-500"></i> Top 1
+            </button>
+            <button onclick="openEditUserModal('${u.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs rounded-lg border border-indigo-200 font-semibold shadow-sm transition">
               <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
             </button>
-            <button onclick="deleteUser('${u.id}', '${escapeHtml(u.name)}')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs rounded border border-rose-500/40 font-medium">
+            <button onclick="deleteUser('${u.id}', '${escapeHtml(u.name)}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs rounded-lg border border-rose-200 font-semibold shadow-sm transition">
               <i class="fa-solid fa-trash mr-1"></i> Hapus
             </button>
           </div>
@@ -634,7 +641,20 @@ function openEditUserModal(userId) {
     }
   }
 
+  toggleEditVipDuration();
   openModal('userModal');
+}
+
+function toggleEditVipDuration() {
+  const role = document.getElementById('editVerificationRole')?.value;
+  const container = document.getElementById('editVipDurationContainer');
+  if (container) {
+    if (role === 'premium') {
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
+  }
 }
 
 async function saveUserChanges() {
@@ -682,9 +702,20 @@ async function saveUserChanges() {
     // Sync VIP / Developer role status to user_subscriptions
     try {
       const now = new Date();
-      const expiryDays = isDev ? 36500 : 365; // 100 Tahun untuk Developer, 1 Tahun untuk Premium
+      let expiryDays = 365;
+      let planTitle = 'Gratis';
+
+      if (isDev) {
+        expiryDays = 36500; // 100 Tahun Developer
+        planTitle = 'Developer';
+      } else if (isPrem) {
+        const vipPlanEl = document.getElementById('editVipPlanDuration');
+        const selectedVipOpt = vipPlanEl ? vipPlanEl.options[vipPlanEl.selectedIndex] : null;
+        expiryDays = selectedVipOpt ? (parseInt(selectedVipOpt.getAttribute('data-days')) || 365) : 365;
+        planTitle = selectedVipOpt ? selectedVipOpt.value : '1 Tahun (Sultan)';
+      }
+
       const newExpiry = new Date(now.getTime() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
-      const planTitle = isDev ? 'Developer' : (isPrem ? 'Admin VIP' : 'Gratis');
       const subPayload = {
         user_id: id,
         user_name: name,
@@ -693,8 +724,9 @@ async function saveUserChanges() {
         price: 0,
         status: isVipOrDev ? 'approved' : 'rejected',
         is_active: isVipOrDev,
+        starts_at: isVipOrDev ? now.toISOString() : null,
         expires_at: isVipOrDev ? newExpiry : null,
-        updated_at: new Date().toISOString()
+        updated_at: now.toISOString()
       };
       await fetch(`${appConfig.url}/rest/v1/user_subscriptions`, {
         method: 'POST',
@@ -723,6 +755,27 @@ async function deleteUser(id, name) {
     return;
   }
 
+  // 1. Coba hapus via Secure Admin RPC Gateway (Anti-Bypass)
+  try {
+    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_delete_user`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        p_admin_secret: "VALORA_VIP_ADMIN_SECURE_2026",
+        p_user_id: id
+      })
+    });
+    if (rpcRes.ok) {
+      showToast(`Pengguna "${name}" berhasil dihapus secara aman!`, 'success');
+      fetchUsers();
+      fetchVipSubscriptions();
+      return;
+    }
+  } catch (rpcErr) {
+    console.warn("RPC admin_delete_user fallback to direct DELETE:", rpcErr);
+  }
+
+  // 2. Fallback direct DELETE
   try {
     const res = await fetch(`${appConfig.url}/rest/v1/user_stats?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -987,7 +1040,7 @@ function showToast(message, type = 'info') {
   const bg = type === 'success' ? 'bg-emerald-600 text-white' :
              type === 'error' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white';
 
-  toast.className = `${bg} px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs font-semibold max-w-sm animate-bounce`;
+  toast.className = `${bg} px-4 py-3 rounded-xl shadow-lg border border-slate-200 flex items-center gap-3 text-xs font-bold max-w-sm transition-all`;
   const toastIcon = type === 'success' ? '<i class="fa-solid fa-circle-check text-sm"></i>' :
                     type === 'error' ? '<i class="fa-solid fa-circle-xmark text-sm"></i>' :
                     '<i class="fa-solid fa-circle-info text-sm"></i>';
@@ -1152,26 +1205,34 @@ function renderVipSubscriptionsTable() {
     const isApproved = sub.status === 'approved' || sub.is_active;
     const isExpired = sub.expires_at && new Date(sub.expires_at) < now;
 
+    // Resolving display name & email secara cerdas dari allUsers jika di database belum terisi
+    const matchedUser = allUsers.find(u => u.id === sub.user_id || (u.email && sub.email && u.email.toLowerCase() === sub.email.toLowerCase()));
+    const rawName = (sub.user_name || '').trim();
+    const effectiveName = (rawName && rawName !== 'User Tanpa Nama' && rawName !== 'User' && rawName !== 'null')
+      ? rawName
+      : (matchedUser && matchedUser.name ? matchedUser.name : (sub.email ? sub.email.split('@')[0] : (sub.user_id ? `Pengguna #${sub.user_id.substring(0, 8)}` : 'Pengguna IceBeats')));
+    const effectiveEmail = (sub.email && sub.email !== 'null') ? sub.email : ((matchedUser && matchedUser.email) ? matchedUser.email : '-');
+
     // Status Badge
     let statusBadge = '';
     if (isPending) {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-950/80 text-amber-300 border border-amber-600/70 inline-flex items-center gap-1.5 animate-pulse"><i class="fa-solid fa-hourglass-half"></i> Menunggu ACC</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-hourglass-half"></i> Menunggu ACC</span>`;
     } else if (isApproved && !isExpired) {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-600/70 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-400"></i> VIP Aktif</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> VIP Aktif</span>`;
     } else if (isExpired) {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-rose-950/80 text-rose-300 border border-rose-600/70 inline-flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Kadaluarsa</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-rose-50 text-rose-800 border border-rose-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Kadaluarsa</span>`;
     } else {
-      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-gray-800 text-gray-400 border border-gray-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-gray-400"></i> Ditolak</span>`;
+      statusBadge = `<span class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-slate-400"></i> Ditolak</span>`;
     }
 
     // Plan Badge & Styling
-    let planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-950 text-blue-300 border border-blue-800">${escapeHtml(sub.plan_name || 'VIP')}</span>`;
+    let planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-blue-50 text-blue-800 border border-blue-200">${escapeHtml(sub.plan_name || 'VIP')}</span>`;
     if ((sub.plan_name || '').includes('2 Bulan')) {
-      planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-purple-950 text-purple-300 border border-purple-800">2 Bulan (Populer)</span>`;
+      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-purple-50 text-purple-800 border border-purple-200">2 Bulan (Populer)</span>`;
     } else if ((sub.plan_name || '').includes('5 Bulan')) {
-      planBadge = `<span class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-950 text-amber-300 border border-amber-800">5 Bulan (Hemat)</span>`;
+      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-amber-50 text-amber-800 border border-amber-200">5 Bulan (Hemat)</span>`;
     } else if ((sub.plan_name || '').includes('Tahun') || (sub.plan_name || '').includes('Lifetime')) {
-      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-yellow-950 text-yellow-300 border border-yellow-700 inline-flex items-center gap-1"><i class="fa-solid fa-crown text-amber-400"></i> ${escapeHtml(sub.plan_name)}</span>`;
+      planBadge = `<span class="px-2 py-0.5 text-xs font-bold rounded bg-yellow-50 text-yellow-800 border border-yellow-300 inline-flex items-center gap-1"><i class="fa-solid fa-crown text-amber-600"></i> ${escapeHtml(sub.plan_name)}</span>`;
     }
 
     // Formatted Dates
@@ -1181,63 +1242,63 @@ function renderVipSubscriptionsTable() {
       const expDate = new Date(sub.expires_at);
       const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
       if (diffDays > 0) {
-        expiryText = `<span class="text-emerald-400 font-semibold">${formatDateTimeIndo(sub.expires_at)}</span><br><span class="text-[10px] text-gray-400">(${diffDays} hari lagi)</span>`;
+        expiryText = `<span class="text-emerald-700 font-bold">${formatDateTimeIndo(sub.expires_at)}</span><br><span class="text-[10px] text-slate-400">(${diffDays} hari lagi)</span>`;
       } else {
-        expiryText = `<span class="text-rose-400">${formatDateTimeIndo(sub.expires_at)}</span><br><span class="text-[10px] text-rose-500">(Berakhir)</span>`;
+        expiryText = `<span class="text-rose-700 font-bold">${formatDateTimeIndo(sub.expires_at)}</span><br><span class="text-[10px] text-rose-500">(Berakhir)</span>`;
       }
     } else if (isApproved) {
-      expiryText = `<span class="text-amber-400 font-bold">Selamanya (Lifetime)</span>`;
+      expiryText = `<span class="text-amber-800 font-bold">Selamanya (Lifetime)</span>`;
     }
 
     const priceFormatted = Number(sub.price) > 0 ? `Rp ${Number(sub.price).toLocaleString('id-ID')}` : 'Gratis / Promo';
 
     return `
-      <tr class="hover:bg-gray-700/30 transition border-b border-gray-700/60">
+      <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
         <td class="px-4 py-3.5">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full bg-amber-900/50 border border-amber-600/40 flex items-center justify-center text-amber-300 font-bold text-xs">
-              <i class="fa-solid fa-crown text-amber-400"></i>
+            <div class="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 font-bold text-xs">
+              <i class="fa-solid fa-crown text-amber-500"></i>
             </div>
             <div>
-              <div class="font-bold text-white text-xs">${escapeHtml(sub.user_name || 'User Tanpa Nama')}</div>
-              <div class="text-[11px] text-gray-400">${escapeHtml(sub.email || '-')}</div>
-              <div class="text-[10px] text-gray-500 font-mono mt-0.5 flex items-center gap-1">
+              <div class="font-bold text-slate-900 text-xs">${escapeHtml(effectiveName)}</div>
+              <div class="text-[11px] text-slate-400">${escapeHtml(effectiveEmail)}</div>
+              <div class="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
                 <span>ID: ${escapeHtml(sub.user_id || '')}</span>
-                <button onclick="navigator.clipboard.writeText('${sub.user_id}'); showToast('User ID disalin!', 'info')" class="hover:text-amber-300" title="Salin ID"><i class="fa-solid fa-copy"></i></button>
+                <button onclick="navigator.clipboard.writeText('${sub.user_id}'); showToast('User ID disalin!', 'info')" class="hover:text-indigo-600" title="Salin ID"><i class="fa-solid fa-copy"></i></button>
               </div>
             </div>
           </div>
         </td>
         <td class="px-4 py-3.5 whitespace-nowrap">${planBadge}</td>
-        <td class="px-4 py-3.5 whitespace-nowrap font-bold text-amber-300">${priceFormatted}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap font-bold text-slate-900">${priceFormatted}</td>
         <td class="px-4 py-3.5 whitespace-nowrap">${statusBadge}</td>
         <td class="px-4 py-3.5 whitespace-nowrap text-xs">${expiryText}</td>
-        <td class="px-4 py-3.5 whitespace-nowrap text-gray-400 text-xs">${orderDate}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-slate-400 text-xs">${orderDate}</td>
         <td class="px-4 py-3.5 whitespace-nowrap text-right">
           <div class="flex items-center justify-end gap-1.5">
             ${isPending ? `
-              <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded shadow flex items-center gap-1" title="ACC dan Aktifkan VIP di HP Pengguna">
+              <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-lg shadow-sm flex items-center gap-1 transition" title="ACC dan Aktifkan VIP di HP Pengguna">
                 <i class="fa-solid fa-check"></i> ACC
               </button>
-              <button onclick="rejectVipSubscription('${sub.id}')" class="px-2 py-1 bg-gray-700 hover:bg-rose-900 text-rose-300 text-xs rounded border border-rose-800 flex items-center gap-1" title="Tolak Pesanan">
+              <button onclick="rejectVipSubscription('${sub.id}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs rounded-lg border border-rose-200 font-bold flex items-center gap-1 transition" title="Tolak Pesanan">
                 <i class="fa-solid fa-xmark"></i> Tolak
               </button>
             ` : `
-              <button onclick="extendVipSubscription('${sub.id}', '${sub.expires_at || ''}', 30)" class="px-2 py-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs rounded border border-blue-500/40 flex items-center gap-1" title="Tambah Masa Aktif +30 Hari">
+              <button onclick="extendVipSubscription('${sub.id}', '${sub.expires_at || ''}', 30)" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs rounded-lg border border-indigo-200 font-bold flex items-center gap-1 transition" title="Tambah Masa Aktif +30 Hari">
                 <i class="fa-solid fa-hourglass-half"></i> +30 Hr
               </button>
               ${isApproved ? `
-                <button onclick="revokeVipSubscription('${sub.id}', '${sub.user_id}')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs rounded border border-rose-600/40 flex items-center gap-1" title="Nonaktifkan VIP">
+                <button onclick="revokeVipSubscription('${sub.id}', '${sub.user_id}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs rounded-lg border border-rose-200 font-bold flex items-center gap-1 transition" title="Nonaktifkan VIP">
                   <i class="fa-solid fa-stop"></i> Stop
                 </button>
               ` : `
-                <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 text-xs rounded border border-emerald-500/40 flex items-center gap-1" title="Aktifkan Kembali">
+                <button onclick="approveVipSubscription('${sub.id}', '${sub.user_id}', '${escapeHtml(sub.plan_name)}')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs rounded-lg border border-emerald-200 font-bold flex items-center gap-1 transition" title="Aktifkan Kembali">
                   <i class="fa-solid fa-play"></i> Aktifkan
                 </button>
               `}
             `}
-            <button onclick="deleteVipSubscription('${sub.id}')" class="p-1 text-gray-500 hover:text-rose-400 rounded" title="Hapus Data Pesanan">
-              <i class="fa-solid fa-trash"></i>
+            <button onclick="deleteVipSubscription('${sub.id}')" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Hapus Data Pesanan">
+              <i class="fa-solid fa-trash text-xs"></i>
             </button>
           </div>
         </td>
@@ -1247,13 +1308,23 @@ function renderVipSubscriptionsTable() {
 }
 
 async function approveVipSubscription(subId, userId, planName) {
+  let durationMonths = 1;
   let durationDays = 30;
-  if ((planName || '').includes('2 Bulan')) durationDays = 60;
-  else if ((planName || '').includes('5 Bulan')) durationDays = 150;
-  else if ((planName || '').includes('Tahun')) durationDays = 365;
+  if ((planName || '').includes('5 Bulan')) {
+    durationMonths = 5;
+    durationDays = 150;
+  } else if ((planName || '').includes('2 Bulan')) {
+    durationMonths = 2;
+    durationDays = 60;
+  } else if ((planName || '').includes('Tahun')) {
+    durationMonths = 12;
+    durationDays = 365;
+  }
 
   const now = new Date();
-  const newExpiry = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const newExpiryDate = new Date(now);
+  newExpiryDate.setMonth(newExpiryDate.getMonth() + durationMonths);
+  const newExpiry = newExpiryDate.toISOString();
 
   // Coba jalankan via Secure RPC terlebih dahulu
   try {
@@ -1263,6 +1334,7 @@ async function approveVipSubscription(subId, userId, planName) {
       body: JSON.stringify({
         p_admin_secret: 'VALORA_VIP_ADMIN_SECURE_2026',
         p_sub_id: subId,
+        p_duration_months: durationMonths,
         p_duration_days: durationDays
       })
     });
@@ -1279,8 +1351,9 @@ async function approveVipSubscription(subId, userId, planName) {
   const payload = {
     status: 'approved',
     is_active: true,
+    starts_at: now.toISOString(),
     expires_at: newExpiry,
-    updated_at: new Date().toISOString()
+    updated_at: now.toISOString()
   };
 
   try {
@@ -1306,9 +1379,9 @@ async function approveVipSubscription(subId, userId, planName) {
 async function rejectVipSubscription(subId) {
   if (!confirm('Apakah Anda yakin ingin menolak pesanan ini?')) return;
 
-  // Coba jalankan via Secure RPC
+  // Coba jalankan via Secure RPC admin_reject_vip
   try {
-    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_revoke_vip`, {
+    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_reject_vip`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
@@ -1322,7 +1395,7 @@ async function rejectVipSubscription(subId) {
       return;
     }
   } catch (rpcErr) {
-    console.warn('RPC admin_revoke_vip fallback to direct PATCH:', rpcErr);
+    console.warn('RPC admin_reject_vip fallback to direct PATCH:', rpcErr);
   }
 
   try {
@@ -1407,6 +1480,26 @@ async function revokeVipSubscription(subId, userId) {
 async function deleteVipSubscription(subId) {
   if (!confirm('Apakah Anda yakin ingin menghapus riwayat pesanan VIP ini secara permanen?')) return;
 
+  // 1. Coba hapus via Secure Admin RPC Gateway (Anti-Bypass)
+  try {
+    const rpcRes = await fetch(`${appConfig.url}/rest/v1/rpc/admin_delete_subscription`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        p_admin_secret: "VALORA_VIP_ADMIN_SECURE_2026",
+        p_sub_id: subId
+      })
+    });
+    if (rpcRes.ok) {
+      showToast('Riwayat pesanan VIP berhasil dihapus secara aman!', 'success');
+      await fetchVipSubscriptions();
+      return;
+    }
+  } catch (rpcErr) {
+    console.warn("RPC admin_delete_subscription fallback to direct DELETE:", rpcErr);
+  }
+
+  // 2. Direct delete fallback
   try {
     const res = await fetch(`${appConfig.url}/rest/v1/user_subscriptions?id=eq.${encodeURIComponent(subId)}`, {
       method: 'DELETE',
@@ -1423,7 +1516,7 @@ async function deleteVipSubscription(subId) {
 }
 
 // Manual VIP Grant Modal
-function openManualVipModal() {
+function openManualVipModal(prefillUserId) {
   const select = document.getElementById('manualVipUserSelect');
   if (select) {
     select.innerHTML = '<option value="">-- Pilih dari Pengguna Terdaftar --</option>';
@@ -1435,9 +1528,27 @@ function openManualVipModal() {
     });
   }
 
-  document.getElementById('manualVipUserId').value = '';
-  document.getElementById('manualVipUserName').value = '';
-  document.getElementById('manualVipUserEmail').value = '';
+  if (prefillUserId) {
+    const user = allUsers.find(u => u.id === prefillUserId);
+    if (user) {
+      if (select) select.value = user.id;
+      document.getElementById('manualVipUserId').value = user.id;
+      document.getElementById('manualVipUserName').value = user.name || '';
+      document.getElementById('manualVipUserEmail').value = user.email || '';
+    } else {
+      if (select) select.value = '';
+      document.getElementById('manualVipUserId').value = prefillUserId;
+      document.getElementById('manualVipUserName').value = '';
+      document.getElementById('manualVipUserEmail').value = '';
+    }
+  } else {
+    if (select) select.value = '';
+    document.getElementById('manualVipUserId').value = '';
+    document.getElementById('manualVipUserName').value = '';
+    document.getElementById('manualVipUserEmail').value = '';
+  }
+
+  onManualVipPlanChanged();
   openModal('manualVipModal');
 }
 
@@ -1454,21 +1565,89 @@ function onManualVipUserSelected() {
   }
 }
 
+function onManualVipPlanChanged() {
+  const planSelect = document.getElementById('manualVipPlanSelect');
+  if (!planSelect) return;
+  const selectedOpt = planSelect.options[planSelect.selectedIndex];
+  const customContainer = document.getElementById('manualVipCustomContainer');
+  const priceInput = document.getElementById('manualVipPrice');
+
+  if (planSelect.value === 'custom') {
+    if (customContainer) customContainer.classList.remove('hidden');
+    if (priceInput) priceInput.value = '0';
+  } else {
+    if (customContainer) customContainer.classList.add('hidden');
+    const defaultPrice = selectedOpt ? selectedOpt.getAttribute('data-price') : '0';
+    if (priceInput && defaultPrice !== null) {
+      priceInput.value = defaultPrice;
+    }
+  }
+
+  updateManualVipExpiryPreview();
+}
+
+function updateManualVipExpiryPreview() {
+  const planSelect = document.getElementById('manualVipPlanSelect');
+  if (!planSelect) return;
+  const selectedOpt = planSelect.options[planSelect.selectedIndex];
+  
+  let days = 30;
+  let planTitle = 'VIP Member';
+
+  if (planSelect.value === 'custom') {
+    days = parseInt(document.getElementById('manualVipCustomDays')?.value) || 30;
+    planTitle = document.getElementById('manualVipCustomTitle')?.value.trim() || `${days} Hari (Kustom)`;
+  } else if (selectedOpt) {
+    days = parseInt(selectedOpt.getAttribute('data-days')) || 30;
+    planTitle = selectedOpt.value;
+  }
+
+  const now = new Date();
+  const expiryDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const textEl = document.getElementById('manualVipExpiryText');
+  const dateEl = document.getElementById('manualVipExpiryDate');
+
+  if (textEl) {
+    if (days >= 36500) {
+      textEl.textContent = 'Masa aktif: SELAMANYA (Lifetime Member)';
+    } else {
+      textEl.textContent = `Masa aktif: ${days} Hari (${planTitle})`;
+    }
+  }
+
+  if (dateEl) {
+    if (days >= 36500) {
+      dateEl.textContent = 'Berakhir pada: Tidak Terbatas / Seumur Hidup';
+    } else {
+      dateEl.textContent = `Berakhir pada: ${formatDateTimeIndo(expiryDate.toISOString())}`;
+    }
+  }
+}
+
 async function submitManualVip() {
   const userId = document.getElementById('manualVipUserId').value.trim();
   const userName = document.getElementById('manualVipUserName').value.trim();
   const email = document.getElementById('manualVipUserEmail').value.trim();
   const planSelect = document.getElementById('manualVipPlanSelect');
   const selectedOpt = planSelect.options[planSelect.selectedIndex];
+  const priceInput = document.getElementById('manualVipPrice');
 
   if (!userId) {
     showToast('User ID tidak boleh kosong!', 'error');
     return;
   }
 
-  const planName = planSelect.value;
-  const days = parseInt(selectedOpt.getAttribute('data-days')) || 30;
-  const price = parseInt(selectedOpt.getAttribute('data-price')) || 0;
+  let planName = planSelect.value;
+  let days = parseInt(selectedOpt.getAttribute('data-days')) || 30;
+  let price = parseInt(priceInput?.value) || 0;
+
+  if (planSelect.value === 'custom') {
+    const customDays = parseInt(document.getElementById('manualVipCustomDays')?.value) || 30;
+    const customTitle = document.getElementById('manualVipCustomTitle')?.value.trim() || `${customDays} Hari (Kustom)`;
+    days = customDays;
+    planName = customTitle;
+  }
 
   const now = new Date();
   const newExpiry = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
@@ -1490,6 +1669,7 @@ async function submitManualVip() {
     if (rpcRes.ok) {
       closeModal('manualVipModal');
       showToast(`Akses VIP (${planName}) BERHASIL diberikan ke ${userName || userId}!`, 'success');
+      fetchUsers();
       await fetchVipSubscriptions();
       return;
     }
@@ -1505,8 +1685,9 @@ async function submitManualVip() {
     price: price,
     status: 'approved',
     is_active: true,
+    starts_at: now.toISOString(),
     expires_at: newExpiry,
-    updated_at: new Date().toISOString()
+    updated_at: now.toISOString()
   };
 
   try {
@@ -1523,6 +1704,7 @@ async function submitManualVip() {
 
     closeModal('manualVipModal');
     showToast(`Akses VIP (${planName}) berhasil diberikan ke ${userName || userId}!`, 'success');
+    fetchUsers();
     await fetchVipSubscriptions();
   } catch (err) {
     console.error(err);

@@ -50,8 +50,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.valora.icebeats.LocalDatabase
 import com.valora.icebeats.R
 import com.valora.icebeats.constants.PlaylistSortType
@@ -100,18 +102,28 @@ fun UserProfileSheet(
     val isVip by vipManager.isVip.collectAsState(initial = false)
     var showVipDialog by remember { mutableStateOf(false) }
 
+    var activeUser by remember(targetUser) { mutableStateOf(targetUser) }
+
+    LaunchedEffect(targetUser.id) {
+        if (!isSelf && targetUser.id.isNotBlank()) {
+            supabaseClient.getUserProfile(targetUser.id).onSuccess { freshUser ->
+                activeUser = freshUser
+            }
+        }
+    }
+
     val bannerPrefManager = remember { com.valora.icebeats.ui.component.BannerPreferenceManager(context) }
     val myBannerUrl by bannerPrefManager.bannerUrl.collectAsState(initial = null)
-    val displayBannerUrl = if (isSelf) myBannerUrl else targetUser.bannerUrl
+    val displayBannerUrl = if (isSelf) myBannerUrl else activeUser.bannerUrl
 
     // Hitung jam dengar & rank
-    val totalHours = (targetUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
-    val userRank = targetUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
+    val totalHours = (activeUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
+    val userRank = activeUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
     val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-        verificationBadge = targetUser.verificationBadge
+        verificationBadge = activeUser.verificationBadge
     )
     val isTargetVip = if (isSelf) isVip else (verType != com.valora.icebeats.ui.component.VerificationType.NONE)
-    val borderStyle = if (isTargetVip) MasterBorderStyle.fromIdOrNull(targetUser.borderStyle) else null
+    val borderStyle = MasterBorderStyle.fromIdOrNull(activeUser.borderStyle)
 
     // Muat data status pertemanan & playlist
     LaunchedEffect(targetUser.id, currentUserId) {
@@ -177,12 +189,43 @@ fun UserProfileSheet(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
                         ) {
-                            AsyncImage(
+                            SubcomposeAsyncImage(
                                 model = displayBannerUrl,
-                                contentDescription = "Banner Animasi ${targetUser.name}",
+                                contentDescription = "Banner Animasi ${activeUser.name}",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
-                            )
+                            ) {
+                                val state = painter.state
+                                if (state is AsyncImagePainter.State.Loading) {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = Color(0xFFFFD700),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                } else if (state is AsyncImagePainter.State.Error) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(Color(0xFF2B2206), Color(0xFF1A1A1E))
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.image),
+                                            contentDescription = null,
+                                            tint = Color.White.copy(alpha = 0.3f),
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                } else {
+                                    SubcomposeAsyncImageContent()
+                                }
+                            }
                             // Gradien halus di bagian bawah agar menyatu secara transparan dengan background tanpa garis kuning
                             Box(
                                 modifier = Modifier
@@ -210,7 +253,7 @@ fun UserProfileSheet(
                             MasterProfileBorder(
                                 avatarSize = 70.dp,
                                 userRank = userRank,
-                                totalListenMs = targetUser.totalListenMs,
+                                totalListenMs = activeUser.totalListenMs,
                                 borderStyle = if (isSelf) null else borderStyle,
                                 isSelf = isSelf
                             ) {
@@ -219,13 +262,40 @@ fun UserProfileSheet(
                                     color = MaterialTheme.colorScheme.primaryContainer,
                                     modifier = Modifier.size(70.dp)
                                 ) {
-                                    if (!targetUser.profileUrl.isNullOrBlank()) {
-                                        AsyncImage(
-                                            model = targetUser.profileUrl,
-                                            contentDescription = targetUser.name,
+                                    if (!activeUser.profileUrl.isNullOrBlank()) {
+                                        SubcomposeAsyncImage(
+                                            model = activeUser.profileUrl,
+                                            contentDescription = activeUser.name,
                                             modifier = Modifier.size(70.dp),
                                             contentScale = ContentScale.Crop
-                                        )
+                                        ) {
+                                            val state = painter.state
+                                            if (state is AsyncImagePainter.State.Loading) {
+                                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(20.dp),
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        strokeWidth = 2.dp
+                                                    )
+                                                }
+                                            } else if (state is AsyncImagePainter.State.Error) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(70.dp)
+                                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = activeUser.name.take(1).uppercase(),
+                                                        style = MaterialTheme.typography.headlineMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            } else {
+                                                SubcomposeAsyncImageContent()
+                                            }
+                                        }
                                     } else {
                                         Box(
                                             modifier = Modifier
@@ -241,7 +311,7 @@ fun UserProfileSheet(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = targetUser.name.take(1).uppercase(),
+                                                text = activeUser.name.take(1).uppercase(),
                                                 style = MaterialTheme.typography.headlineMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color.White
@@ -263,7 +333,7 @@ fun UserProfileSheet(
                         MasterProfileBorder(
                             avatarSize = 70.dp,
                             userRank = userRank,
-                            totalListenMs = targetUser.totalListenMs,
+                            totalListenMs = activeUser.totalListenMs,
                             borderStyle = if (isSelf) null else borderStyle,
                             isSelf = isSelf
                         ) {
@@ -272,13 +342,40 @@ fun UserProfileSheet(
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 modifier = Modifier.size(70.dp)
                             ) {
-                                if (!targetUser.profileUrl.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = targetUser.profileUrl,
-                                        contentDescription = targetUser.name,
+                                if (!activeUser.profileUrl.isNullOrBlank()) {
+                                    SubcomposeAsyncImage(
+                                        model = activeUser.profileUrl,
+                                        contentDescription = activeUser.name,
                                         modifier = Modifier.size(70.dp),
                                         contentScale = ContentScale.Crop
-                                    )
+                                    ) {
+                                        val state = painter.state
+                                        if (state is AsyncImagePainter.State.Loading) {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(20.dp),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    strokeWidth = 2.dp
+                                                )
+                                            }
+                                        } else if (state is AsyncImagePainter.State.Error) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(70.dp)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = activeUser.name.take(1).uppercase(),
+                                                    style = MaterialTheme.typography.headlineMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            }
+                                        } else {
+                                            SubcomposeAsyncImageContent()
+                                        }
+                                    }
                                 } else {
                                     Box(
                                         modifier = Modifier
@@ -294,7 +391,7 @@ fun UserProfileSheet(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = targetUser.name.take(1).uppercase(),
+                                            text = activeUser.name.take(1).uppercase(),
                                             style = MaterialTheme.typography.headlineMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White
@@ -315,7 +412,7 @@ fun UserProfileSheet(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = targetUser.name,
+                        text = activeUser.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -323,7 +420,7 @@ fun UserProfileSheet(
                         overflow = TextOverflow.Ellipsis
                     )
                     val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-                        verificationBadge = targetUser.verificationBadge
+                        verificationBadge = activeUser.verificationBadge
                     )
                     if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
                         Spacer(modifier = Modifier.width(6.dp))
@@ -565,7 +662,7 @@ fun UserProfileSheet(
                                     onClick = {
                                         if (isVip) {
                                             onDismiss()
-                                            onStartChat?.invoke(targetUser)
+                                            onStartChat?.invoke(activeUser)
                                         } else {
                                             showVipDialog = true
                                         }
@@ -711,7 +808,7 @@ fun UserProfileSheet(
         MasterBorderSelectorSheet(
             onDismiss = { showBorderSelector = false },
             userRank = userRank,
-            totalListenMs = targetUser.totalListenMs
+            totalListenMs = activeUser.totalListenMs
         )
     }
 

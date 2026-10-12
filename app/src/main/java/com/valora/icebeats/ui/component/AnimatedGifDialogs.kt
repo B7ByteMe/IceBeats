@@ -177,8 +177,9 @@ fun AnimatedAvatarGifDialog(
                 value = inputUrl,
                 onValueChange = {
                     inputUrl = it
-                    if (it.startsWith("http://") || it.startsWith("https://")) {
-                        previewUrl = it.trim()
+                    val trimmed = it.trim().replace("\n", "").replace("\r", "")
+                    if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+                        previewUrl = trimmed
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -215,6 +216,8 @@ fun AnimatedAvatarGifDialog(
                     onClick = {
                         scope.launch {
                             avatarManager.saveAvatarSelection(AvatarSelection.Default)
+                            val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
+                            supabaseClient.updateUserProfileFields(profileUrl = "")
                             Toast.makeText(context, "Avatar direset ke bawaan", Toast.LENGTH_SHORT).show()
                             onAvatarApplied?.invoke()
                             onDismiss()
@@ -228,10 +231,12 @@ fun AnimatedAvatarGifDialog(
 
                 Button(
                     onClick = {
-                        val clean = inputUrl.trim()
-                        if (clean.isNotBlank() && (clean.startsWith("http://") || clean.startsWith("https://"))) {
+                        val clean = inputUrl.trim().replace("\n", "").replace("\r", "")
+                        if (clean.isNotBlank() && (clean.startsWith("http://", ignoreCase = true) || clean.startsWith("https://", ignoreCase = true))) {
                             scope.launch {
                                 avatarManager.saveAvatarSelection(AvatarSelection.Gif(clean))
+                                val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
+                                supabaseClient.updateUserProfileFields(profileUrl = clean)
                                 Toast.makeText(context, "Avatar Animasi GIF berhasil diterapkan!", Toast.LENGTH_SHORT).show()
                                 onAvatarApplied?.invoke()
                                 onDismiss()
@@ -382,8 +387,9 @@ fun AnimatedBannerGifDialog(
                 value = inputUrl,
                 onValueChange = {
                     inputUrl = it
-                    if (it.startsWith("http://") || it.startsWith("https://")) {
-                        previewUrl = it.trim()
+                    val trimmed = it.trim().replace("\n", "").replace("\r", "")
+                    if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+                        previewUrl = trimmed
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -420,6 +426,8 @@ fun AnimatedBannerGifDialog(
                     onClick = {
                         scope.launch {
                             bannerManager.clearBannerUrl()
+                            val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
+                            supabaseClient.updateUserProfileFields(bannerUrl = "")
                             Toast.makeText(context, "Banner profil dihapus", Toast.LENGTH_SHORT).show()
                             onBannerApplied?.invoke()
                             onDismiss()
@@ -433,10 +441,12 @@ fun AnimatedBannerGifDialog(
 
                 Button(
                     onClick = {
-                        val clean = inputUrl.trim()
-                        if (clean.isNotBlank() && (clean.startsWith("http://") || clean.startsWith("https://"))) {
+                        val clean = inputUrl.trim().replace("\n", "").replace("\r", "")
+                        if (clean.isNotBlank() && (clean.startsWith("http://", ignoreCase = true) || clean.startsWith("https://", ignoreCase = true))) {
                             scope.launch {
                                 bannerManager.saveBannerUrl(clean)
+                                val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
+                                supabaseClient.updateUserProfileFields(bannerUrl = clean)
                                 Toast.makeText(context, "Banner Profil Animasi berhasil diterapkan!", Toast.LENGTH_SHORT).show()
                                 onBannerApplied?.invoke()
                                 onDismiss()

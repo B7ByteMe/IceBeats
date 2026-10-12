@@ -186,8 +186,16 @@ fun OnboardingScreen(
             currentUserName = name
             currentUserEmail = email
             namePrefManager.rememberGoogleLoginEmail(email)
-            namePrefManager.saveUserName(name)
             namePrefManager.saveAccountEmail(email)
+            if (isNewSignup) {
+                namePrefManager.saveUserName(name)
+                supabaseClient.updateUserProfileFields(name = name)
+            } else {
+                val currentName = namePrefManager.userName.first()
+                if (currentName.isBlank() || currentName.startsWith("Hai,")) {
+                    namePrefManager.saveUserName(name)
+                }
+            }
             if (!photoUrl.isNullOrBlank()) {
                 avatarPrefManager.saveAvatarSelection(
                     AvatarSelection.Custom(uri = photoUrl, cloudUrl = photoUrl)

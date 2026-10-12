@@ -32,8 +32,13 @@ val ColourfullPlayerColorKey = intPreferencesKey("colourfullPlayerColor")
 
 val VipStatusKey = booleanPreferencesKey("vip_status")
 val VipExpiresAtKey = longPreferencesKey("vip_expires_at")
+val VipStartsAtKey = longPreferencesKey("vip_starts_at")
 val VipPlanKey = stringPreferencesKey("vip_plan")
 val VipSignatureKey = stringPreferencesKey("vip_sig_token")
+val VipPendingTxIdKey = stringPreferencesKey("vip_pending_tx_id")
+val VipPendingPlanKey = stringPreferencesKey("vip_pending_plan")
+val VipPendingPriceKey = intPreferencesKey("vip_pending_price")
+val VipPendingCreatedAtKey = stringPreferencesKey("vip_pending_created_at")
 
 enum class SliderStyle {
     DEFAULT,

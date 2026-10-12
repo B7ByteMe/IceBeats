@@ -172,7 +172,11 @@ fun AccountSettings(
                     }
                 }
                 nameManager.rememberGoogleLoginEmail(email)
-                nameManager.saveUserName(name)
+                val currentName = nameManager.userName.first()
+                if (currentName.isBlank() || currentName.startsWith("Hai,") || currentName == "Friend") {
+                    nameManager.saveUserName(name)
+                    onAccountNameChange(name)
+                }
                 nameManager.saveAccountEmail(email)
                 if (!photoUrl.isNullOrBlank()) {
                     avatarManager.saveAvatarSelection(
@@ -1045,7 +1049,7 @@ fun AccountSettings(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Changes will be applied after restarting the app",
+                        text = "Perubahan nama langsung diterapkan di profil",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -1053,9 +1057,16 @@ fun AccountSettings(
             confirmButton = {
                 Button(
                     onClick = {
+                        val savedName = newName.text.trim()
+                        val finalName = if (savedName.isNotBlank()) savedName else "Hai, selamat datang di IceBeats"
                         scope.launch {
-                            val savedName = newName.text.trim()
-                            nameManager.saveUserName(if (savedName.isNotBlank()) savedName else "Hai, selamat datang di IceBeats")
+                            nameManager.saveUserName(finalName)
+                            onAccountNameChange(finalName)
+                            context.dataStore.edit { prefs ->
+                                prefs[com.valora.icebeats.constants.AccountNameKey] = finalName
+                            }
+                            supabaseClient.updateUserProfileFields(name = finalName)
+                            Toast.makeText(context, "Nama profil berhasil disimpan!", Toast.LENGTH_SHORT).show()
                         }
                         showEditNameDialog = false
                     }

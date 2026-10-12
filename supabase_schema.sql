@@ -1,5 +1,5 @@
 -- ==============================================================================
--- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.1.7)
+-- ICEBEATS SUPABASE DATABASE SCHEMA & RLS POLICIES (v7.1.8)
 -- Jalankan skrip ini di: Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- Aman dijalankan berulang kali (Idempotent & Anti-Crash)
 -- ==============================================================================
@@ -300,6 +300,7 @@ DROP POLICY IF EXISTS "Public can read user_stats" ON public.user_stats;
 DROP POLICY IF EXISTS "Public can insert or update user_stats" ON public.user_stats;
 DROP POLICY IF EXISTS "Public can insert user_stats" ON public.user_stats;
 DROP POLICY IF EXISTS "Public can update user_stats" ON public.user_stats;
+DROP POLICY IF EXISTS "Public can delete user_stats" ON public.user_stats;
 
 -- Policy 1: Publik dapat membaca leaderboard (SELECT)
 CREATE POLICY "Public can read user_stats"
@@ -308,16 +309,18 @@ FOR SELECT
 TO public
 USING (true);
 
--- Policy 2: Publik dapat menambah data (INSERT) dengan validasi
+-- Policy 2: Publik dapat menambah data (INSERT) dengan batasan anti-injeksi
 CREATE POLICY "Public can insert user_stats"
 ON public.user_stats
 FOR INSERT
 TO public
 WITH CHECK (
-    char_length(name) >= 1 
+    char_length(TRIM(name)) >= 1 
     AND char_length(name) <= 50 
     AND total_listen_ms >= 0 
     AND weekly_listen_ms >= 0
+    AND total_listen_ms <= 72000000000
+    AND (role IS NULL OR role = 'user')
 );
 
 -- Policy 3: Publik dapat memperbarui data (UPDATE) dengan validasi
@@ -327,7 +330,7 @@ FOR UPDATE
 TO public
 USING (true)
 WITH CHECK (
-    char_length(name) >= 1 
+    char_length(TRIM(name)) >= 1 
     AND char_length(name) <= 50 
     AND total_listen_ms >= 0 
     AND weekly_listen_ms >= 0
@@ -396,13 +399,8 @@ WITH CHECK (true);
 -- 7. IZIN HAPUS & PENGUNCI SKOR TERTINGGI (ANTI-RESET DARI HP)
 -- ==============================================================================
 
--- A. Izinkan operasi DELETE untuk publik/admin
+-- A. Operasi DELETE publik DICABUT (Hanya admin via RPC yang boleh menghapus)
 DROP POLICY IF EXISTS "Public can delete user_stats" ON public.user_stats;
-CREATE POLICY "Public can delete user_stats"
-ON public.user_stats
-FOR DELETE
-TO public
-USING (true);
 
 -- B. Trigger Pengunci Skor: Mencegah APK HP menimpa/me-reset jam dengar yang sudah tinggi
 CREATE OR REPLACE FUNCTION public.protect_user_stats_highscore()
@@ -422,6 +420,83 @@ CREATE TRIGGER trg_protect_user_stats
 BEFORE UPDATE ON public.user_stats
 FOR EACH ROW
 EXECUTE FUNCTION public.protect_user_stats_highscore();
+
+-- C. Trigger Anti-Injeksi & Validasi Ketat Server-Side
+CREATE OR REPLACE FUNCTION public.validate_user_stats_security()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.name IS NULL OR TRIM(NEW.name) = '' THEN
+        NEW.name := 'Pengguna IceBeats';
+    END IF;
+    NEW.name := SUBSTRING(REGEXP_REPLACE(NEW.name, '[<>;]', '', 'g') FROM 1 FOR 50);
+
+    -- Proteksi Role
+    IF TG_OP = 'UPDATE' THEN
+        IF NEW.role IS DISTINCT FROM OLD.role THEN
+            IF NEW.role IN ('developer', 'admin') AND (OLD.role IS NULL OR OLD.role NOT IN ('developer', 'admin')) THEN
+                NEW.role := COALESCE(OLD.role, 'user');
+            END IF;
+        END IF;
+    ELSE
+        IF NEW.role IN ('developer', 'admin') THEN
+            NEW.role := 'user';
+        END IF;
+    END IF;
+
+    -- Proteksi Border Style
+    IF NEW.border_style IS NOT NULL AND NEW.border_style <> '' THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM public.user_subscriptions 
+            WHERE user_id = NEW.id AND (is_active = true OR status = 'approved')
+        ) AND (NEW.role IS NULL OR NEW.role != 'developer') THEN
+            NEW.border_style := NULL;
+        END IF;
+    END IF;
+
+    -- Anti-Cheat Jam Dengar: Batasi angka tidak wajar (di atas 20.000 jam untuk user biasa)
+    IF NEW.total_listen_ms > 72000000000 AND (NEW.role IS NULL OR NEW.role != 'developer') THEN
+        RAISE EXCEPTION 'Skor jam mendengarkan melampaui batas wajar!';
+    END IF;
+
+    -- Anti-Cheat Lonjakan Drastis: Maksimal lompatan 1000 jam sekaligus
+    IF TG_OP = 'UPDATE' AND (NEW.role IS NULL OR NEW.role != 'developer') THEN
+        IF (NEW.total_listen_ms - OLD.total_listen_ms) > 3600000000 THEN
+            RAISE EXCEPTION 'Lonjakan jam mendengarkan terlalu drastis!';
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_validate_user_stats ON public.user_stats;
+CREATE TRIGGER trg_validate_user_stats
+BEFORE INSERT OR UPDATE ON public.user_stats
+FOR EACH ROW
+EXECUTE FUNCTION public.validate_user_stats_security();
+
+-- D. Secure RPC: Admin Hapus Pengguna (Dilindungi Secret Key)
+CREATE OR REPLACE FUNCTION public.admin_delete_user(
+    p_admin_secret TEXT,
+    p_user_id TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF p_admin_secret != 'VALORA_VIP_ADMIN_SECURE_2026' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Akses Ditolak: Kunci Admin Tidak Valid');
+    END IF;
+
+    DELETE FROM public.user_stats WHERE id = p_user_id;
+    DELETE FROM public.user_subscriptions WHERE user_id = p_user_id;
+
+    RETURN jsonb_build_object('success', true, 'message', 'Pengguna berhasil dihapus secara permanen.');
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_user TO anon, authenticated, service_role;
 
 
 -- ==============================================================================

@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IceBeats Admin - Flowbite Control Center v7.1.5</title>
+  <title>IceBeats - Dashboard</title>
   
   <!-- Tailwind CSS & Flowbite -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Arial', '"Helvetica Neue"', 'Helvetica', 'sans-serif'],
+          },
           colors: {
             primary: {
-              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-              800: '#1e40af', 900: '#1e3a8a'
+              50: '#f0f3ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+              400: '#818cf8', 500: '#5b73e8', 600: '#4f46e5', 700: '#4338ca',
+              800: '#3730a3', 900: '#312e81'
             }
           }
         }
@@ -28,281 +30,549 @@
   <link rel="stylesheet" href="admin.css">
   <link rel="shortcut icon" href="../icebeats_logo.png" type="image/png">
 </head>
-<body class="bg-gray-900 text-gray-200 min-h-screen antialiased flex flex-col">
+<body class="bg-[#f5f7fb] text-slate-800 min-h-screen antialiased flex flex-col font-sans">
 
   <!-- ================= MASTER ADMIN AUTHENTICATION GATE ================= -->
-  <div id="adminAuthGate" class="fixed inset-0 z-[9999] bg-gray-950/95 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="relative w-full max-w-md bg-gray-900 border border-blue-600/50 rounded-2xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
-      <div class="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-3xl shadow-lg shadow-blue-500/30 text-white">
+  <div id="adminAuthGate" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white border border-slate-100 rounded-3xl p-8 shadow-2xl text-center space-y-6">
+      <div class="mx-auto w-16 h-16 rounded-2xl bg-[#4f46e5] flex items-center justify-center text-3xl shadow-sm text-white">
         <i class="fa-solid fa-shield-halved"></i>
       </div>
       <div>
-        <h2 class="text-xl font-bold text-white tracking-wide">IceBeats Admin Security Guard</h2>
-        <p class="text-xs text-gray-400 mt-1">Sistem Keamanan Terenkripsi v7.1.5. Masukkan PIN / Sandi Master Administrator untuk mengakses dashboard.</p>
+        <h2 class="text-2xl font-bold text-slate-800 tracking-tight">IceBeats Security Guard</h2>
+        <p class="text-xs text-slate-500 mt-1">Sistem Keamanan Terenkripsi v7.1.5. Masukkan PIN / Sandi Master Administrator untuk mengakses dashboard.</p>
       </div>
 
       <form id="adminAuthForm" onsubmit="handleAdminLogin(event)" class="space-y-4">
         <div class="text-left">
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Sandi / PIN Administrator:</label>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Sandi / PIN Administrator:</label>
           <div class="relative">
             <input type="password" id="adminAuthInput" autocomplete="current-password" placeholder="Masukkan PIN / Password..." required
-              class="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-            <button type="button" onclick="togglePasswordVisibility('adminAuthInput')" class="absolute inset-y-0 right-0 px-3.5 flex items-center text-gray-400 hover:text-white">
+              class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none">
+            <button type="button" onclick="togglePasswordVisibility('adminAuthInput')" class="absolute inset-y-0 right-0 px-3.5 flex items-center text-slate-400 hover:text-slate-600">
               <i id="eyeIcon_adminAuthInput" class="fa-solid fa-eye text-sm"></i>
             </button>
           </div>
-          <p id="adminAuthError" class="text-xs text-rose-400 mt-1.5 hidden font-medium"></p>
+          <p id="adminAuthError" class="text-xs text-rose-500 mt-1.5 hidden font-medium"></p>
         </div>
 
         <button type="submit" id="btnAdminLogin"
-          class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+          class="w-full py-3.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2">
           <i class="fa-solid fa-lock-open mr-1"></i> Buka Akses Dashboard
         </button>
       </form>
 
-      <div class="pt-4 border-t border-gray-800 flex items-center justify-between text-[11px] text-gray-500">
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
         <span>Sesi Otomatis Terkunci 60 Menit</span>
-        <span class="text-emerald-400 flex items-center gap-1">● Anti-Brute Force Aktif</span>
+        <span class="text-emerald-600 font-semibold flex items-center gap-1">● Anti-Brute Force Aktif</span>
       </div>
     </div>
   </div>
 
-  <!-- ================= TOP NAVIGATION BAR ================= -->
-  <nav class="fixed top-0 z-50 w-full bg-gray-800 border-b border-gray-700">
-    <div class="px-3 py-3 lg:px-5 lg:pl-3">
+  <!-- ================= TOP NAVIGATION BAR (FREEDASH CLEAN HEADER) ================= -->
+  <nav class="fixed top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+    <div class="px-4 py-3 lg:px-6">
       <div class="flex items-center justify-between">
-        <!-- Brand & Mobile Toggle -->
-        <div class="flex items-center justify-start">
-          <button id="sidebarToggleBtn" type="button" class="inline-flex items-center p-2 text-sm text-gray-400 rounded-lg lg:hidden hover:bg-gray-700 focus:outline-none">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+        
+        <!-- Left: Brand Logo & Mobile Toggle -->
+        <div class="flex items-center justify-start gap-4">
+          <button id="sidebarToggleBtn" type="button" class="inline-flex items-center p-2 text-slate-500 rounded-xl lg:hidden hover:bg-slate-100 focus:outline-none">
+            <i class="fa-solid fa-bars-staggered text-lg"></i>
           </button>
-          <a href="#" class="flex items-center ml-2 md:mr-24 gap-3">
-            <img src="../icebeats_logo.png" class="h-8 w-8 rounded-lg" alt="IceBeats Logo" onerror="this.src='https://placehold.co/32x32/3b82f6/white?text=IB'">
-            <div class="flex flex-col">
-              <span class="self-center text-xl font-bold sm:text-2xl whitespace-nowrap text-white flex items-center gap-2">
-                IceBeats <span class="bg-blue-900 text-blue-300 text-xs font-semibold px-2 py-0.5 rounded border border-blue-600">Admin v7.1.5</span>
-              </span>
-            </div>
+          <a href="#" class="flex items-center gap-2.5">
+            <!-- IceBeats Brand Logo -->
+            <img src="../icebeats_logo.png" class="w-9 h-9 rounded-xl object-contain shadow-sm" alt="IceBeats Logo" onerror="this.src='../icebeats_logo.png'">
+            <span class="text-xl font-extrabold text-slate-900 tracking-tight">Dashboard</span>
           </a>
         </div>
 
-        <!-- Global Search & Actions -->
-        <div class="flex items-center gap-3">
-          <div class="hidden md:block">
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              </div>
-              <input type="text" id="globalSearchInput" placeholder="Cari nama / email user..." class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 pl-9 p-2">
+        <!-- Center / Right Header Controls -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          
+          <!-- Search Bar (Rounded Pill with Icon on Right) -->
+          <div class="hidden md:block relative">
+            <input type="text" id="globalSearchInput" placeholder="Search..." 
+              class="w-56 lg:w-72 bg-slate-50 border border-slate-200/90 text-slate-800 text-xs rounded-full pl-4 pr-9 py-2.5 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition outline-none">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+              <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </div>
           </div>
 
-          <!-- Status Database Pill -->
-          <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-700/80 border border-gray-600 text-xs">
-            <span id="dbStatusDot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
-            <span id="dbStatusText" class="text-gray-300 font-medium">Menghubungkan...</span>
+          <!-- Notification Bell with Count Badge 5 -->
+          <div class="relative">
+            <button class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-full transition relative" title="Notifikasi">
+              <i class="fa-regular fa-bell text-lg"></i>
+              <span class="absolute top-1 right-1 bg-indigo-600 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center ring-2 ring-white">5</span>
+            </button>
           </div>
 
-          <!-- Quick Top 1 Boost Button -->
-          <button onclick="openBoostModal()" class="text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 font-medium rounded-lg text-xs px-3.5 py-2 text-center flex items-center gap-1.5 shadow-lg shadow-orange-500/20">
-            <i class="fa-solid fa-crown text-amber-200"></i>
-            <span class="hidden sm:inline">Jadikan Saya</span> Top 1
-          </button>
-
           <!-- Settings Button -->
-          <button onclick="openModal('settingsModal')" class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700" title="Database API Settings">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <button onclick="openModal('settingsModal')" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-full transition" title="Database API Settings">
+            <i class="fa-solid fa-gear text-lg"></i>
           </button>
 
-          <!-- Lock / Logout Dashboard Button -->
-          <button onclick="handleAdminLogout()" class="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-gray-700 transition" title="Kunci Dashboard (Logout)">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-          </button>
+          <!-- Language / Locale Pill -->
+          <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs font-bold text-slate-600 cursor-pointer hover:bg-slate-100 transition">
+            <span>EN</span>
+            <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
+          </div>
+
+          <!-- Database Live Status Pill -->
+          <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-xs shadow-sm">
+            <span id="dbStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span id="dbStatusText" class="text-slate-600 font-medium">Terhubung</span>
+          </div>
+
+          <!-- Profile Chip on Far Right -->
+          <div class="flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-slate-200">
+            <img src="../icebeats_logo.png" class="w-9 h-9 rounded-full ring-2 ring-indigo-100 object-cover" alt="Admin Avatar" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=Admin'">
+            <div class="hidden sm:flex items-center gap-1.5 text-xs">
+              <span class="text-slate-500">Hello,</span>
+              <span class="font-bold text-slate-800">Jason Doe</span>
+              <button onclick="handleAdminLogout()" title="Logout" class="ml-1 text-slate-400 hover:text-rose-500 transition">
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   </nav>
 
-  <!-- ================= SIDEBAR ================= -->
-  <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-gray-800 border-r border-gray-700 lg:translate-x-0" aria-label="Sidebar">
-    <div class="h-full px-3 pb-4 overflow-y-auto bg-gray-800 flex flex-col justify-between">
-      <ul class="space-y-1.5 font-medium">
-        <li>
-          <button onclick="switchTab('dashboardTab')" id="nav-dashboardTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-gray-200 rounded-lg hover:bg-gray-700 group active-nav bg-blue-600/20 text-blue-400">
-            <svg class="w-5 h-5 text-gray-400 transition duration-75 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path></svg>
-            <span class="ml-3">Dashboard Overview</span>
+  <!-- ================= SIDEBAR (FREEDASH WHITE VERTICAL SIDEBAR) ================= -->
+  <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-slate-100 shadow-[2px_0_12px_rgba(0,0,0,0.02)] lg:translate-x-0" aria-label="Sidebar">
+    <div class="h-full px-4 pb-6 overflow-y-auto bg-white flex flex-col justify-between">
+      
+      <div class="space-y-6 pt-3">
+        <!-- Top Active Pill -->
+        <div>
+          <button onclick="switchTab('dashboardTab')" id="nav-dashboardTab" 
+            class="sidebar-nav-btn w-full flex items-center p-2.5 text-white rounded-xl group active-nav bg-[#4f46e5] shadow-sm">
+            <div class="w-5 h-5 flex items-center justify-center">
+              <i class="fa-solid fa-house text-sm"></i>
+            </div>
+            <span class="ml-3 font-semibold text-sm">Dashboard</span>
           </button>
-        </li>
-        <li>
-          <button onclick="switchTab('usersTab')" id="nav-usersTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-gray-400 rounded-lg hover:bg-gray-700 hover:text-white group">
-            <svg class="w-5 h-5 transition duration-75 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path></svg>
-            <span class="flex-1 ml-3 text-left whitespace-nowrap">Kelola Pengguna</span>
-            <span id="sidebarUserCount" class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-gray-300 bg-gray-700 rounded-full">0</span>
+        </div>
+
+        <!-- Section: APPLICATIONS -->
+        <div class="space-y-1">
+          <p class="text-[11px] font-bold text-slate-400 tracking-wider uppercase px-3 pb-1">Applications</p>
+          
+          <button onclick="switchTab('usersTab')" id="nav-usersTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-slate-700">
+              <i class="fa-solid fa-ticket-simple text-sm"></i>
+            </div>
+            <span class="flex-1 ml-3 text-left text-sm whitespace-nowrap">Ticket List (Users)</span>
+            <span id="sidebarUserCount" class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-bold text-slate-500 bg-slate-100 rounded-full">0</span>
           </button>
-        </li>
-        <li>
-          <button onclick="switchTab('vipTab')" id="nav-vipTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-gray-400 rounded-lg hover:bg-gray-700 hover:text-white group">
-            <svg class="w-5 h-5 transition duration-75 text-amber-400 group-hover:text-amber-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2l2.5 4.5 5 .7-3.6 3.5.9 5-4.8-2.5-4.8 2.5.9-5-3.6-3.5 5-.7L10 2z" clip-rule="evenodd"></path></svg>
-            <span class="flex-1 ml-3 text-left whitespace-nowrap">Langganan VIP (ACC)</span>
-            <span id="sidebarVipPendingCount" class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-amber-300 bg-amber-950/80 rounded-full border border-amber-700 hidden">0</span>
+
+          <button onclick="switchTab('chatTab')" id="nav-chatTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-slate-700">
+              <i class="fa-regular fa-comment-dots text-sm"></i>
+            </div>
+            <span class="flex-1 ml-3 text-left text-sm whitespace-nowrap">Chat</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
           </button>
-        </li>
-        <li>
-          <button onclick="switchTab('chatTab')" id="nav-chatTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-gray-400 rounded-lg hover:bg-gray-700 hover:text-white group">
-            <svg class="w-5 h-5 transition duration-75 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path></svg>
-            <span class="flex-1 ml-3 text-left whitespace-nowrap">Live Chat (v7.1.5)</span>
-            <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold text-emerald-400 bg-emerald-950/60 rounded border border-emerald-800">Aktif</span>
+
+          <button onclick="switchTab('musicTab')" id="nav-musicTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-slate-700">
+              <i class="fa-regular fa-calendar text-sm"></i>
+            </div>
+            <span class="ml-3 text-sm">Calendar (Music)</span>
           </button>
-        </li>
-        <li>
-          <button onclick="switchTab('bordersTab')" id="nav-bordersTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-gray-400 rounded-lg hover:bg-gray-700 hover:text-white group">
-            <svg class="w-5 h-5 transition duration-75 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
-            <span class="flex-1 ml-3 text-left whitespace-nowrap">Border Master (4 Opsi)</span>
-            <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold text-amber-400 bg-amber-950/60 rounded border border-amber-800">4 Desain</span>
+        </div>
+
+        <!-- Section: COMPONENTS -->
+        <div class="space-y-1">
+          <p class="text-[11px] font-bold text-slate-400 tracking-wider uppercase px-3 pb-1">Components</p>
+
+          <button onclick="switchTab('vipTab')" id="nav-vipTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-slate-700">
+              <i class="fa-regular fa-credit-card text-sm"></i>
+            </div>
+            <span class="flex-1 ml-3 text-left text-sm whitespace-nowrap">Cards (VIP Orders)</span>
+            <span id="sidebarVipPendingCount" class="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full hidden">0</span>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-300 ml-1"></i>
           </button>
-        </li>
-        <li>
-          <button onclick="switchTab('musicTab')" id="nav-musicTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-gray-400 rounded-lg hover:bg-gray-700 hover:text-white group">
-            <svg class="w-5 h-5 transition duration-75 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"></path></svg>
-            <span class="ml-3">Musik & Playlist Cloud</span>
+
+          <button onclick="switchTab('bordersTab')" id="nav-bordersTab" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-slate-700">
+              <i class="fa-solid fa-cube text-sm"></i>
+            </div>
+            <span class="flex-1 ml-3 text-left text-sm whitespace-nowrap">UI Elements (Border)</span>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-300 ml-1"></i>
           </button>
-        </li>
-      </ul>
+
+          <button onclick="openBoostModal()" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-slate-700">
+              <i class="fa-regular fa-file-lines text-sm"></i>
+            </div>
+            <span class="flex-1 ml-3 text-left text-sm whitespace-nowrap">Forms (Top 1)</span>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-300 ml-1"></i>
+          </button>
+        </div>
+
+        <!-- Section: AUTHENTICATION -->
+        <div class="space-y-1">
+          <p class="text-[11px] font-bold text-slate-400 tracking-wider uppercase px-3 pb-1">Authentication</p>
+
+          <button onclick="handleAdminLogout()" class="sidebar-nav-btn w-full flex items-center p-2.5 text-slate-600 rounded-xl hover:bg-rose-50 hover:text-rose-600 group">
+            <div class="w-5 h-5 flex items-center justify-center text-slate-400 group-hover:text-rose-500">
+              <i class="fa-solid fa-lock text-sm"></i>
+            </div>
+            <span class="ml-3 text-sm">Lock Dashboard</span>
+          </button>
+        </div>
+      </div>
 
       <!-- Footer Info -->
-      <div class="p-3 bg-gray-900/60 rounded-xl border border-gray-700/60 text-xs text-gray-400 space-y-1">
-        <div class="flex items-center justify-between font-semibold text-gray-300">
+      <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-500 space-y-1">
+        <div class="flex items-center justify-between font-bold text-slate-700">
           <span>IceBeats Cloud</span>
-          <span class="text-emerald-400">Aktif</span>
+          <span class="text-emerald-600 text-[11px] flex items-center gap-1">● Online</span>
         </div>
-        <p class="text-[11px] text-gray-500">Database Leaderboard, Auth, VIP & Chat v7.1.5</p>
+        <p class="text-[11px] text-slate-400">Control Center v7.1.5</p>
       </div>
     </div>
   </aside>
 
   <!-- ================= MAIN CONTENT WRAPPER ================= -->
-  <div class="p-4 sm:ml-64 pt-20 flex-1 bg-gray-900">
+  <div class="px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-12 lg:ml-64 flex-1 bg-[#f5f7fb] min-w-0">
 
-    <!-- ================= TAB 1: DASHBOARD OVERVIEW ================= -->
-    <div id="dashboardTab" class="tab-content space-y-6">
+    <!-- ================= TAB 1: DASHBOARD OVERVIEW (FREEDASH EXACT LAYOUT) ================= -->
+    <div id="dashboardTab" class="tab-content space-y-7">
       
-      <!-- Top Banner Fast Track -->
-      <div class="p-5 rounded-2xl bg-gradient-to-r from-blue-900/60 via-indigo-900/40 to-purple-900/50 border border-blue-700/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <!-- Greeting Header & Date Badge -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-xl font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-rocket text-amber-400"></i> Fast Track: Jadikan Akun Anda Peringkat #1
-          </h2>
-          <p class="text-sm text-gray-300 mt-1 max-w-2xl">
-            Pilih akun Anda dari database, tentukan keunggulan jam, dan skrip akan mengunci akun Anda sebagai Top 1 Leaderboard IceBeats secara permanen.
-          </p>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Good Morning Jason!</h1>
+          <p class="text-xs font-semibold text-slate-400 mt-1">Dashboard Overview</p>
         </div>
-        <button onclick="openBoostModal()" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 whitespace-nowrap flex items-center gap-1.5">
-          <i class="fa-solid fa-bolt"></i> Buka Booster Top 1
-        </button>
-      </div>
-
-      <!-- Flowbite Metric Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <!-- Card 1: Users -->
-        <div class="p-4 bg-gray-800 rounded-xl border border-gray-700 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Pengguna</p>
-            <h3 id="metricTotalUsers" class="text-2xl font-extrabold text-white mt-1">...</h3>
-            <span class="text-xs text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-              <span>●</span> Terdata di Cloud
-            </span>
-          </div>
-          <div class="p-3 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30 text-2xl flex items-center justify-center">
-            <i class="fa-solid fa-users"></i>
-          </div>
-        </div>
-
-        <!-- Card 2: Top 1 Leader -->
-        <div class="p-4 bg-gray-800 rounded-xl border border-gray-700 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Juara Top #1</p>
-            <h3 id="metricTop1User" class="text-xl font-extrabold text-amber-400 mt-1 truncate max-w-[150px]">...</h3>
-            <span id="metricTop1Hours" class="text-xs text-gray-300 font-semibold mt-1 block">0 Jam Dengar</span>
-          </div>
-          <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 text-2xl flex items-center justify-center">
-            <i class="fa-solid fa-crown"></i>
-          </div>
-        </div>
-
-        <!-- Card 3: Total Hours -->
-        <div class="p-4 bg-gray-800 rounded-xl border border-gray-700 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Waktu Dengar</p>
-            <h3 id="metricTotalHours" class="text-2xl font-extrabold text-white mt-1">...</h3>
-            <span class="text-xs text-indigo-400 font-semibold mt-1 block">Akumulasi Seluruh User</span>
-          </div>
-          <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30 text-2xl flex items-center justify-center">
-            <i class="fa-solid fa-hourglass-half"></i>
-          </div>
-        </div>
-
-        <!-- Card 4: Highest Tier -->
-        <div class="p-4 bg-gray-800 rounded-xl border border-gray-700 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Tier Tertinggi</p>
-            <h3 id="metricHighestBadge" class="text-xl font-extrabold text-purple-400 mt-1">...</h3>
-            <span class="text-xs text-gray-400 mt-1 block">Rank Teratas Saat Ini</span>
-          </div>
-          <div class="p-3 bg-purple-600/20 text-purple-400 rounded-xl border border-purple-500/30 text-2xl flex items-center justify-center">
-            <i class="fa-solid fa-award"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Leaderboard Showcase -->
-      <div class="bg-gray-800 rounded-xl border border-gray-700 p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-trophy text-amber-400"></i> Top 5 Pendengar Tertinggi
-          </h3>
-          <button onclick="switchTab('usersTab')" class="text-sm text-blue-400 hover:text-blue-300 font-medium">
-            Lihat Semua Pengguna →
+        <div>
+          <button class="bg-white border border-slate-200/80 shadow-sm rounded-full px-4 py-2 text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition">
+            <span>Aug 23</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
           </button>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm text-left text-gray-300">
-            <thead class="text-xs uppercase bg-gray-700/60 text-gray-400 border-b border-gray-700">
-              <tr>
-                <th class="px-4 py-3">Peringkat</th>
-                <th class="px-4 py-3">Pengguna</th>
-                <th class="px-4 py-3">Badge Tier</th>
-                <th class="px-4 py-3">Total Jam</th>
-                <th class="px-4 py-3">Jam Mingguan</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="top5TableBody" class="divide-y divide-gray-700/60">
-              <tr><td colspan="6" class="text-center py-6 text-gray-500">Memuat data...</td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
+
+      <!-- ROW 1: 4 STAT CARDS (FREEDASH METRIC ROW) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        
+        <!-- Card 1: New Clients -->
+        <div class="stat-card flex items-start justify-between">
+          <div>
+            <div class="flex items-baseline gap-2.5">
+              <h3 id="metricTotalUsers" class="text-3xl font-extrabold text-slate-900">236</h3>
+              <span class="bg-indigo-50 text-indigo-600 font-extrabold text-[11px] px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                +18.33%
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-slate-400 mt-1.5">New Clients</p>
+          </div>
+          <div class="text-slate-300 text-2xl pt-1">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Earnings of Month -->
+        <div class="stat-card flex items-start justify-between">
+          <div>
+            <div class="flex items-baseline gap-2">
+              <h3 class="text-3xl font-extrabold text-slate-900">$18,306</h3>
+            </div>
+            <p class="text-xs font-semibold text-slate-400 mt-1.5">Earnings of Month</p>
+          </div>
+          <div class="text-slate-300 text-2xl pt-1 font-bold">
+            $
+          </div>
+        </div>
+
+        <!-- Card 3: New Projects -->
+        <div class="stat-card flex items-start justify-between">
+          <div>
+            <div class="flex items-baseline gap-2.5">
+              <h3 class="text-3xl font-extrabold text-slate-900">1538</h3>
+              <span class="bg-rose-50 text-rose-500 font-extrabold text-[11px] px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                -18.33%
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-slate-400 mt-1.5">New Projects</p>
+          </div>
+          <div class="text-slate-300 text-2xl pt-1">
+            <i class="fa-regular fa-file-lines"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Projects (Leader Top 1) -->
+        <div class="stat-card flex items-start justify-between">
+          <div>
+            <div class="flex items-baseline gap-2">
+              <h3 id="metricTop1User" class="text-3xl font-extrabold text-slate-900 truncate max-w-[140px]">864</h3>
+            </div>
+            <p id="metricTop1Hours" class="text-xs font-semibold text-slate-400 mt-1.5">Projects</p>
+          </div>
+          <div class="text-slate-300 text-2xl pt-1">
+            <i class="fa-solid fa-globe"></i>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 2: 3 ANALYTICS PANELS (DONUT CHART, BAR CHART, LOCATION MAP) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Panel 1: Total Sales (Donut Chart) -->
+        <div class="analytics-panel flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Total Sales</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Distribusi Penjualan & Tier</p>
+          </div>
+
+          <!-- SVG Donut Chart -->
+          <div class="my-6 flex items-center justify-center relative">
+            <svg class="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
+              <!-- Background Ring -->
+              <circle cx="50" cy="50" r="38" stroke="#f1f5f9" stroke-width="10" fill="transparent" />
+              <!-- Direct Sales (Indigo/Blue Arc) ~ 45% -->
+              <circle class="donut-segment" cx="50" cy="50" r="38" stroke="#5b73e8" stroke-width="10" stroke-dasharray="107 132" stroke-dashoffset="0" fill="transparent" stroke-linecap="round" />
+              <!-- Referral Sales (Rose Arc) ~ 35% -->
+              <circle class="donut-segment" cx="50" cy="50" r="38" stroke="#f65160" stroke-width="10" stroke-dasharray="83 156" stroke-dashoffset="-112" fill="transparent" stroke-linecap="round" />
+              <!-- Affiliate Sales (Cyan Arc) ~ 20% -->
+              <circle class="donut-segment" cx="50" cy="50" r="38" stroke="#00c5dc" stroke-width="10" stroke-dasharray="48 191" stroke-dashoffset="-200" fill="transparent" stroke-linecap="round" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span class="text-xs font-semibold text-slate-400">Sales</span>
+            </div>
+          </div>
+
+          <!-- Legend List -->
+          <div class="space-y-3 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#5b73e8]"></span>
+                <span class="font-medium text-slate-600">Direct Sales</span>
+              </div>
+              <span class="font-bold text-slate-900">$2346</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#f65160]"></span>
+                <span class="font-medium text-slate-600">Referral Sales</span>
+              </div>
+              <span class="font-bold text-slate-900">$2108</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#00c5dc]"></span>
+                <span class="font-medium text-slate-600">Affiliate Sales</span>
+              </div>
+              <span class="font-bold text-slate-900">$1204</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Net Income (Bar Chart) -->
+        <div class="analytics-panel flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Net Income</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Grafik Tren Bulanan</p>
+          </div>
+
+          <!-- Vertical Bar Chart Area -->
+          <div class="my-4 relative h-52 flex items-end justify-between px-2 pt-6">
+            <!-- Y-Axis Grid Lines & Numbers -->
+            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-slate-300 font-mono pr-2">
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>10</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>8.75</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>7.5</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>6.25</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>5</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>3.75</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>2.5</span></div>
+              <div class="border-b border-dashed border-slate-100 w-full flex justify-between"><span>1.25</span></div>
+              <div class="border-b border-slate-200 w-full flex justify-between"><span>0</span></div>
+            </div>
+
+            <!-- 6 Vertical Bars (Jan - Jun) -->
+            <div class="w-full flex items-end justify-around z-10 pl-6 h-full pb-5">
+              <!-- Jan: 5.0 -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-3.5 sm:w-4 bg-[#5b73e8] rounded-t-sm group-hover:bg-[#4860d5] transition-all" style="height: 50%;"></div>
+                <span class="text-[10px] font-medium text-slate-400">Jan</span>
+              </div>
+              <!-- Feb: 3.8 -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-3.5 sm:w-4 bg-[#5b73e8] rounded-t-sm group-hover:bg-[#4860d5] transition-all" style="height: 38%;"></div>
+                <span class="text-[10px] font-medium text-slate-400">Feb</span>
+              </div>
+              <!-- Mar: 2.8 -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-3.5 sm:w-4 bg-[#5b73e8] rounded-t-sm group-hover:bg-[#4860d5] transition-all" style="height: 28%;"></div>
+                <span class="text-[10px] font-medium text-slate-400">Mar</span>
+              </div>
+              <!-- Apr: 7.0 -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-3.5 sm:w-4 bg-[#5b73e8] rounded-t-sm group-hover:bg-[#4860d5] transition-all" style="height: 70%;"></div>
+                <span class="text-[10px] font-medium text-slate-400">Apr</span>
+              </div>
+              <!-- May: 4.8 -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-3.5 sm:w-4 bg-[#5b73e8] rounded-t-sm group-hover:bg-[#4860d5] transition-all" style="height: 48%;"></div>
+                <span class="text-[10px] font-medium text-slate-400">May</span>
+              </div>
+              <!-- Jun: 10.0 (Peak) -->
+              <div class="flex flex-col items-center gap-2 group cursor-pointer">
+                <div class="w-3.5 sm:w-4 bg-[#5b73e8] rounded-t-sm group-hover:bg-[#4860d5] transition-all" style="height: 100%;"></div>
+                <span class="text-[10px] font-medium text-slate-400">Jun</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center pt-2">
+            <p class="text-xs text-slate-400 italic">Sales for this month</p>
+          </div>
+        </div>
+
+        <!-- Panel 3: Earning by Location (World Map & Progress Bars) -->
+        <div class="analytics-panel flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Earning by Location</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Distribusi Wilayah & Pengguna</p>
+          </div>
+
+          <!-- Minimalist World Map Illustration SVG -->
+          <div class="my-4 flex items-center justify-center">
+            <svg class="w-full h-32 text-slate-200" viewBox="0 0 400 200" fill="currentColor">
+              <!-- Stylized World Map Shapes -->
+              <path d="M45,40 Q60,20 90,30 Q110,35 105,60 Q95,75 80,85 Q60,70 45,40 Z" opacity="0.8"/>
+              <path d="M85,95 Q105,100 110,120 Q105,150 90,170 Q75,150 80,110 Z" opacity="0.8"/>
+              <path d="M170,30 Q220,25 240,45 Q230,70 200,65 Q180,55 170,30 Z" opacity="0.8"/>
+              <path d="M190,75 Q220,70 230,105 Q220,140 195,140 Q180,110 190,75 Z" opacity="0.8"/>
+              <path d="M250,40 Q320,35 340,75 Q320,105 270,95 Q250,70 250,40 Z" opacity="0.8"/>
+              <path d="M300,120 Q330,120 335,145 Q320,165 295,155 Q290,135 300,120 Z" opacity="0.8"/>
+            </svg>
+          </div>
+
+          <!-- Country Progress Bars -->
+          <div class="space-y-3 pt-2">
+            <!-- India -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="w-14 text-slate-500 font-medium">India</span>
+              <div class="flex-1 mx-3 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-[#5b73e8] h-1.5 rounded-full" style="width: 28%"></div>
+              </div>
+              <span class="w-8 text-right font-bold text-slate-800">28%</span>
+            </div>
+            <!-- UK -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="w-14 text-slate-500 font-medium">UK</span>
+              <div class="flex-1 mx-3 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-[#f65160] h-1.5 rounded-full" style="width: 21%"></div>
+              </div>
+              <span class="w-8 text-right font-bold text-slate-800">21%</span>
+            </div>
+            <!-- USA -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="w-14 text-slate-500 font-medium">USA</span>
+              <div class="flex-1 mx-3 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-[#00c5dc] h-1.5 rounded-full" style="width: 18%"></div>
+              </div>
+              <span class="w-8 text-right font-bold text-slate-800">18%</span>
+            </div>
+            <!-- China -->
+            <div class="flex items-center justify-between text-xs">
+              <span class="w-14 text-slate-500 font-medium">China</span>
+              <div class="flex-1 mx-3 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-[#2dd4bf] h-1.5 rounded-full" style="width: 12%"></div>
+              </div>
+              <span class="w-8 text-right font-bold text-slate-800">12%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 3: TOP 5 LEADERBOARD & FAST TRACK BOOSTER -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+        <!-- Fast Track Action Card (1 col) -->
+        <div class="stat-card flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-lg text-amber-600 mb-3.5">
+              <i class="fa-solid fa-crown"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 tracking-tight">Kunci Akun Top 1</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+              Tentukan keunggulan jam Anda dan kunci akun sebagai Juara #1 Leaderboard secara instan & anti-reset.
+            </p>
+          </div>
+          <div class="pt-5">
+            <button onclick="openBoostModal()" class="w-full py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-rocket"></i> Buka Pengaturan Top 1
+            </button>
+          </div>
+        </div>
+
+        <!-- Top 5 Showcase Table (2 cols) -->
+        <div class="xl:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-amber-500"></i> Top 5 Pendengar Tertinggi
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Peringkat teratas klasemen live</p>
+            </div>
+            <button onclick="switchTab('usersTab')" class="text-xs text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1">
+              Lihat Semua Pengguna <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[650px] text-xs text-left text-slate-600">
+              <thead class="text-[11px] uppercase bg-slate-50 text-slate-400 font-bold border-b border-slate-100 whitespace-nowrap">
+                <tr>
+                  <th class="px-4 py-3">Peringkat</th>
+                  <th class="px-4 py-3">Pengguna</th>
+                  <th class="px-4 py-3">Badge Tier</th>
+                  <th class="px-4 py-3">Total Jam</th>
+                  <th class="px-4 py-3">Jam Mingguan</th>
+                  <th class="px-4 py-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="top5TableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="text-center py-6 text-slate-400">Memuat data pengguna...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
     </div>
 
-    <!-- ================= TAB 2: KELOLA PENGGUNA ================= -->
-    <div id="usersTab" class="tab-content hidden space-y-4">
+    <!-- ================= TAB 2: KELOLA PENGGUNA (USERS TAB) ================= -->
+    <div id="usersTab" class="tab-content hidden space-y-5">
       
       <!-- Toolbar Filter & Search -->
-      <div class="p-4 bg-gray-800 rounded-xl border border-gray-700 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div class="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3 flex-1">
           <!-- Search -->
           <div class="relative flex-1 min-w-[220px]">
-            <input type="text" id="usersSearchInput" placeholder="Cari nama, email, atau ID user..." class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-9 p-2.5">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
+            <input type="text" id="usersSearchInput" placeholder="Cari nama, email, atau ID user..." 
+              class="bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-9 p-2.5 transition">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
           </div>
 
           <!-- Rank Tier Filter -->
-          <select id="rankFilterSelect" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5">
+          <select id="rankFilterSelect" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 p-2.5 font-medium">
             <option value="">Semua Tier / Badge</option>
           </select>
 
           <!-- Sort Select -->
-          <select id="sortSelect" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5">
+          <select id="sortSelect" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 p-2.5 font-medium">
             <option value="total_desc">Total Jam (Terbanyak)</option>
             <option value="total_asc">Total Jam (Tersedikit)</option>
             <option value="weekly_desc">Jam Mingguan (Terbanyak)</option>
@@ -311,20 +581,20 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button onclick="fetchUsers()" class="p-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg border border-gray-600" title="Refresh Data">
-            <i class="fa-solid fa-arrows-rotate text-sm"></i>
+          <button onclick="fetchUsers()" class="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition shadow-sm" title="Refresh Data">
+            <i class="fa-solid fa-arrows-rotate text-xs"></i>
           </button>
-          <button onclick="openAddUserModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20">
+          <button onclick="openAddUserModal()" class="px-4 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl text-xs flex items-center gap-2 transition">
             <i class="fa-solid fa-plus text-xs"></i> Tambah Pengguna
           </button>
         </div>
       </div>
 
-      <!-- Flowbite User Table -->
-      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
+      <!-- Flowbite User Table (White Card) -->
+      <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm text-left text-gray-300">
-            <thead class="text-xs uppercase bg-gray-700 text-gray-300 border-b border-gray-600">
+          <table class="w-full min-w-[780px] text-xs text-left text-slate-600">
+            <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-100 whitespace-nowrap">
               <tr>
                 <th class="px-4 py-3.5 w-12 text-center">Rank</th>
                 <th class="px-4 py-3.5">Pengguna</th>
@@ -335,23 +605,23 @@
                 <th class="px-4 py-3.5 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody id="userTableBody" class="divide-y divide-gray-700">
-              <tr><td colspan="7" class="text-center py-10 text-gray-500">Memuat data pengguna...</td></tr>
+            <tbody id="userTableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="7" class="text-center py-10 text-slate-400">Memuat data pengguna...</td></tr>
             </tbody>
           </table>
         </div>
 
         <!-- Pagination Bar -->
-        <div class="p-4 bg-gray-800 border-t border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+        <div class="p-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div>
-            Menampilkan <span id="pageInfoStart" class="font-bold text-white">0</span> - <span id="pageInfoEnd" class="font-bold text-white">0</span> dari <span id="pageInfoTotal" class="font-bold text-white">0</span> pengguna
+            Menampilkan <span id="pageInfoStart" class="font-bold text-slate-800">0</span> - <span id="pageInfoEnd" class="font-bold text-slate-800">0</span> dari <span id="pageInfoTotal" class="font-bold text-slate-800">0</span> pengguna
           </div>
           <div class="flex items-center gap-2">
-            <button id="btnPrevPage" onclick="prevPage()" class="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white disabled:opacity-40 disabled:cursor-not-allowed">
+            <button id="btnPrevPage" onclick="prevPage()" class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition">
               ← Sebelumnya
             </button>
-            <span id="pageCurrent" class="px-3 py-1.5 font-bold text-white bg-gray-700/60 rounded-lg">1</span>
-            <button id="btnNextPage" onclick="nextPage()" class="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white disabled:opacity-40 disabled:cursor-not-allowed">
+            <span id="pageCurrent" class="px-3 py-1.5 font-bold text-indigo-600 bg-indigo-50 rounded-lg">1</span>
+            <button id="btnNextPage" onclick="nextPage()" class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition">
               Selanjutnya →
             </button>
           </div>
@@ -359,70 +629,70 @@
       </div>
     </div>
 
-    <!-- ================= TAB: LANGGANAN VIP (ACC MEMBER v7.1.5) ================= -->
+    <!-- ================= TAB 3: LANGGANAN VIP (ACC MEMBER) ================= -->
     <div id="vipTab" class="tab-content hidden space-y-6">
       
       <!-- Top Action Bar -->
-      <div class="p-5 rounded-xl bg-gray-800 border border-gray-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-crown text-amber-400"></i> Persetujuan & Manajemen Langganan VIP <span class="text-xs bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded border border-amber-600">v7.1.5 ACC Center</span>
+          <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-crown text-amber-500"></i> Persetujuan & Manajemen Langganan VIP
           </h3>
-          <p class="text-xs text-gray-400 mt-1">
-            Konfirmasi transfer QRIS Valora Store, ACC pesanan otomatis aktif di HP user, atur masa aktif, atau berikan akses VIP manual.
+          <p class="text-xs text-slate-400 mt-1">
+            Konfirmasi transfer QRIS, ACC pesanan otomatis aktif di aplikasi, atur masa aktif, atau berikan akses manual.
           </p>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button onclick="fetchVipSubscriptions()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded-lg flex items-center gap-1.5 transition">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <button onclick="fetchVipSubscriptions()" class="px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition">
             <i class="fa-solid fa-arrows-rotate"></i> Refresh Pesanan
           </button>
-          <button onclick="openManualVipModal()" class="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-gray-950 font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-md transition">
+          <button onclick="openManualVipModal()" class="px-4 py-2.5 bg-[#d97706] hover:bg-[#b45309] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition">
             <i class="fa-solid fa-plus"></i> Beri VIP Manual
           </button>
         </div>
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="p-4 bg-gray-800/80 rounded-xl border border-amber-700/40 flex items-center gap-4">
-          <div class="p-3 bg-amber-950/70 border border-amber-600/40 rounded-xl text-amber-400 text-2xl flex items-center justify-center">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div class="stat-card flex items-center gap-4">
+          <div class="p-3 bg-amber-50 text-amber-600 rounded-2xl text-2xl flex items-center justify-center">
             <i class="fa-solid fa-crown"></i>
           </div>
           <div>
-            <div class="text-xs text-gray-400 font-medium">Member VIP Aktif</div>
-            <div id="statVipActiveCount" class="text-2xl font-black text-amber-300 mt-0.5">0</div>
-            <div class="text-[10px] text-emerald-400 mt-0.5">Fitur Unlocked di Aplikasi</div>
+            <div class="text-xs text-slate-400 font-semibold">Member VIP Aktif</div>
+            <div id="statVipActiveCount" class="text-2xl font-black text-slate-900 mt-0.5">0</div>
+            <div class="text-[10px] text-emerald-600 font-medium mt-0.5">Fitur Unlocked</div>
           </div>
         </div>
 
-        <div class="p-4 bg-gray-800/80 rounded-xl border border-blue-700/40 flex items-center gap-4">
-          <div class="p-3 bg-blue-950/70 border border-blue-600/40 rounded-xl text-blue-400 text-2xl flex items-center justify-center">
+        <div class="stat-card flex items-center gap-4">
+          <div class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl text-2xl flex items-center justify-center">
             <i class="fa-solid fa-hourglass-half"></i>
           </div>
           <div>
-            <div class="text-xs text-gray-400 font-medium">Menunggu ACC (Pending)</div>
-            <div id="statVipPendingCount" class="text-2xl font-black text-blue-300 mt-0.5">0</div>
-            <div class="text-[10px] text-amber-400 mt-0.5">Butuh konfirmasi transfer QRIS</div>
+            <div class="text-xs text-slate-400 font-semibold">Menunggu ACC (Pending)</div>
+            <div id="statVipPendingCount" class="text-2xl font-black text-slate-900 mt-0.5">0</div>
+            <div class="text-[10px] text-amber-600 font-medium mt-0.5">Perlu Dicek</div>
           </div>
         </div>
 
-        <div class="p-4 bg-gray-800/80 rounded-xl border border-emerald-700/40 flex items-center gap-4">
-          <div class="p-3 bg-emerald-950/70 border border-emerald-600/40 rounded-xl text-emerald-400 text-2xl flex items-center justify-center">
+        <div class="stat-card flex items-center gap-4">
+          <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl text-2xl flex items-center justify-center">
             <i class="fa-solid fa-coins"></i>
           </div>
           <div>
-            <div class="text-xs text-gray-400 font-medium">Total Pendapatan Ter-ACC</div>
-            <div id="statVipTotalRevenue" class="text-2xl font-black text-emerald-300 mt-0.5">Rp 0</div>
-            <div class="text-[10px] text-gray-400 mt-0.5">Dari paket 1, 2, & 5 Bulan</div>
+            <div class="text-xs text-slate-400 font-semibold">Total Pendapatan Ter-ACC</div>
+            <div id="statVipTotalRevenue" class="text-2xl font-black text-slate-900 mt-0.5">Rp 0</div>
+            <div class="text-[10px] text-slate-400 font-medium mt-0.5">Dari paket 1, 2, & 5 Bulan</div>
           </div>
         </div>
       </div>
 
       <!-- Filter & Search Toolbar -->
-      <div class="p-4 rounded-xl bg-gray-800/80 border border-gray-700 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div class="flex items-center gap-2 w-full md:w-auto">
-          <span class="text-xs text-gray-400">Filter Status:</span>
-          <select id="vipFilterStatus" onchange="applyVipFilters()" class="bg-gray-700 border border-gray-600 text-white text-xs rounded-lg p-2 focus:ring-amber-500 focus:border-amber-500">
+          <span class="text-xs text-slate-400 font-semibold">Filter Status:</span>
+          <select id="vipFilterStatus" onchange="applyVipFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl p-2 font-medium">
             <option value="all">Semua Pesanan</option>
             <option value="pending" selected>Menunggu ACC (Pending)</option>
             <option value="approved">Aktif (Approved)</option>
@@ -431,31 +701,32 @@
         </div>
 
         <div class="relative w-full md:w-80">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
             <i class="fa-solid fa-magnifying-glass text-xs"></i>
           </div>
-          <input type="text" id="vipSearchInput" onkeyup="applyVipFilters()" placeholder="Cari nama, email, user_id..." class="bg-gray-700/80 border border-gray-600 text-white text-xs rounded-lg block w-full pl-9 p-2 placeholder-gray-400 focus:ring-amber-500 focus:border-amber-500">
+          <input type="text" id="vipSearchInput" onkeyup="applyVipFilters()" placeholder="Cari nama, email, user_id..." 
+            class="bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl block w-full pl-9 p-2 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500">
         </div>
       </div>
 
       <!-- Orders Table -->
-      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-lg">
+      <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full text-xs text-left text-gray-300">
-            <thead class="text-[11px] text-gray-400 uppercase bg-gray-900/80 border-b border-gray-700">
+          <table class="w-full min-w-[840px] text-xs text-left text-slate-600">
+            <thead class="text-[11px] text-slate-400 uppercase bg-slate-50 font-bold border-b border-slate-100 whitespace-nowrap">
               <tr>
-                <th scope="col" class="px-4 py-3">Pengguna</th>
-                <th scope="col" class="px-4 py-3">Paket Langganan</th>
-                <th scope="col" class="px-4 py-3">Nominal QRIS</th>
-                <th scope="col" class="px-4 py-3">Status</th>
-                <th scope="col" class="px-4 py-3">Masa Berlaku</th>
-                <th scope="col" class="px-4 py-3">Waktu Order</th>
-                <th scope="col" class="px-4 py-3 text-right">Aksi ACC / Kelola</th>
+                <th scope="col" class="px-4 py-3.5">Pengguna</th>
+                <th scope="col" class="px-4 py-3.5">Paket Langganan</th>
+                <th scope="col" class="px-4 py-3.5">Nominal QRIS</th>
+                <th scope="col" class="px-4 py-3.5">Status</th>
+                <th scope="col" class="px-4 py-3.5">Masa Berlaku</th>
+                <th scope="col" class="px-4 py-3.5">Waktu Order</th>
+                <th scope="col" class="px-4 py-3.5 text-right">Aksi ACC / Kelola</th>
               </tr>
             </thead>
-            <tbody id="vipTableBody" class="divide-y divide-gray-700/60">
+            <tbody id="vipTableBody" class="divide-y divide-slate-100">
               <tr>
-                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="7" class="px-4 py-8 text-center text-slate-400">
                   Memuat data langganan...
                 </td>
               </tr>
@@ -465,145 +736,129 @@
       </div>
     </div>
 
-    <!-- ================= TAB 3: LIVE CHAT (v7.1.5) ================= -->
+    <!-- ================= TAB 4: LIVE CHAT ================= -->
     <div id="chatTab" class="tab-content hidden space-y-6">
-      <div class="p-5 rounded-xl bg-gray-800 border border-gray-700">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
-          <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-comments text-blue-400"></i> Pemantau Obrolan Antar Pengguna IceBeats v7.1.5
-            </h3>
-            <p class="text-xs text-gray-400 mt-0.5">
-              Inspeksi percakapan, riwayat pesan, dan pertukaran Music Card secara langsung dari tabel Supabase.
-            </p>
-          </div>
-          <button onclick="fetchChatConversations()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded-lg flex items-center gap-1.5">
-            <i class="fa-solid fa-arrows-rotate"></i> Refresh Obrolan
-          </button>
-        </div>
+      <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+          <i class="fa-regular fa-comment-dots text-indigo-600"></i> Live Chat Inspector (v7.1.5)
+        </h3>
+        <p class="text-xs text-slate-400 mb-6">
+          Pantau obrolan real-time antar pengguna aplikasi secara transparan untuk pengawasan komunitas.
+        </p>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Kolom Daftar Percakapan -->
-          <div class="bg-gray-900/70 rounded-xl border border-gray-700/80 p-3 h-[520px] flex flex-col">
-            <h4 class="text-xs font-bold uppercase text-gray-400 px-2 mb-2">Daftar Percakapan Aktif</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 h-[520px]">
+          <div class="border border-slate-200 rounded-2xl p-4 flex flex-col bg-slate-50">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+              <span class="text-xs font-bold text-slate-700">Daftar Percakapan</span>
+              <button onclick="fetchChatConversations()" class="text-xs text-indigo-600 hover:text-indigo-700 font-bold">
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </button>
+            </div>
             <div id="conversationsList" class="flex-1 overflow-y-auto space-y-2 pr-1">
-              <p class="text-xs text-gray-500 p-4 text-center">Memuat obrolan...</p>
+              <p class="text-xs text-slate-400 text-center py-10">Memuat obrolan...</p>
             </div>
           </div>
 
-          <!-- Kolom Detail Obrolan -->
-          <div class="lg:col-span-2 bg-gray-900/70 rounded-xl border border-gray-700/80 p-4 h-[520px] flex flex-col">
-            <div class="flex items-center justify-between border-b border-gray-700/80 pb-3 mb-3">
+          <div class="md:col-span-2 border border-slate-200 rounded-2xl p-4 flex flex-col bg-white">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div id="activeChatHeader" class="flex items-center gap-3">
-                <span class="text-sm font-bold text-white">Pilih obrolan di sebelah kiri</span>
+                <span class="text-xs font-bold text-slate-700">Pilih obrolan di sebelah kiri</span>
               </div>
-              <button id="btnDeleteConv" onclick="deleteActiveConversation()" class="hidden text-xs text-red-400 hover:text-red-300 font-medium px-2.5 py-1 bg-red-950/40 rounded border border-red-800/60 items-center gap-1">
+              <button id="btnDeleteConv" onclick="deleteActiveConversation()" class="hidden text-xs text-rose-600 hover:text-rose-700 font-bold px-2.5 py-1 bg-rose-50 rounded-lg border border-rose-200 items-center gap-1">
                 <i class="fa-solid fa-trash text-xs"></i> Hapus Obrolan
               </button>
             </div>
 
-            <div id="chatMessagesContainer" class="flex-1 overflow-y-auto space-y-3 p-2 bg-gray-950/40 rounded-lg">
-              <p class="text-xs text-gray-500 text-center py-20">Belum ada obrolan yang dipilih.</p>
+            <div id="chatMessagesContainer" class="flex-1 overflow-y-auto space-y-3 p-3 bg-slate-50 rounded-xl">
+              <p class="text-xs text-slate-400 text-center py-24">Belum ada obrolan yang dipilih.</p>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ================= TAB 4: BORDER MASTER SHOWCASE ================= -->
+    <!-- ================= TAB 5: BORDER MASTER SHOWCASE ================= -->
     <div id="bordersTab" class="tab-content hidden space-y-6">
-      <div class="p-5 rounded-xl bg-gray-800 border border-gray-700">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-1">
-          <i class="fa-solid fa-crown text-amber-400"></i> 4 Desain Border Profil Khusus Level Master
+      <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+          <i class="fa-solid fa-crown text-amber-500"></i> 4 Desain Border Profil Khusus Level Master
         </h3>
-        <p class="text-xs text-gray-400 mb-6">
-          Sistem v7.1.5 kini menyediakan 4 pilihan mentahan border premium transparan. Setiap pengguna VIP atau dengan level Master (≥ 150 jam) dapat memilih border favoritnya!
+        <p class="text-xs text-slate-400 mb-6">
+          Sistem v7.1.5 menyediakan 4 pilihan mentahan border premium transparan. Setiap pengguna VIP atau dengan level Master (≥ 150 jam) dapat memilih border favoritnya!
         </p>
 
-        <!-- 4 Border Cards Showcase -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
           <!-- Border 1 -->
-          <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
+          <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col items-center text-center">
             <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
               <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
-              <img src="../../app/src/main/res/drawable/border_royal_crown.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" style="z-index: 10;">
+              <img src="../../app/src/main/res/drawable/border_royal_crown.png" class="absolute w-24 h-24 pointer-events-none border-overlay" style="z-index: 10;">
             </div>
-            <h4 class="font-bold text-white text-sm mt-2">Royal Crown</h4>
-            <p class="text-xs text-gray-400 mt-1">Mahkota emas megah dengan sayap hitam & kristal hati</p>
-            <span class="mt-3 px-2 py-0.5 text-[11px] bg-amber-950 text-amber-300 border border-amber-800 rounded-full font-semibold">Tier Master+</span>
+            <h4 class="font-bold text-slate-900 text-sm mt-2">Royal Crown</h4>
+            <p class="text-xs text-slate-500 mt-1">Mahkota emas megah dengan sayap hitam & kristal hati</p>
+            <span class="mt-3 px-2.5 py-0.5 text-[11px] bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-bold">Tier Master+</span>
           </div>
 
           <!-- Border 2 -->
-          <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
+          <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col items-center text-center">
             <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
               <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
-              <img src="../../app/src/main/res/drawable/border_crimson_wing.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(220,20,60,0.6)]" style="z-index: 10;">
+              <img src="../../app/src/main/res/drawable/border_crimson_wing.png" class="absolute w-24 h-24 pointer-events-none border-overlay" style="z-index: 10;">
             </div>
-            <h4 class="font-bold text-white text-sm mt-2">Crimson Wings</h4>
-            <p class="text-xs text-gray-400 mt-1">Sayap emas anggun dengan kristal batu rubi merah</p>
-            <span class="mt-3 px-2 py-0.5 text-[11px] bg-rose-950 text-rose-300 border border-rose-800 rounded-full font-semibold">Tier Master+</span>
+            <h4 class="font-bold text-slate-900 text-sm mt-2">Crimson Wings</h4>
+            <p class="text-xs text-slate-500 mt-1">Sayap emas anggun dengan kristal batu rubi merah</p>
+            <span class="mt-3 px-2.5 py-0.5 text-[11px] bg-rose-50 text-rose-700 border border-rose-200 rounded-full font-bold">Tier Master+</span>
           </div>
 
           <!-- Border 3 -->
-          <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
+          <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col items-center text-center">
             <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
               <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
-              <img src="../../app/src/main/res/drawable/border_fire_flame.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(255,69,0,0.6)]" style="z-index: 10;">
+              <img src="../../app/src/main/res/drawable/border_fire_flame.png" class="absolute w-24 h-24 pointer-events-none border-overlay" style="z-index: 10;">
             </div>
-            <h4 class="font-bold text-white text-sm mt-2">Fire Flame Ring</h4>
-            <p class="text-xs text-gray-400 mt-1">Cincin pusaran api elemen membara khas jawara</p>
-            <span class="mt-3 px-2 py-0.5 text-[11px] bg-orange-950 text-orange-300 border border-orange-800 rounded-full font-semibold">Tier Master+</span>
+            <h4 class="font-bold text-slate-900 text-sm mt-2">Fire Flame Ring</h4>
+            <p class="text-xs text-slate-500 mt-1">Cincin pusaran api elemen membara khas jawara</p>
+            <span class="mt-3 px-2.5 py-0.5 text-[11px] bg-orange-50 text-orange-700 border border-orange-200 rounded-full font-bold">Tier Master+</span>
           </div>
 
           <!-- Border 4 -->
-          <div class="p-4 bg-gray-900/60 rounded-xl border border-gray-700 flex flex-col items-center text-center">
+          <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col items-center text-center">
             <div class="w-24 h-24 relative flex items-center justify-center my-3 master-border-wrapper">
               <img src="../icebeats_logo.png" class="w-14 h-14 rounded-full object-cover avatar-inner" style="z-index: 1;">
-              <img src="../../app/src/main/res/drawable/border_golden_shield.png" class="absolute w-24 h-24 pointer-events-none border-overlay drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" style="z-index: 10;">
+              <img src="../../app/src/main/res/drawable/border_golden_shield.png" class="absolute w-24 h-24 pointer-events-none border-overlay" style="z-index: 10;">
             </div>
-            <h4 class="font-bold text-white text-sm mt-2">Golden Champion</h4>
-            <p class="text-xs text-gray-400 mt-1">Tameng sayap emas pelindung sang pemuncak klasemen</p>
-            <span class="mt-3 px-2 py-0.5 text-[11px] bg-amber-950 text-amber-300 border border-amber-800 rounded-full font-semibold">Tier Master+</span>
+            <h4 class="font-bold text-slate-900 text-sm mt-2">Golden Champion</h4>
+            <p class="text-xs text-slate-500 mt-1">Tameng sayap emas pelindung sang pemuncak klasemen</p>
+            <span class="mt-3 px-2.5 py-0.5 text-[11px] bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-bold">Tier Master+</span>
           </div>
 
-        </div>
-
-        <!-- Quick Set Master Tool -->
-        <div class="mt-8 p-4 bg-blue-950/30 rounded-xl border border-blue-800/60 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center gap-1.5"><i class="fa-solid fa-bolt text-yellow-400"></i> Buka Border Master untuk Akun Anda</h4>
-            <p class="text-xs text-gray-300 mt-0.5">Pilih akun Anda untuk otomatis di-boost ke Level Master (150 Jam) agar border langsung aktif di aplikasi.</p>
-          </div>
-          <button onclick="openBoostToMasterModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg whitespace-nowrap shadow-md">
-            Aktifkan Border Master Akun Saya
-          </button>
         </div>
       </div>
     </div>
 
-    <!-- ================= TAB 5: MUSIK & PLAYLIST CLOUD ================= -->
+    <!-- ================= TAB 6: MUSIK & PLAYLIST CLOUD ================= -->
     <div id="musicTab" class="tab-content hidden space-y-6">
-      <div class="p-5 rounded-xl bg-gray-800 border border-gray-700">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-1">
-          <i class="fa-solid fa-music text-purple-400"></i> Statistik Sinkronisasi Cloud IceBeats
+      <div class="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+          <i class="fa-solid fa-music text-indigo-600"></i> Statistik Sinkronisasi Cloud IceBeats
         </h3>
-        <p class="text-xs text-gray-400 mb-6">
+        <p class="text-xs text-slate-400 mb-6">
           Memantau data lagu favorit, playlist, dan bookmark artis yang tersimpan di server Supabase.
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="p-4 bg-gray-900 rounded-xl border border-gray-700">
-            <span class="text-xs text-gray-400 uppercase font-semibold">Total Lagu Favorit</span>
-            <h4 id="statFavoritesCount" class="text-2xl font-bold text-white mt-1">...</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="stat-card">
+            <span class="text-xs text-slate-400 uppercase font-bold">Total Lagu Favorit</span>
+            <h4 id="statFavoritesCount" class="text-2xl font-bold text-slate-900 mt-1">...</h4>
           </div>
-          <div class="p-4 bg-gray-900 rounded-xl border border-gray-700">
-            <span class="text-xs text-gray-400 uppercase font-semibold">Total Playlist User</span>
-            <h4 id="statPlaylistsCount" class="text-2xl font-bold text-white mt-1">...</h4>
+          <div class="stat-card">
+            <span class="text-xs text-slate-400 uppercase font-bold">Total Playlist User</span>
+            <h4 id="statPlaylistsCount" class="text-2xl font-bold text-slate-900 mt-1">...</h4>
           </div>
-          <div class="p-4 bg-gray-900 rounded-xl border border-gray-700">
-            <span class="text-xs text-gray-400 uppercase font-semibold">Total Sesi Pemutaran</span>
-            <h4 id="statEventsCount" class="text-2xl font-bold text-white mt-1">...</h4>
+          <div class="stat-card">
+            <span class="text-xs text-slate-400 uppercase font-bold">Total Sesi Pemutaran</span>
+            <h4 id="statEventsCount" class="text-2xl font-bold text-slate-900 mt-1">...</h4>
           </div>
         </div>
       </div>
@@ -612,25 +867,25 @@
   </div>
 
   <!-- ================= MODAL: TOP 1 BOOSTER ================= -->
-  <div id="boostModal" tabindex="-1" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="relative w-full max-w-md bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden">
-      <div class="px-6 py-4 bg-gradient-to-r from-amber-600 to-orange-600 flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-rocket text-amber-200"></i> Jadikan Akun Saya Top 1
+  <div id="boostModal" tabindex="-1" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-rocket text-indigo-600"></i> Jadikan Akun Saya Top 1
         </h3>
-        <button onclick="closeModal('boostModal')" class="text-white hover:text-gray-200 text-sm font-bold"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeModal('boostModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
       <div class="p-6 space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Pilih Akun Anda:</label>
-          <select id="boostUserSelect" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm focus:ring-amber-500">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Pilih Akun Anda:</label>
+          <select id="boostUserSelect" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500">
             <option value="">-- Pilih Pengguna --</option>
           </select>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Pilih Margin Keunggulan:</label>
-          <select id="boostMarginHours" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm focus:ring-amber-500">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Pilih Margin Keunggulan:</label>
+          <select id="boostMarginHours" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500">
             <option value="50">+50 Jam di atas Peringkat #1</option>
             <option value="100" selected>+100 Jam di atas Peringkat #1 (Disarankan)</option>
             <option value="250">+250 Jam di atas Peringkat #1</option>
@@ -639,15 +894,15 @@
           </select>
         </div>
 
-        <div class="p-3 bg-amber-950/40 rounded-xl border border-amber-800/60 text-xs text-amber-200">
-          <i class="fa-solid fa-lightbulb text-amber-300 mr-1.5"></i> Skor baru akan langsung dikunci di Supabase dan terlindungi oleh trigger Anti-Reset sehingga HP Anda tidak akan menurunkan nilainya kembali.
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+          <i class="fa-solid fa-lightbulb text-amber-600 mr-1.5"></i> Skor baru akan langsung dikunci di Supabase dan terlindungi oleh trigger Anti-Reset sehingga HP Anda tidak akan menurunkan nilainya kembali.
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button onclick="closeModal('boostModal')" class="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium rounded-xl text-sm">
+          <button onclick="closeModal('boostModal')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
             Batal
           </button>
-          <button onclick="executeBoostTop1()" class="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-orange-500/30">
+          <button onclick="executeBoostTop1()" class="flex-1 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl text-xs transition">
             Kunci Top #1 Sekarang
           </button>
         </div>
@@ -656,46 +911,46 @@
   </div>
 
   <!-- ================= MODAL: EDIT / ADD USER ================= -->
-  <div id="userModal" tabindex="-1" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="relative w-full max-w-lg bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-        <h3 id="userModalTitle" class="text-lg font-bold text-white">Edit Pengguna</h3>
-        <button onclick="closeModal('userModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+  <div id="userModal" tabindex="-1" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="userModalTitle" class="text-base font-bold text-slate-800">Edit Pengguna</h3>
+        <button onclick="closeModal('userModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
       <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
         <input type="hidden" id="editUserId">
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Nama Tampilan (Username):</label>
-          <input type="text" id="editUserName" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm" required>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Tampilan (Username):</label>
+          <input type="text" id="editUserName" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500" required>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Email Akun (Opsional):</label>
-          <input type="email" id="editUserEmail" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Akun (Opsional):</label>
+          <input type="email" id="editUserEmail" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Total Jam Dengar:</label>
-            <input type="number" id="editTotalHours" step="0.1" min="0" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm" required>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Total Jam Dengar:</label>
+            <input type="number" id="editTotalHours" step="0.1" min="0" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500" required>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Jam Dengar Mingguan:</label>
-            <input type="number" id="editWeeklyHours" step="0.1" min="0" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Jam Dengar Mingguan:</label>
+            <input type="number" id="editWeeklyHours" step="0.1" min="0" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Target Badge / Tier Otomatis:</label>
-          <select id="editBadgeSelect" onchange="syncHoursFromBadge()" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Target Badge / Tier Otomatis:</label>
+          <select id="editBadgeSelect" onchange="syncHoursFromBadge()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500">
             <option value="">-- Hitung Otomatis Berdasarkan Jam --</option>
           </select>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Gaya Border Profil Master:</label>
-          <select id="editBorderStyle" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Gaya Border Profil Master:</label>
+          <select id="editBorderStyle" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500">
             <option value="royal_crown">Royal Crown (Mahkota Emas & Permata)</option>
             <option value="crimson_wing">Crimson Wings (Sayap Emas & Batu Rubi)</option>
             <option value="fire_flame">Fire Flame Ring (Cincin Pusaran Api)</option>
@@ -704,30 +959,37 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">URL Foto Profil / Avatar:</label>
-          <input type="url" id="editProfileUrl" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm" placeholder="https://api.dicebear.com/...">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Foto Profil / Avatar:</label>
+          <input type="url" id="editProfileUrl" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="https://api.dicebear.com/...">
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Status Verifikasi & Lencana Akun:</label>
-          <select id="editVerificationRole" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Status Verifikasi & Lencana Akun:</label>
+          <select id="editVerificationRole" onchange="toggleEditVipDuration()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500">
             <option value="none">Pengguna Biasa (Tanpa Centang / Free)</option>
             <option value="premium">🔹 Premium Member (Centang Biru / Verified Blue)</option>
             <option value="developer">🔺 Akun Developer (Centang Merah / Verified Red)</option>
           </select>
-          <div class="mt-1.5 flex items-center gap-2 text-[11px] text-gray-400">
-            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-sky-500 text-white text-[8px]"><i class="fa-solid fa-check"></i></span>
-            <span>Biru = Member VIP</span>
-            <span class="ml-2 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 text-white text-[8px]"><i class="fa-solid fa-check"></i></span>
-            <span>Merah = Developer</span>
-          </div>
+        </div>
+
+        <div id="editVipDurationContainer" class="hidden p-3 bg-amber-50/50 border border-amber-200/60 rounded-xl space-y-2">
+          <label class="block text-xs font-bold text-amber-900 uppercase">Masa Aktif Langganan VIP:</label>
+          <select id="editVipPlanDuration" class="w-full bg-white border border-amber-200 text-slate-800 rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-amber-500">
+            <option value="1 Bulan (Standar)" data-days="30">1 Bulan (30 Hari)</option>
+            <option value="2 Bulan (Populer)" data-days="60">2 Bulan (60 Hari)</option>
+            <option value="3 Bulan (Kuartal)" data-days="90">3 Bulan (90 Hari)</option>
+            <option value="5 Bulan (Hemat)" data-days="150">5 Bulan (150 Hari)</option>
+            <option value="1 Tahun (Sultan)" data-days="365" selected>1 Tahun (365 Hari)</option>
+            <option value="LIFETIME" data-days="36500">LIFETIME (Selamanya - 100 Tahun)</option>
+          </select>
+          <p class="text-[10px] text-amber-700/80">Langganan VIP akan otomatis aktif di HP pengguna dengan masa aktif di atas.</p>
         </div>
 
         <div class="flex gap-3 pt-3">
-          <button onclick="closeModal('userModal')" class="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium rounded-xl text-sm">
+          <button onclick="closeModal('userModal')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
             Batal
           </button>
-          <button onclick="saveUserChanges()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/20">
+          <button onclick="saveUserChanges()" class="flex-1 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl text-xs transition">
             Simpan Perubahan
           </button>
         </div>
@@ -736,53 +998,97 @@
   </div>
 
   <!-- ================= MODAL: BERI VIP MANUAL ================= -->
-  <div id="manualVipModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="relative bg-gray-800 rounded-2xl border border-amber-600/50 w-full max-w-md p-6 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-gray-700 pb-3 mb-4">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-crown text-amber-400"></i> Berikan Akses VIP Manual
-        </h3>
-        <button onclick="closeModal('manualVipModal')" class="text-gray-400 hover:text-white p-1 rounded-lg"><i class="fa-solid fa-xmark text-sm"></i></button>
+  <div id="manualVipModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative bg-white rounded-3xl border border-slate-100 w-full max-w-lg p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-crown text-amber-500"></i> Berikan Akses VIP dari Dashboard
+          </h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Langsung aktifkan status VIP di aplikasi pengguna secara real-time</p>
+        </div>
+        <button onclick="closeModal('manualVipModal')" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
 
       <div class="space-y-4 text-xs">
         <div>
-          <label class="block text-gray-300 font-semibold mb-1">Pilih Pengguna Terdaftar:</label>
-          <select id="manualVipUserSelect" onchange="onManualVipUserSelected()" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white">
+          <label class="block text-slate-700 font-bold mb-1">Pilih Pengguna Terdaftar:</label>
+          <select id="manualVipUserSelect" onchange="onManualVipUserSelected()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500">
             <option value="">-- Pilih dari Pengguna Terdaftar --</option>
           </select>
         </div>
 
         <div>
-          <label class="block text-gray-300 font-semibold mb-1">User ID (UUID):</label>
-          <input type="text" id="manualVipUserId" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white font-mono text-xs" placeholder="UUID Pengguna...">
+          <label class="block text-slate-700 font-bold mb-1">User ID (Otoritatif):</label>
+          <input type="text" id="manualVipUserId" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-mono" placeholder="user-uuid-1234..." required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1">Nama Pengguna:</label>
+            <input type="text" id="manualVipUserName" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium" placeholder="Nama user...">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1">Email Pengguna:</label>
+            <input type="email" id="manualVipUserEmail" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium" placeholder="email@gmail.com">
+          </div>
         </div>
 
         <div>
-          <label class="block text-gray-300 font-semibold mb-1">Nama Tampilan Pengguna:</label>
-          <input type="text" id="manualVipUserName" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white" placeholder="Nama lengkap...">
-        </div>
-
-        <div>
-          <label class="block text-gray-300 font-semibold mb-1">Email Akun:</label>
-          <input type="email" id="manualVipUserEmail" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white" placeholder="user@gmail.com...">
-        </div>
-
-        <div>
-          <label class="block text-gray-300 font-semibold mb-1">Pilihan Paket & Durasi VIP:</label>
-          <select id="manualVipPlanSelect" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white font-medium">
-            <option value="1 Bulan" data-days="30" data-price="5000">1 Bulan (30 Hari) - Rp 5.000</option>
-            <option value="2 Bulan" data-days="60" data-price="7000">2 Bulan (60 Hari) - Rp 7.000 (Populer)</option>
-            <option value="5 Bulan" data-days="150" data-price="12000">5 Bulan (150 Hari) - Rp 12.000 (Hemat)</option>
-            <option value="1 Tahun Spesial" data-days="365" data-price="0">1 Tahun Spesial (365 Hari) - Hadiah / Promo</option>
-            <option value="Lifetime VIP" data-days="3650" data-price="0">Lifetime VIP (Selamanya) - Akses Bebas</option>
+          <label class="block text-slate-700 font-bold mb-1">Pilih Paket Langganan:</label>
+          <select id="manualVipPlanSelect" onchange="onManualVipPlanChanged()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-amber-500">
+            <option value="7 Hari (Trial)" data-days="7" data-price="0">7 Hari (Trial Khusus - 7 Hari)</option>
+            <option value="1 Bulan (Standar)" data-days="30" data-price="3000">1 Bulan (Standar - 30 Hari)</option>
+            <option value="2 Bulan (Populer)" data-days="60" data-price="5000" selected>2 Bulan (Populer - 60 Hari)</option>
+            <option value="3 Bulan (Kuartal)" data-days="90" data-price="8000">3 Bulan (Kuartal - 90 Hari)</option>
+            <option value="5 Bulan (Hemat)" data-days="150" data-price="12000">5 Bulan (Hemat - 150 Hari)</option>
+            <option value="6 Bulan (Semester)" data-days="180" data-price="15000">6 Bulan (Semester - 180 Hari)</option>
+            <option value="1 Tahun (Sultan)" data-days="365" data-price="25000">1 Tahun (Sultan - 365 Hari)</option>
+            <option value="LIFETIME" data-days="36500" data-price="50000">LIFETIME (Selamanya - 100 Tahun)</option>
+            <option value="custom" data-days="30" data-price="0">⚙️ Kustom (Tentukan Durasi Sendiri)</option>
           </select>
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-700">
-          <button type="button" onclick="closeModal('manualVipModal')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg">Batal</button>
-          <button type="button" onclick="submitManualVip()" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 text-gray-950 font-bold rounded-lg shadow flex items-center gap-1.5">
-            <i class="fa-solid fa-check"></i> Aktifkan VIP Sekarang
+        <!-- Custom Duration Container -->
+        <div id="manualVipCustomContainer" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-700 font-bold mb-1">Nama Paket Kustom:</label>
+              <input type="text" id="manualVipCustomTitle" value="VIP Spesial" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg p-2 text-xs font-medium">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-1">Jumlah Hari Aktif:</label>
+              <input type="number" id="manualVipCustomDays" value="30" min="1" max="36500" onchange="updateManualVipExpiryPreview()" oninput="updateManualVipExpiryPreview()" class="w-full bg-white border border-slate-200 text-slate-800 rounded-lg p-2 text-xs font-medium">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1">Biaya / Harga (Rp):</label>
+            <input type="number" id="manualVipPrice" value="5000" min="0" step="500" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium" placeholder="0 jika gratis">
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1">Catatan / Sumber (Opsional):</label>
+            <input type="text" id="manualVipNote" value="Manual Gift Admin" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-medium" placeholder="Misal: Hadiah Event">
+          </div>
+        </div>
+
+        <!-- Dynamic Expiry Preview Banner -->
+        <div id="manualVipExpiryPreview" class="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 flex items-center gap-2.5">
+          <i class="fa-solid fa-clock text-amber-500 text-sm"></i>
+          <div>
+            <div class="font-bold text-[11px]" id="manualVipExpiryText">Masa aktif: 60 Hari</div>
+            <div class="text-[10px] text-amber-700/80" id="manualVipExpiryDate">Berakhir pada: -</div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button onclick="closeModal('manualVipModal')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
+            Batal
+          </button>
+          <button onclick="submitManualVip()" class="flex-1 py-2.5 bg-[#d97706] hover:bg-[#b45309] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+            <i class="fa-solid fa-crown"></i> Aktifkan VIP Sekarang
           </button>
         </div>
       </div>
@@ -790,26 +1096,26 @@
   </div>
 
   <!-- ================= MODAL: SETTINGS DATABASE ================= -->
-  <div id="settingsModal" tabindex="-1" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="relative w-full max-w-md bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-gear text-blue-400"></i> Pengaturan Supabase API</h3>
-        <button onclick="closeModal('settingsModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+  <div id="settingsModal" tabindex="-1" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2"><i class="fa-solid fa-gear text-indigo-600"></i> Pengaturan Supabase API</h3>
+        <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
       <div class="p-6 space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Supabase URL:</label>
-          <input type="url" id="cfgSupabaseUrl" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm font-mono">
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Supabase URL:</label>
+          <input type="url" id="cfgSupabaseUrl" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-mono focus:bg-white focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Supabase Anon Key:</label>
-          <textarea id="cfgSupabaseKey" rows="3" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-xs font-mono"></textarea>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Supabase Anon Key:</label>
+          <textarea id="cfgSupabaseKey" rows="3" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-2.5 text-xs font-mono focus:bg-white focus:ring-2 focus:ring-indigo-500"></textarea>
         </div>
         <div class="flex gap-3 pt-2">
-          <button onclick="resetConfig()" class="py-2.5 px-4 bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium rounded-xl text-xs">
+          <button onclick="resetConfig()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
             Reset Default
           </button>
-          <button onclick="saveConfig()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm">
+          <button onclick="saveConfig()" class="flex-1 py-2.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold rounded-xl text-xs transition">
             Simpan & Hubungkan
           </button>
         </div>

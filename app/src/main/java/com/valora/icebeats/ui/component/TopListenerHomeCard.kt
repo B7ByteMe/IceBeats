@@ -107,8 +107,9 @@ fun TopListenerHomeSection(
             profileUrl = currentTopUser.profileUrl,
             totalListenMs = currentTopUser.totalListenMs,
             rank = userRank,
-            borderStyle = if (isVipListener) currentTopUser.borderStyle else null,
-            verificationBadge = currentTopUser.verificationBadge
+            borderStyle = currentTopUser.borderStyle,
+            verificationBadge = currentTopUser.verificationBadge,
+            bannerUrl = currentTopUser.bannerUrl
         )
     }
 

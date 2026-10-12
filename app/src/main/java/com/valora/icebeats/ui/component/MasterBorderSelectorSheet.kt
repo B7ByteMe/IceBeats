@@ -266,6 +266,8 @@ fun MasterBorderSelectorSheet(
                     onClick = {
                         scope.launch {
                             borderPreferenceManager.saveSelectedBorder(previewStyle)
+                            val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
+                            supabaseClient.updateUserProfileFields(borderStyle = previewStyle.id)
                             onDismiss()
                         }
                     },

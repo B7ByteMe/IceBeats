@@ -22,6 +22,7 @@ data class GlobalStatsUser(
     val fcmToken: String? = null,
     val borderStyle: String? = null,
     val verificationBadge: String? = null,
+    val bannerUrl: String? = null,
 )
 
 data class GlobalStatsBoard(
@@ -121,8 +122,9 @@ class icebeatsStatsCloudClient {
                                 lastUpdatedAt = obj.optLong("last_updated_at", 0L),
                                 rank = i + 1,
                                 fcmToken = obj.optString("fcm_token").trim().takeIf { it.isNotBlank() && it != "null" },
-                                borderStyle = if (isUserVip) obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" } else null,
-                                verificationBadge = vBadge
+                                borderStyle = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" },
+                                verificationBadge = vBadge,
+                                bannerUrl = obj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
                             )
                         )
                     }
@@ -163,14 +165,14 @@ class icebeatsStatsCloudClient {
                 val bodyJson = JSONObject().apply {
                     put("id", upload.userId)
                     put("name", sanitizedName)
-                    put("profile_url", upload.profileUrl ?: JSONObject.NULL)
+                    if (upload.profileUrl != null) put("profile_url", upload.profileUrl)
                     put("email", upload.email?.normalizedEmail() ?: JSONObject.NULL)
                     put("total_listen_ms", safeTotalListenMs)
                     put("weekly_listen_ms", safeWeeklyListenMs)
                     put("last_updated_at", System.currentTimeMillis())
-                    put("fcm_token", upload.fcmToken ?: JSONObject.NULL)
-                    put("border_style", upload.borderStyle ?: JSONObject.NULL)
-                    put("banner_url", upload.bannerUrl ?: JSONObject.NULL)
+                    if (upload.fcmToken != null) put("fcm_token", upload.fcmToken)
+                    if (upload.borderStyle != null) put("border_style", upload.borderStyle)
+                    if (upload.bannerUrl != null) put("banner_url", upload.bannerUrl)
                 }
 
                 // Gunakan auth token user jika tersedia untuk memenuhi RLS policy Supabase.

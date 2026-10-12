@@ -8,12 +8,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -57,29 +51,64 @@ private val DarkCardBorder = Color(0xFF2A2A2E)
 @Composable
 fun VipSubscriptionDialog(
     onDismiss: () -> Unit,
-    initialSelectedPlan: VipPlan = VipPlan.TWO_MONTHS
+    initialSelectedPlan: VipPlan = VipPlan.FIVE_MONTHS
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val vipManager = remember { VipSubscriptionManager(context) }
+
     val isVipActive by vipManager.isVip.collectAsState(initial = false)
     val vipExpiresAt by vipManager.vipExpiresAt.collectAsState(initial = 0L)
+    val vipStartsAt by vipManager.vipStartsAt.collectAsState(initial = 0L)
     val currentPlanName by vipManager.vipPlan.collectAsState(initial = "")
+    val pendingTx by vipManager.pendingTransaction.collectAsState(initial = null)
 
     val (userName) = rememberPreference(AccountNameKey, defaultValue = "")
     val (userEmail) = rememberPreference(AccountEmailKey, defaultValue = "")
 
     var selectedPlan by remember { mutableStateOf(initialSelectedPlan) }
     var showConfirmationDialog by remember { mutableStateOf(false) }
-    var showQrisStep by remember { mutableStateOf(false) }
+    var showCancelPendingDialog by remember { mutableStateOf(false) }
+    var showCancelActiveSubDialog by remember { mutableStateOf(false) }
+
     var voucherCode by remember { mutableStateOf("") }
     var showVoucherField by remember { mutableStateOf(false) }
     var isRedeeming by remember { mutableStateOf(false) }
     var isCheckingStatus by remember { mutableStateOf(false) }
-    var isApprovedBanner by remember { mutableStateOf(false) }
+    var isSubmittingOrder by remember { mutableStateOf(false) }
 
     val adminWaNumber = "6288983660479"
     val adminWaDisplay = "088983660479"
+
+    // Real-time server-synced timer ticker
+    var currentTimeMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(isVipActive) {
+        if (isVipActive) {
+            while (true) {
+                delay(1000)
+                currentTimeMillis = System.currentTimeMillis()
+            }
+        }
+    }
+
+    // Periksa status terbaru dari cloud saat dialog dibuka
+    LaunchedEffect(Unit) {
+        vipManager.checkCloudSubscriptionStatus()
+    }
+
+    // Auto-polling saat user memiliki transaksi pending (setiap 5 detik)
+    LaunchedEffect(pendingTx, isVipActive) {
+        if (pendingTx != null && !isVipActive) {
+            while (pendingTx != null && !isVipActive) {
+                delay(5000)
+                val isApproved = vipManager.checkCloudSubscriptionStatus().getOrDefault(false)
+                if (isApproved) {
+                    Toast.makeText(context, "Selamat! Transaksi Anda telah disetujui. VIP aktif!", Toast.LENGTH_LONG).show()
+                    break
+                }
+            }
+        }
+    }
 
     fun openUrl(url: String) {
         runCatching {
@@ -97,41 +126,22 @@ fun VipSubscriptionDialog(
         Toast.makeText(context, "$label disalin: $text", Toast.LENGTH_SHORT).show()
     }
 
-    fun submitAndOpenWhatsApp(plan: VipPlan) {
-        scope.launch {
-            // Catat order pending ke database Supabase
-            vipManager.submitPendingPayment(plan)
-
-            val userIdentifier = if (userName.isNotBlank()) userName else if (userEmail.isNotBlank()) userEmail else "IceBeats User"
-            val message = """
-Halo Admin Valora / IceBeats, saya sudah melakukan pembayaran langganan VIP:
-• Paket: ${plan.title}
-• Nominal: ${plan.formattedPrice}
-• Nama / Email Akun: $userIdentifier
+    fun sendWhatsAppConfirmation(txId: String, planTitle: String, priceFormatted: String) {
+        val userIdentifier = if (userName.isNotBlank()) userName else if (userEmail.isNotBlank()) userEmail else "Pengguna IceBeats"
+        val message = """
+Halo Admin Valora / IceBeats, saya telah melakukan transfer pembayaran langganan VIP:
+• ID Transaksi: $txId
+• Paket: $planTitle
+• Nominal: $priceFormatted
+• Akun Pengguna: $userIdentifier
 • Tujuan Admin: $adminWaDisplay
 
-Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses verifikasi dan aktivasi akun VIP saya ya. Terima kasih!
-            """.trimIndent()
+Berikut saya lampirkan bukti transfernya. Mohon bantu verifikasi dan aktivasi VIP di aplikasi IceBeats saya. Terima kasih!
+        """.trimIndent()
 
-            val encodedMessage = URLEncoder.encode(message, "UTF-8")
-            val waUrl = "https://api.whatsapp.com/send?phone=$adminWaNumber&text=$encodedMessage"
-            openUrl(waUrl)
-        }
-    }
-
-    // Auto-polling cek status verifikasi jika di halaman QRIS
-    LaunchedEffect(showQrisStep) {
-        if (showQrisStep && !isVipActive) {
-            while (!isVipActive) {
-                delay(6000)
-                val check = vipManager.checkCloudSubscriptionStatus().getOrDefault(false)
-                if (check) {
-                    isApprovedBanner = true
-                    Toast.makeText(context, "Selamat! Pembayaran terverifikasi. Paket VIP Anda telah aktif!", Toast.LENGTH_LONG).show()
-                    break
-                }
-            }
-        }
+        val encodedMessage = URLEncoder.encode(message, "UTF-8")
+        val waUrl = "https://api.whatsapp.com/send?phone=$adminWaNumber&text=$encodedMessage"
+        openUrl(waUrl)
     }
 
     ModalBottomSheet(
@@ -147,27 +157,13 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                 .padding(horizontal = 20.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Close button & Header
+            // Header Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (showQrisStep) {
-                    IconButton(
-                        onClick = { showQrisStep = false },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = "Kembali",
-                            tint = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.size(32.dp))
-                }
+                Spacer(modifier = Modifier.size(32.dp))
 
                 Box(
                     modifier = Modifier
@@ -188,7 +184,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                     Icon(
                         painter = painterResource(R.drawable.ic_vip_crown),
                         contentDescription = "VIP Crown",
-                        tint = GoldPrimary,
+                        tint = if (isVipActive) Color(0xFF25D366) else GoldPrimary,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -208,81 +204,381 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = if (showQrisStep) "Pembayaran QRIS Valora" else "IceBeats VIP Member",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    brush = Brush.linearGradient(
-                        listOf(Color(0xFFFFF099), GoldPrimary, Color(0xFFFFB300))
-                    )
-                ),
-                textAlign = TextAlign.Center
-            )
+            // ==============================================================================
+            // ROUTING SCREEN SESUAI STATUS LANGGANAN
+            // 1. isVipActive == true         -> SCREEN C (LANGGANAN VIP AKTIF)
+            // 2. pendingTx != null           -> SCREEN B (DETAIL TRANSAKSI MENUNGGU ACC)
+            // 3. else                        -> SCREEN A (PILIH 3 PAKET LANGGANAN)
+            // ==============================================================================
 
-            Spacer(modifier = Modifier.height(4.dp))
+            if (isVipActive) {
+                // ==============================================================================
+                // SCREEN C: LANGGANAN AKTIF (USER SEDANG BERLANGGANAN)
+                // ==============================================================================
+                val remainingText = remember(currentTimeMillis, vipExpiresAt) {
+                    VipSubscriptionManager.formatRemainingTime(currentTimeMillis, vipExpiresAt)
+                }
 
-            Text(
-                text = if (showQrisStep)
-                    "Scan QRIS & transfer persis nominal paket, lalu kirim screenshot ke admin untuk di-ACC"
-                else
-                    "Buka semua tema kustom, Dynamic Island, chat eksklusif, dan border animasi profil tanpa batas!",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.75f),
-                textAlign = TextAlign.Center,
-                fontSize = 13.sp,
-                lineHeight = 18.sp
-            )
+                Text(
+                    text = "Langganan VIP Aktif",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF86EFAC), Color(0xFF22C55E), Color(0xFF15803D))
+                        )
+                    ),
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            // Banner jika status VIP aktif / baru saja di-ACC
-            if (isVipActive || isApprovedBanner) {
+                Text(
+                    text = "Akun Anda memiliki akses eksklusif ke semua fitur premium IceBeats.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 13.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Card Rincian Paket Aktif
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(GoldPrimary.copy(alpha = 0.12f))
-                        .border(1.dp, GoldPrimary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                        .padding(14.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF0F2314))
+                        .border(1.5.dp, Color(0xFF22C55E).copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                        .padding(18.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.check_circle),
-                                contentDescription = null,
-                                tint = GoldPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Column {
+                                Text(
+                                    text = "PAKET LANGGANAN",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF86EFAC),
+                                    letterSpacing = 0.5.sp
+                                )
+                                Text(
+                                    text = currentPlanName.ifBlank { "VIP 5 Bulan" },
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF22C55E))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "VIP AKTIF",
+                                    color = Color.Black,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+
+                        Divider(color = Color.White.copy(alpha = 0.08f), thickness = 1.dp)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Mulai Berlangganan", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
                             Text(
-                                text = "VIP Anda Sedang Aktif: $currentPlanName",
-                                fontWeight = FontWeight.Bold,
-                                color = GoldPrimary,
-                                fontSize = 14.sp
+                                text = VipSubscriptionManager.formatIndoDateTime(vipStartsAt),
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Tanggal Berakhir", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            Text(
+                                text = VipSubscriptionManager.formatExpiryDate(vipExpiresAt),
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        // Sisa Masa Aktif Real-time
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF14381E))
+                                .border(1.dp, Color(0xFF22C55E).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.cached),
+                                        contentDescription = null,
+                                        tint = Color(0xFF86EFAC),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Sisa Masa Aktif:",
+                                        fontSize = 12.sp,
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                Text(
+                                    text = remainingText,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF86EFAC),
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Card Blokir Pergantian Paket Saat VIP Masih Aktif
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF1A1A14))
+                        .border(1.dp, GoldPrimary.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_vip_crown),
+                            contentDescription = null,
+                            tint = GoldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Berakhir: ${VipSubscriptionManager.formatExpiryDate(vipExpiresAt)}",
-                            color = Color.White.copy(alpha = 0.8f),
+                            text = "Langganan VIP kamu masih aktif. Kamu dapat memilih paket lain setelah masa aktif ini berakhir.",
                             fontSize = 12.sp,
-                            textAlign = TextAlign.Center
+                            color = Color.White.copy(alpha = 0.8f),
+                            lineHeight = 17.sp
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
-            // ==================== TAMPILAN HALAMAN QRIS ====================
-            if (showQrisStep) {
-                // Card Gambar QRIS Resmi Valora Store
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Benefit yang sedang dinikmati
+                VipBenefitsCard()
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tombol Batalkan Langganan
+                OutlinedButton(
+                    onClick = { showCancelActiveSubDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.6f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFFF5252)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.close),
+                            contentDescription = null,
+                            tint = Color(0xFFFF5252),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Batalkan Langganan",
+                            color = Color(0xFFFF5252),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+            } else if (pendingTx != null) {
+                // ==============================================================================
+                // SCREEN B: TRANSAKSI MENUNGGU PERSETUJUAN ADMIN (PENDING)
+                // ==============================================================================
+                val tx = pendingTx!!
+
+                Text(
+                    text = "Detail Transaksi VIP",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFFFFF099), GoldPrimary, Color(0xFFFFB300))
+                        )
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "VIP akan aktif otomatis setelah bukti transfer disetujui oleh admin.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 13.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Status Badge Menunggu Persetujuan
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF2A200B))
+                        .border(1.dp, GoldPrimary.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.cached),
+                            contentDescription = null,
+                            tint = GoldPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Status: Menunggu Persetujuan Admin",
+                            color = GoldPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Card Rincian Transaksi
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(DarkCardBg)
+                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(18.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("ID Transaksi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = tx.id,
+                                    fontSize = 12.sp,
+                                    color = GoldPrimary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    painter = painterResource(R.drawable.music_note),
+                                    contentDescription = "Salin",
+                                    tint = GoldPrimary,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable { copyToClipboard("ID Transaksi", tx.id) }
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Paket yang Dibeli", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            Text(
+                                text = tx.planTitle,
+                                fontSize = 12.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Total Tagihan", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            Text(
+                                text = "Rp ${NumberFormat(tx.price)}",
+                                fontSize = 15.sp,
+                                color = GoldPrimary,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Tanggal Transaksi", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            Text(
+                                text = tx.createdAt,
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Metode Pembayaran", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            Text(
+                                text = "QRIS Valora Store",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Card QRIS Valora Store
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -300,97 +596,16 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                             contentDescription = "QRIS Valora Store",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 340.dp)
+                                .heightIn(max = 300.dp)
                                 .clip(RoundedCornerShape(12.dp)),
                             contentScale = ContentScale.Fit
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Card Nominal yang Harus Dibayar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF1C1A14))
-                        .border(1.5.dp, GoldPrimary.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
-                        .padding(14.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "TOTAL YANG HARUS DITRANSFER",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.65f),
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = selectedPlan.formattedPrice,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = GoldPrimary
-                            )
-                            Text(
-                                text = "Paket ${selectedPlan.title}",
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
-                        }
-
-                        Button(
-                            onClick = {
-                                copyToClipboard("Nominal Transfer", selectedPlan.priceRupiah.toString())
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = GoldPrimary.copy(alpha = 0.2f),
-                                contentColor = GoldPrimary
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text("Salin Rp", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Panduan Langkah Transfer & ACC
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(DarkCardBg)
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                        .padding(14.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "CARA BAYAR & AKTIVASI OTOMATIS:",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GoldPrimary,
-                            letterSpacing = 0.5.sp
-                        )
-                        QrisStepItem(number = "1", text = "Screenshot (SS) layar QRIS di atas ini.")
-                        QrisStepItem(number = "2", text = "Buka Bank/e-Wallet (BCA, Dana, GoPay, OVO, ShopeePay, dll) & scan QRIS.")
-                        QrisStepItem(number = "3", text = "Transfer tepat sesuai nominal: ${selectedPlan.formattedPrice}.")
-                        QrisStepItem(number = "4", text = "Klik tombol di bawah untuk kirim bukti SS transfer ke WhatsApp Admin ($adminWaDisplay).")
-                        QrisStepItem(number = "5", text = "Admin akan memverifikasi bukti transfer, dan akun VIP langsung aktif otomatis!")
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Card Nomor WhatsApp Admin
+                // WhatsApp Confirmation Box
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -414,14 +629,13 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
-                                    text = "WhatsApp Konfirmasi Admin:",
+                                    text = "WhatsApp Verifikasi Admin:",
                                     fontSize = 11.sp,
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontWeight = FontWeight.Medium
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                                 Text(
                                     text = adminWaDisplay,
-                                    fontSize = 15.sp,
+                                    fontSize = 14.sp,
                                     color = Color(0xFF25D366),
                                     fontWeight = FontWeight.ExtraBold
                                 )
@@ -444,20 +658,15 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Tombol Kirim Bukti ke WhatsApp Admin
+                // Tombol Kirim Bukti ke WhatsApp
                 Button(
                     onClick = {
-                        submitAndOpenWhatsApp(selectedPlan)
+                        sendWhatsAppConfirmation(tx.id, tx.planTitle, "Rp ${NumberFormat(tx.price)}")
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            ambientColor = GoldPrimary,
-                            spotColor = GoldPrimary
-                        ),
+                        .height(50.dp)
+                        .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp), ambientColor = GoldPrimary, spotColor = GoldPrimary),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GoldPrimary,
@@ -476,7 +685,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Kirim Bukti ke WhatsApp ($adminWaDisplay)",
+                            text = "Kirim Bukti ke WhatsApp Admin",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = Color.Black
@@ -486,7 +695,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Tombol Cek Status VIP (Prem)
+                // Tombol Cek Status Persetujuan
                 OutlinedButton(
                     onClick = {
                         isCheckingStatus = true
@@ -494,10 +703,9 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                             val ok = vipManager.checkCloudSubscriptionStatus().getOrDefault(false)
                             isCheckingStatus = false
                             if (ok) {
-                                isApprovedBanner = true
-                                Toast.makeText(context, "Selamat! Pembayaran berhasil diverifikasi. Paket VIP Anda telah aktif!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Selamat! Pembayaran berhasil diverifikasi. VIP telah aktif!", Toast.LENGTH_LONG).show()
                             } else {
-                                Toast.makeText(context, "Sedang diverifikasi oleh admin. Pastikan bukti transfer sudah dikirim ke WhatsApp ya!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Masih menunggu persetujuan admin. Silakan pastikan bukti transfer sudah dikirim ke WhatsApp ya!", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
@@ -506,7 +714,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                         .fillMaxWidth()
                         .height(46.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.6f))
+                    border = BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.6f))
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -520,7 +728,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isCheckingStatus) "Memeriksa Status..." else "Cek Status VIP",
+                            text = if (isCheckingStatus) "Memeriksa Status..." else "Cek Status Persetujuan",
                             color = GoldPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -530,17 +738,14 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Tombol Batalkan Pembelian (Kembali ke menu paket 1, 2, 5 bulan)
+                // Tombol Batalkan Transaksi Pending
                 OutlinedButton(
-                    onClick = {
-                        showQrisStep = false
-                        Toast.makeText(context, "Pembelian dibatalkan. Silakan pilih paket lainnya.", Toast.LENGTH_SHORT).show()
-                    },
+                    onClick = { showCancelPendingDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = Color(0xFFFF5252)
                     )
@@ -557,7 +762,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Batalkan Pembelian",
+                            text = "Batalkan Transaksi",
                             color = Color(0xFFFF5252),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -566,7 +771,34 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                 }
 
             } else {
-                // ==================== TAMPILAN PILIH PAKET LANGGANAN ====================
+                // ==============================================================================
+                // SCREEN A: PILIHAN 3 PAKET LANGGANAN VIP (TIDAK ADA VIP / TRANSAKSI PENDING)
+                // ==============================================================================
+                Text(
+                    text = "IceBeats VIP Member",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFFFFF099), GoldPrimary, Color(0xFFFFB300))
+                        )
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Buka semua tema kustom, Dynamic Island, chat eksklusif, dan border animasi profil tanpa batas!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
                     text = "PILIH PAKET LANGGANAN",
                     style = MaterialTheme.typography.labelSmall,
@@ -578,39 +810,18 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                // Kartu 3 Paket Langganan Asli
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     VipPlan.entries.forEach { plan ->
                         val isSelected = selectedPlan == plan
-                        val isThisPlanActive = isVipActive && (
-                            currentPlanName.contains(plan.title, ignoreCase = true) ||
-                            (plan == VipPlan.FIVE_MONTHS && currentPlanName.contains("5", ignoreCase = true)) ||
-                            (plan == VipPlan.TWO_MONTHS && currentPlanName.contains("2", ignoreCase = true)) ||
-                            (plan == VipPlan.ONE_MONTH && currentPlanName.contains("1", ignoreCase = true))
-                        )
+                        val targetBorderColor = if (isSelected) GoldPrimary else DarkCardBorder
+                        val cardBorderColor by animateColorAsState(targetValue = targetBorderColor, label = "card_border")
 
-                        val targetBorderColor = when {
-                            isThisPlanActive -> Color(0xFF25D366) // Hijau neon jika paket aktif
-                            isSelected -> GoldPrimary
-                            else -> DarkCardBorder
-                        }
-                        val cardBorderColor by animateColorAsState(
-                            targetValue = targetBorderColor,
-                            label = "card_border"
-                        )
-
-                        val targetBgColor = when {
-                            isThisPlanActive && isSelected -> Color(0xFF142B1A)
-                            isThisPlanActive -> Color(0xFF0E2214)
-                            isSelected -> Color(0xFF221F14)
-                            else -> DarkCardBg
-                        }
-                        val cardBgColor by animateColorAsState(
-                            targetValue = targetBgColor,
-                            label = "card_bg"
-                        )
+                        val targetBgColor = if (isSelected) Color(0xFF221F14) else DarkCardBg
+                        val cardBgColor by animateColorAsState(targetValue = targetBgColor, label = "card_bg")
 
                         Box(
                             modifier = Modifier
@@ -618,13 +829,12 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(cardBgColor)
                                 .border(
-                                    width = if (isThisPlanActive || isSelected) 2.dp else 1.dp,
+                                    width = if (isSelected) 2.dp else 1.dp,
                                     color = cardBorderColor,
                                     shape = RoundedCornerShape(18.dp)
                                 )
                                 .clickable {
                                     selectedPlan = plan
-                                    showConfirmationDialog = true
                                 }
                                 .padding(16.dp)
                         ) {
@@ -639,29 +849,10 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                                             text = plan.title,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 17.sp,
-                                            color = when {
-                                                isThisPlanActive -> Color(0xFF25D366)
-                                                isSelected -> GoldPrimary
-                                                else -> Color.White
-                                            }
+                                            color = if (isSelected) GoldPrimary else Color.White
                                         )
 
-                                        if (isThisPlanActive) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(Color(0xFF25D366))
-                                                    .padding(horizontal = 7.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = "SEDANG BERLANGGANAN",
-                                                    color = Color.Black,
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-                                        } else if (plan.badge != null) {
+                                        if (plan.badge != null) {
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Box(
                                                 modifier = Modifier
@@ -688,16 +879,6 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                                         fontSize = 12.sp,
                                         color = Color.White.copy(alpha = 0.65f)
                                     )
-
-                                    if (isThisPlanActive) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Masa aktif: Hingga ${VipSubscriptionManager.formatExpiryDate(vipExpiresAt)}",
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF25D366),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
                                 }
 
                                 Column(horizontalAlignment = Alignment.End) {
@@ -705,25 +886,16 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                                         text = plan.formattedPrice,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 18.sp,
-                                        color = when {
-                                            isThisPlanActive -> Color(0xFF25D366)
-                                            isSelected -> GoldPrimary
-                                            else -> Color.White
-                                        }
+                                        color = if (isSelected) GoldPrimary else Color.White
                                     )
 
                                     Icon(
                                         painter = painterResource(
-                                            if (isThisPlanActive) R.drawable.check_circle
-                                            else if (isSelected) R.drawable.radio_button_checked
+                                            if (isSelected) R.drawable.radio_button_checked
                                             else R.drawable.radio_button_unchecked
                                         ),
                                         contentDescription = null,
-                                        tint = when {
-                                            isThisPlanActive -> Color(0xFF25D366)
-                                            isSelected -> GoldPrimary
-                                            else -> Color.White.copy(alpha = 0.3f)
-                                        },
+                                        tint = if (isSelected) GoldPrimary else Color.White.copy(alpha = 0.3f),
                                         modifier = Modifier
                                             .padding(top = 4.dp)
                                             .size(18.dp)
@@ -736,18 +908,13 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Tombol Beli / Konfirmasi Paket Terpilih
+                // Tombol Beli Paket
                 Button(
                     onClick = { showConfirmationDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            ambientColor = GoldPrimary,
-                            spotColor = GoldPrimary
-                        ),
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp), ambientColor = GoldPrimary, spotColor = GoldPrimary),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GoldPrimary,
@@ -777,53 +944,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                 Spacer(modifier = Modifier.height(18.dp))
 
                 // Daftar Benefit VIP
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFF141416))
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
-                        .padding(16.dp)
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "KEUNTUNGAN MEMBER VIP",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = GoldPrimary,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-
-                        VipBenefitItem(
-                            iconRes = R.drawable.palette,
-                            title = "Bebas Semua Tema Home Screen",
-                            desc = "Akses Playful, Neon, Spotify, Apple (Gratis hanya Classic)"
-                        )
-                        VipBenefitItem(
-                            iconRes = R.drawable.nav_bar,
-                            title = "Bebas Semua Tema Nav Bar",
-                            desc = "Akses Liquid Glass, Spotify, Apple, Neon, New Classic (Gratis hanya Classic)"
-                        )
-                        VipBenefitItem(
-                            iconRes = R.drawable.music_note,
-                            title = "Dynamic Island Mini Player",
-                            desc = "Island melayang interaktif di atas layar ala iOS"
-                        )
-                        VipBenefitItem(
-                            iconRes = R.drawable.chat,
-                            title = "IceBeats Chat & Kirim Lagu",
-                            desc = "Ngobrol bersama teman dan bagikan musik favorit"
-                        )
-                        VipBenefitItem(
-                            iconRes = R.drawable.auto_awesome,
-                            title = "Semua Border Animasi Profil Master",
-                            desc = "Royal Crown, Crimson Wings, Flame Ring & Golden Shield"
-                        )
-                    }
-                }
+                VipBenefitsCard()
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -865,7 +986,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                             OutlinedTextField(
                                 value = voucherCode,
                                 onValueChange = { voucherCode = it.uppercase() },
-                                placeholder = { Text("Contoh: VIP1BULAN", fontSize = 13.sp) },
+                                placeholder = { Text("Contoh: VIP5BULAN", fontSize = 13.sp) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
@@ -888,7 +1009,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                                             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                                             voucherCode = ""
                                         }.onFailure { err ->
-                                            Toast.makeText(context, err.message ?: "Gagal klaim", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, err.message ?: "Gagal klaim voucher", Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 },
@@ -911,10 +1032,12 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
         }
     }
 
-    // Dialog Konfirmasi Pembelian Paket
+    // ==============================================================================
+    // DIALOG KONFIRMASI PEMBELIAN PAKET (SCREEN A -> SCREEN B)
+    // ==============================================================================
     if (showConfirmationDialog) {
         AlertDialog(
-            onDismissRequest = { showConfirmationDialog = false },
+            onDismissRequest = { if (!isSubmittingOrder) showConfirmationDialog = false },
             containerColor = Color(0xFF18181C),
             shape = RoundedCornerShape(24.dp),
             title = {
@@ -955,7 +1078,6 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                         color = Color.White.copy(alpha = 0.8f)
                     )
 
-                    // Card Rincian Paket
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -984,14 +1106,13 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                                 )
                             }
                             Text(
-                                text = "Durasi Akses: ${selectedPlan.durationDays} Hari (${selectedPlan.description})",
+                                text = "Durasi Akses: ${selectedPlan.durationMonths} Bulan Kalender (${selectedPlan.description})",
                                 fontSize = 12.sp,
                                 color = Color.White.copy(alpha = 0.7f)
                             )
                         }
                     }
 
-                    // Card Info Pembayaran & Bukti WA
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1002,13 +1123,13 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = "Alur Pembayaran & Konfirmasi:",
+                                text = "Alur Pembayaran & Persetujuan Admin:",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
                                 color = GoldSecondary
                             )
                             Text(
-                                text = "1. Anda akan diarahkan ke layar QRIS Valora Store.\n2. Lakukan transfer sesuai nominal (${selectedPlan.formattedPrice}).\n3. Kirim bukti screenshot ke WhatsApp Admin ($adminWaDisplay) untuk aktivasi otomatis.",
+                                text = "1. Transaksi akan dibuat dengan status 'Menunggu Persetujuan'.\n2. Anda akan diarahkan ke layar QRIS & WhatsApp Admin.\n3. Setelah admin menyetujui, akun VIP langsung aktif otomatis.",
                                 fontSize = 11.sp,
                                 color = Color.White.copy(alpha = 0.75f),
                                 lineHeight = 16.sp
@@ -1020,12 +1141,20 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
             confirmButton = {
                 Button(
                     onClick = {
-                        showConfirmationDialog = false
-                        showQrisStep = true
+                        isSubmittingOrder = true
                         scope.launch {
-                            vipManager.submitPendingPayment(selectedPlan)
+                            val res = vipManager.submitPendingPayment(selectedPlan)
+                            isSubmittingOrder = false
+                            showConfirmationDialog = false
+                            res.onSuccess { tx ->
+                                Toast.makeText(context, "Transaksi berhasil dibuat! Silakan transfer QRIS dan kirim bukti ke admin.", Toast.LENGTH_LONG).show()
+                                sendWhatsAppConfirmation(tx.id, tx.planTitle, "Rp ${NumberFormat(tx.price)}")
+                            }.onFailure { err ->
+                                Toast.makeText(context, err.message ?: "Gagal membuat transaksi", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
+                    enabled = !isSubmittingOrder,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GoldPrimary,
                         contentColor = Color.Black
@@ -1033,7 +1162,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Lanjut Pembayaran",
+                        text = if (isSubmittingOrder) "Memproses..." else "Lanjut Pembayaran",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
@@ -1042,6 +1171,7 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
             dismissButton = {
                 OutlinedButton(
                     onClick = { showConfirmationDialog = false },
+                    enabled = !isSubmittingOrder,
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                 ) {
@@ -1054,36 +1184,168 @@ Berikut saya lampirkan bukti screenshot (SS) transfernya. Mohon bantu proses ver
             }
         )
     }
+
+    // ==============================================================================
+    // DIALOG KONFIRMASI PEMBATALAN TRANSAKSI PENDING
+    // ==============================================================================
+    if (showCancelPendingDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelPendingDialog = false },
+            containerColor = Color(0xFF18181C),
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text = "Batalkan Transaksi Ini?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color.White
+                )
+            },
+            text = {
+                Text(
+                    text = "Transaksi pembelian ${pendingTx?.planTitle ?: "VIP"} yang sedang menunggu persetujuan akan dibatalkan. Anda dapat memilih kembali paket langganan lain setelah pembatalan ini.",
+                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelPendingDialog = false
+                        scope.launch {
+                            vipManager.cancelPendingTransaction()
+                            Toast.makeText(context, "Transaksi berhasil dibatalkan. Silakan pilih paket baru.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF5252),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Ya, Batalkan Transaksi", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCancelPendingDialog = false },
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+                ) {
+                    Text("Kembali", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                }
+            }
+        )
+    }
+
+    // ==============================================================================
+    // DIALOG KONFIRMASI PEMBATALAN LANGGANAN VIP AKTIF
+    // ==============================================================================
+    if (showCancelActiveSubDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelActiveSubDialog = false },
+            containerColor = Color(0xFF18181C),
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text = "Batalkan Langganan VIP?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color(0xFFFF5252)
+                )
+            },
+            text = {
+                Text(
+                    text = "Perhatian: Jika dibatalkan, akun Anda akan kembali ke status gratis. Akses ke semua tema kustom, Dynamic Island, dan border animasi profil akan langsung dinonaktifkan.",
+                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelActiveSubDialog = false
+                        scope.launch {
+                            vipManager.cancelActiveSubscription()
+                            Toast.makeText(context, "Langganan VIP telah dinonaktifkan.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF5252),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Ya, Batalkan VIP", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCancelActiveSubDialog = false },
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+                ) {
+                    Text("Pertahankan VIP", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                }
+            }
+        )
+    }
+}
+
+private fun NumberFormat(amount: Int): String {
+    return String.format("%,d", amount).replace(',', '.')
 }
 
 @Composable
-private fun QrisStepItem(number: String, text: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top
+private fun VipBenefitsCard() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF141416))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
+            .padding(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .background(GoldPrimary.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = number,
-                fontSize = 11.sp,
+                text = "KEUNTUNGAN MEMBER VIP",
+                style = MaterialTheme.typography.labelSmall,
+                color = GoldPrimary,
                 fontWeight = FontWeight.Bold,
-                color = GoldPrimary
+                letterSpacing = 1.sp
+            )
+
+            VipBenefitItem(
+                iconRes = R.drawable.palette,
+                title = "Bebas Semua Tema Home Screen",
+                desc = "Akses Playful, Neon, Spotify, Apple (Gratis hanya Classic)"
+            )
+            VipBenefitItem(
+                iconRes = R.drawable.nav_bar,
+                title = "Bebas Semua Tema Nav Bar",
+                desc = "Akses Liquid Glass, Spotify, Apple, Neon, New Classic (Gratis hanya Classic)"
+            )
+            VipBenefitItem(
+                iconRes = R.drawable.music_note,
+                title = "Dynamic Island Mini Player",
+                desc = "Island melayang interaktif di atas layar ala iOS"
+            )
+            VipBenefitItem(
+                iconRes = R.drawable.chat,
+                title = "IceBeats Chat & Kirim Lagu",
+                desc = "Ngobrol bersama teman dan bagikan musik favorit"
+            )
+            VipBenefitItem(
+                iconRes = R.drawable.auto_awesome,
+                title = "Semua Border Animasi Profil Master",
+                desc = "Royal Crown, Crimson Wings, Flame Ring & Golden Shield"
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            color = Color.White.copy(alpha = 0.85f),
-            lineHeight = 16.sp,
-            modifier = Modifier.weight(1f)
-        )
     }
 }
 

@@ -1127,11 +1127,30 @@ class SupabaseClient(private val context: Context) {
                         val totalMs = statsObj.optLong("total_listen_ms", 0L)
                         val totalHours = (totalMs / (1000 * 3600)).toInt()
                         val cloudBannerUrl = statsObj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
+                        val cloudBorder = statsObj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
+                        val cloudName = statsObj.optString("name").trim().takeIf { it.isNotBlank() && it != "null" && it != "User" && !it.startsWith("Hai,") }
 
                         syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", totalMs).apply()
                         globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", totalMs).apply()
 
                         bannerManager.saveBannerForUser(uid, cloudBannerUrl)
+
+                        if (cloudBorder != null) {
+                            val style = com.valora.icebeats.ui.component.MasterBorderStyle.fromIdOrNull(cloudBorder)
+                            if (style != null) {
+                                com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(style)
+                            }
+                        }
+
+                        if (cloudName != null) {
+                            val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
+                            nameManager.saveUserName(cloudName)
+                            runCatching {
+                                context.dataStore.edit { prefs ->
+                                    prefs[com.valora.icebeats.constants.AccountNameKey] = cloudName
+                                }
+                            }
+                        }
 
                         if (totalHours >= 1) {
                             val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours)
@@ -1250,15 +1269,16 @@ class SupabaseClient(private val context: Context) {
             val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
             val rankManager = com.valora.icebeats.ui.component.RankPreferenceManager(context)
             val borderManager = com.valora.icebeats.ui.component.BorderPreferenceManager(context)
+            val bannerManager = com.valora.icebeats.ui.component.BannerPreferenceManager(context)
             val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
             val email = nameManager.accountEmail.first().trim()
 
             val token = authManager.accessToken ?: anonKey
             val queryUrl = if (email.isNotBlank()) {
                 val encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8.name())
-                "$baseUrl/rest/v1/user_stats?or=(id.eq.$userId,email.eq.$encodedEmail)&select=id,name,total_listen_ms,border_style&limit=1"
+                "$baseUrl/rest/v1/user_stats?or=(id.eq.$userId,email.eq.$encodedEmail)&select=id,name,total_listen_ms,border_style,banner_url&limit=1"
             } else {
-                "$baseUrl/rest/v1/user_stats?id=eq.$userId&select=id,name,total_listen_ms,border_style&limit=1"
+                "$baseUrl/rest/v1/user_stats?id=eq.$userId&select=id,name,total_listen_ms,border_style,banner_url&limit=1"
             }
 
             val request = Request.Builder()
@@ -1287,7 +1307,6 @@ class SupabaseClient(private val context: Context) {
                         .putLong("last_local_anchor_ms", 0L)
                         .apply()
                     rankManager.saveDisplayedRank(null)
-                    // PENTING: Jangan me-reset border pilihan pengguna
                     return@use
                 }
 
@@ -1295,6 +1314,8 @@ class SupabaseClient(private val context: Context) {
                 val serverMs = obj.optLong("total_listen_ms", 0L)
                 val serverHours = (serverMs / (1000 * 3600)).toInt()
                 val serverBorder = obj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
+                val serverBanner = obj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
+                val serverName = obj.optString("name").trim().takeIf { it.isNotBlank() && it != "null" && it != "User" && !it.startsWith("Hai,") }
 
                 // Simpan jam dengar server khusus akun ini
                 prefs.edit()
@@ -1308,11 +1329,100 @@ class SupabaseClient(private val context: Context) {
                 val newRank = if (serverHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(serverHours) else null
                 rankManager.saveDisplayedRank(newRank)
 
-                // HANYA perbarui border lokal jika server secara eksplisit memiliki nilai borderStyle yang valid!
-                // Jika di server null/kosong, jangan me-reset pilihan border lokal pengguna.
                 if (serverBorder != null) {
                     val style = com.valora.icebeats.ui.component.MasterBorderStyle.fromId(serverBorder)
                     borderManager.saveSelectedBorder(style)
+                }
+
+                if (serverBanner != null) {
+                    bannerManager.saveBannerForUser(userId, serverBanner)
+                }
+
+                if (serverName != null) {
+                    val currentName = nameManager.userName.first()
+                    if (currentName.isBlank() || currentName.startsWith("Hai,") || currentName == "Friend") {
+                        nameManager.saveUserName(serverName)
+                        runCatching {
+                            context.dataStore.edit { prefs ->
+                                prefs[com.valora.icebeats.constants.AccountNameKey] = serverName
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Memperbarui profil pengguna (nama, avatar, banner, border) ke database Supabase secara instan dan permanen.
+     */
+    suspend fun updateUserProfileFields(
+        name: String? = null,
+        profileUrl: String? = null,
+        bannerUrl: String? = null,
+        borderStyle: String? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
+            val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
+            if (uid.isBlank()) return@runCatching
+
+            val token = getValidAuthToken()
+            val payload = JSONObject()
+            name?.let { payload.put("name", it) }
+            profileUrl?.let { payload.put("profile_url", if (it.isBlank()) JSONObject.NULL else it) }
+            bannerUrl?.let { payload.put("banner_url", if (it.isBlank()) JSONObject.NULL else it) }
+            borderStyle?.let { payload.put("border_style", if (it.isBlank()) JSONObject.NULL else it) }
+            payload.put("last_updated_at", System.currentTimeMillis())
+
+            if (payload.length() == 1) return@runCatching
+
+            // 1. Patch ke user_stats
+            val patchUrl = "$baseUrl/rest/v1/user_stats?id=eq.$uid"
+            val patchReq = Request.Builder()
+                .url(patchUrl)
+                .header("apikey", anonKey)
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .header("Prefer", "return=minimal")
+                .patch(payload.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            var patchSuccess = false
+            httpClient.newCall(patchReq).execute().use { resp ->
+                patchSuccess = resp.isSuccessful
+            }
+
+            if (!patchSuccess) {
+                payload.put("id", uid)
+                val upsertUrl = "$baseUrl/rest/v1/user_stats?on_conflict=id"
+                val upsertReq = Request.Builder()
+                    .url(upsertUrl)
+                    .header("apikey", anonKey)
+                    .header("Authorization", "Bearer $token")
+                    .header("Content-Type", "application/json")
+                    .header("Prefer", "resolution=merge-duplicates")
+                    .post(payload.toString().toRequestBody(jsonMediaType))
+                    .build()
+                httpClient.newCall(upsertReq).execute().close()
+            }
+
+            // 2. Jika nama diubah, sinkronkan juga nama ke user_subscriptions
+            if (!name.isNullOrBlank()) {
+                val subPayload = JSONObject().apply {
+                    put("user_name", name)
+                }
+                val subUrl = "$baseUrl/rest/v1/user_subscriptions?user_id=eq.$uid"
+                val subReq = Request.Builder()
+                    .url(subUrl)
+                    .header("apikey", anonKey)
+                    .header("Authorization", "Bearer $token")
+                    .header("Content-Type", "application/json")
+                    .header("Prefer", "return=minimal")
+                    .patch(subPayload.toString().toRequestBody(jsonMediaType))
+                    .build()
+                runCatching {
+                    httpClient.newCall(subReq).execute().close()
                 }
             }
         }
@@ -1509,9 +1619,9 @@ class SupabaseClient(private val context: Context) {
                         profileUrl = profileUrl,
                         totalListenMs = totalMs,
                         rank = rank,
-                        borderStyle = if (isUserVip) bStyle else null,
+                        borderStyle = bStyle,
                         verificationBadge = vBadge,
-                        bannerUrl = if (isUserVip) bannerUrl else null
+                        bannerUrl = bannerUrl
                     )
                 )
             }
@@ -1641,7 +1751,7 @@ class SupabaseClient(private val context: Context) {
                                     else -> null
                                 }
                                 val isUserVip = vBadge != null
-                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, if (isUserVip) bStyle else null, vBadge, if (isUserVip) bannerUrl else null)
+                                userMap[uid] = ChatUser(uid, name, profile, ms, rank, bStyle, vBadge, bannerUrl)
                             }
                         }
                     }
@@ -2115,7 +2225,7 @@ class SupabaseClient(private val context: Context) {
             if (senderIds.isEmpty()) return@runCatching emptyList()
 
             val inQuery = senderIds.distinct().joinToString(",")
-            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style"
+            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style,banner_url"
             val userReq = Request.Builder()
                 .url(userUrl)
                 .header("apikey", anonKey)
@@ -2137,7 +2247,8 @@ class SupabaseClient(private val context: Context) {
                     val totalMs = obj.optLong("total_listen_ms", 0L)
                     val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                     val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
-                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle))
+                    val bannerUrl = obj.optString("banner_url").takeIf { it.isNotBlank() && it != "null" }
+                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, bannerUrl = bannerUrl))
                 }
                 result
             }
@@ -2178,7 +2289,7 @@ class SupabaseClient(private val context: Context) {
 
             val inQuery = friendIds.distinct().joinToString(",")
             val subsMap = fetchSubscriptionsForUsers(friendIds, token)
-            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style,role"
+            val userUrl = "$baseUrl/rest/v1/user_stats?id=in.($inQuery)&select=id,name,profile_url,total_listen_ms,border_style,banner_url,role"
             val userReq = Request.Builder()
                 .url(userUrl)
                 .header("apikey", anonKey)
@@ -2200,6 +2311,7 @@ class SupabaseClient(private val context: Context) {
                     val totalMs = obj.optLong("total_listen_ms", 0L)
                     val rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((totalMs / 3600000L).toInt())
                     val bStyle = obj.optString("border_style").takeIf { it.isNotBlank() && it != "null" }
+                    val bannerUrl = obj.optString("banner_url").takeIf { it.isNotBlank() && it != "null" }
                     val role = obj.optString("role")
                     val subPlan = subsMap[id]
                     val vBadge = when {
@@ -2207,8 +2319,7 @@ class SupabaseClient(private val context: Context) {
                         subPlan != null -> "premium"
                         else -> null
                     }
-                    val isUserVip = vBadge != null
-                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = if (isUserVip) bStyle else null, verificationBadge = vBadge))
+                    result.add(ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, verificationBadge = vBadge, bannerUrl = bannerUrl))
                 }
                 result
             }
@@ -2251,7 +2362,7 @@ class SupabaseClient(private val context: Context) {
                     else -> null
                 }
                 val isUserVip = vBadge != null
-                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = if (isUserVip) bStyle else null, verificationBadge = vBadge, bannerUrl = if (isUserVip) bannerUrl else null)
+                ChatUser(id = id, name = name, profileUrl = profileUrl, totalListenMs = totalMs, rank = rank, borderStyle = bStyle, verificationBadge = vBadge, bannerUrl = bannerUrl)
             }
         }
     }
