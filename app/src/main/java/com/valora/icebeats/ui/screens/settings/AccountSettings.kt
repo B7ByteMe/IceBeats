@@ -20,6 +20,8 @@ import com.valora.icebeats.R
 import com.valora.icebeats.constants.*
 import com.valora.icebeats.ui.component.*
 import com.valora.icebeats.utils.rememberPreference
+import com.valora.icebeats.utils.dataStore
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -1062,9 +1064,11 @@ fun AccountSettings(
                         scope.launch {
                             nameManager.saveUserName(finalName)
                             onAccountNameChange(finalName)
-                            context.dataStore.edit { prefs ->
-                                prefs[com.valora.icebeats.constants.AccountNameKey] = finalName
-                            }
+                            try {
+                                context.dataStore.edit { prefs ->
+                                    prefs[com.valora.icebeats.constants.AccountNameKey] = finalName
+                                }
+                            } catch (_: Exception) {}
                             supabaseClient.updateUserProfileFields(name = finalName)
                             Toast.makeText(context, "Nama profil berhasil disimpan!", Toast.LENGTH_SHORT).show()
                         }

@@ -33,6 +33,8 @@ import com.valora.icebeats.ui.component.AvatarSelection
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import androidx.datastore.preferences.core.edit
+import com.valora.icebeats.utils.dataStore
 
 class SupabaseClient(private val context: Context) {
     private val authManager = SupabaseAuthManager.getInstance(context)
@@ -1145,11 +1147,11 @@ class SupabaseClient(private val context: Context) {
                         if (cloudName != null) {
                             val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
                             nameManager.saveUserName(cloudName)
-                            runCatching {
+                            try {
                                 context.dataStore.edit { prefs ->
                                     prefs[com.valora.icebeats.constants.AccountNameKey] = cloudName
                                 }
-                            }
+                            } catch (_: Exception) {}
                         }
 
                         if (totalHours >= 1) {
@@ -1342,11 +1344,11 @@ class SupabaseClient(private val context: Context) {
                     val currentName = nameManager.userName.first()
                     if (currentName.isBlank() || currentName.startsWith("Hai,") || currentName == "Friend") {
                         nameManager.saveUserName(serverName)
-                        runCatching {
+                        try {
                             context.dataStore.edit { prefs ->
                                 prefs[com.valora.icebeats.constants.AccountNameKey] = serverName
                             }
-                        }
+                        } catch (_: Exception) {}
                     }
                 }
             }

@@ -689,6 +689,17 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON public.user_subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_email ON public.user_subscriptions(email);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'unique_user_subscription'
+    ) THEN
+        ALTER TABLE public.user_subscriptions ADD CONSTRAINT unique_user_subscription UNIQUE (user_id);
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
 -- RLS Policies Anti-Tamper & Anti-Injeksi (v7.1.5 Security Hardening)
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
 
