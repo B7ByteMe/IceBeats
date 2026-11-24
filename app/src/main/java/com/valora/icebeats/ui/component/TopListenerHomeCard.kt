@@ -98,7 +98,7 @@ fun TopListenerHomeSection(
     val userRank = if (totalHours >= 1L) icebeatsRank.fromHours(totalHours.toInt()) else null
     val verType = VerificationHelper.parseVerificationType(verificationBadge = currentTopUser.verificationBadge)
     val isVipListener = verType != VerificationType.NONE
-    val borderStyle = if (isVipListener) MasterBorderStyle.fromIdOrNull(currentTopUser.borderStyle) else null
+    val borderStyle = MasterBorderStyle.fromIdOrNull(currentTopUser.borderStyle)
 
     val targetChatUser = remember(currentTopUser, userRank, isVipListener) {
         ChatUser(

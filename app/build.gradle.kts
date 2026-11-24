@@ -36,8 +36,8 @@ android {
         applicationId = "com.valora.icebeats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 187
-        versionName = "7.1.8"
+        versionCode = 188
+        versionName = "7.1.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_API_KEY", googleApiKey.asBuildConfigString())
         buildConfigField("String", "STATS_API_KEY", statsApiKey.asBuildConfigString())

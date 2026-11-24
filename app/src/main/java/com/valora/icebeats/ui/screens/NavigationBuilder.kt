@@ -64,14 +64,11 @@ import com.valora.icebeats.ui.component.SupportValoraDialog
 
 @Composable
 private fun rememberEffectiveHomeScreenStyle(): HomeScreenStyle {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
     val (rawStyle, _) = rememberEnumPreference(
         HomeScreenStyleKey,
         defaultValue = HomeScreenStyle.CLASSIC
     )
-    return if (isVip) rawStyle else HomeScreenStyle.CLASSIC
+    return rawStyle
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)

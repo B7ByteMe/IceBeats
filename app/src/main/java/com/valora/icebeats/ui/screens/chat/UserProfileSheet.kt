@@ -118,7 +118,6 @@ fun UserProfileSheet(
     val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
         verificationBadge = activeUser.verificationBadge
     )
-    val isTargetVip = if (isSelf) isVip else (verType != com.valora.icebeats.ui.component.VerificationType.NONE)
     val borderStyle = MasterBorderStyle.fromIdOrNull(activeUser.borderStyle)
 
     // Muat data status pertemanan & playlist
@@ -520,11 +519,7 @@ fun UserProfileSheet(
                     ) {
                         Button(
                             onClick = {
-                                if (isVip) {
-                                    showBorderSelector = true
-                                } else {
-                                    showVipDialog = true
-                                }
+                                showBorderSelector = true
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
