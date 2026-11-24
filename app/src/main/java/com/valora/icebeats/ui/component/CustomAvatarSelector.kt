@@ -297,31 +297,82 @@ fun ElegantSelectorButton(
     iconVector: androidx.compose.ui.graphics.vector.ImageVector? = null,
     modifier: Modifier = Modifier,
     solid: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    useLiquidSilverTheme: Boolean = false
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    
+    val shape = RoundedCornerShape(24.dp)
+    val bgModifier = when {
+        useLiquidSilverTheme && solid -> {
+            if (enabled) {
+                Modifier.background(
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFFF8FAFC), Color(0xFFD8E0EA), Color(0xFFB4BFC9))
+                    ),
+                    shape = shape
+                )
+            } else {
+                Modifier.background(Color.White.copy(alpha = 0.12f), shape = shape)
+            }
+        }
+        useLiquidSilverTheme -> {
+            Modifier.background(
+                brush = Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.04f))
+                ),
+                shape = shape
+            )
+        }
+        solid -> {
+            Modifier.background(
+                color = if (enabled) Color(0xFFCCFF00) else Color(0xFFCCFF00).copy(alpha = 0.2f),
+                shape = shape
+            )
+        }
+        else -> {
+            Modifier.background(Color.Transparent, shape = shape)
+        }
+    }
+    val borderModifier = when {
+        useLiquidSilverTheme && solid -> {
+            Modifier.border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.9f), Color(0xFF8C98A8).copy(alpha = 0.5f))
+                ),
+                shape = shape
+            )
+        }
+        useLiquidSilverTheme -> {
+            Modifier.border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    listOf(
+                        Color.White.copy(alpha = if (enabled) 0.42f else 0.15f),
+                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = if (enabled) 0.24f else 0.08f)
+                    )
+                ),
+                shape = shape
+            )
+        }
+        solid -> Modifier
+        else -> {
+            Modifier.border(
+                width = 1.dp,
+                color = if (enabled) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.08f),
+                shape = shape
+            )
+        }
+    }
+
     Box(
         modifier = modifier
             .height(46.dp)
             .scale(if (isPressed) 0.98f else 1f)
-            .background(
-                color = if (solid) {
-                    if (enabled) Color(0xFFCCFF00) else Color(0xFFCCFF00).copy(alpha = 0.2f)
-                } else {
-                    Color.Transparent
-                },
-                shape = RoundedCornerShape(24.dp)
-            )
-            .border(
-                width = 1.dp,
-                color = if (solid) {
-                    Color.Transparent
-                } else {
-                    if (enabled) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.08f)
-                },
-                shape = RoundedCornerShape(24.dp)
-            )
+            .clip(shape)
+            .then(bgModifier)
+            .then(borderModifier)
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -338,7 +389,12 @@ fun ElegantSelectorButton(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            val contentColor = if (solid) Color.Black else (if (enabled) Color.White else Color.White.copy(alpha = 0.3f))
+            val contentColor = when {
+                solid && enabled -> Color(0xFF0C1016)
+                solid -> Color.White.copy(alpha = 0.4f)
+                enabled -> Color.White
+                else -> Color.White.copy(alpha = 0.3f)
+            }
             
             if (icon != null) {
                 Icon(
@@ -373,7 +429,8 @@ fun ElegantSelectorButton(
  */
 @Composable
 fun AvatarSelector(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    useLiquidSilverTheme: Boolean = false
 ) {
     val context = LocalContext.current
     val avatarManager = remember { AvatarPreferenceManager(context) }
@@ -446,14 +503,45 @@ fun AvatarSelector(
         }
     }
 
+    val cardShape = RoundedCornerShape(24.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF161616), shape = RoundedCornerShape(20.dp))
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(20.dp)
+            .clip(cardShape)
+            .then(
+                if (useLiquidSilverTheme) {
+                    Modifier
+                        .background(
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.14f),
+                                    Color(0xFFD6E0EC).copy(alpha = 0.05f),
+                                    Color(0xFF0A0D12).copy(alpha = 0.45f)
+                                )
+                            ),
+                            shape = cardShape
+                        )
+                        .border(
+                            width = 1.2.dp,
+                            brush = Brush.linearGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.48f),
+                                    Color(0xFFD0D9E4).copy(alpha = 0.16f),
+                                    Color.White.copy(alpha = 0.06f),
+                                    Color(0xFFE2E8F0).copy(alpha = 0.28f)
+                                )
+                            ),
+                            shape = cardShape
+                        )
+                } else {
+                    Modifier
+                        .background(Color(0xFF161616), shape = RoundedCornerShape(20.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                }
             )
             .padding(20.dp)
     ) {
@@ -476,7 +564,7 @@ fun AvatarSelector(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = Color(0xFFCCFF00)
+                        color = if (useLiquidSilverTheme) Color(0xFFE2E8F0) else Color(0xFFCCFF00)
                     )
                 }
             }
@@ -487,6 +575,7 @@ fun AvatarSelector(
             CurrentAvatarDisplay(
                 selection = uiState.currentSelection,
                 isLoading = uiState.isLoading,
+                useLiquidSilverTheme = useLiquidSilverTheme,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
@@ -502,7 +591,8 @@ fun AvatarSelector(
                     text = stringResource(id = R.string.custom),
                     iconVector = Icons.Default.Add,
                     modifier = Modifier.weight(1f),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    useLiquidSilverTheme = useLiquidSilverTheme
                 )
 
                 ElegantSelectorButton(
@@ -513,7 +603,8 @@ fun AvatarSelector(
                     icon = painterResource(R.drawable.palette),
                     modifier = Modifier.weight(1f),
                     solid = true,
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    useLiquidSilverTheme = useLiquidSilverTheme
                 )
             }
 
@@ -529,7 +620,8 @@ fun AvatarSelector(
                     },
                     text = stringResource(id = R.string.restore_default_avatar),
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    useLiquidSilverTheme = useLiquidSilverTheme
                 )
             }
 
@@ -814,16 +906,18 @@ private fun DiceBearAvatarItem(
 private fun CurrentAvatarDisplay(
     selection: AvatarSelection,
     isLoading: Boolean,
+    useLiquidSilverTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val accentColor = if (useLiquidSilverTheme) Color(0xFFE2E8F0) else Color(0xFFCCFF00)
 
     Box(
         modifier = modifier
             .size(96.dp)
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.15f),
+                color = Color.White.copy(alpha = 0.20f),
                 shape = CircleShape
             )
             .padding(4.dp),
@@ -836,7 +930,7 @@ private fun CurrentAvatarDisplay(
                 .background(Color(0xFF1E1E1E))
                 .border(
                     width = 2.dp,
-                    color = Color(0xFFCCFF00),
+                    color = accentColor,
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -846,7 +940,7 @@ private fun CurrentAvatarDisplay(
                     CircularProgressIndicator(
                         modifier = Modifier.size(32.dp),
                         strokeWidth = 2.5.dp,
-                        color = Color(0xFFCCFF00)
+                        color = accentColor
                     )
                 }
 

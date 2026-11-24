@@ -740,10 +740,16 @@ class MainActivity : ComponentActivity() {
                                 label = "",
                             )
 
+                            val navBarBottomClearance = when (navBarStyle) {
+                                NavBarStyle.APPLE -> NavigationBarHeight - 2.dp
+                                NavBarStyle.SPOTIFY, NavBarStyle.NEON -> NavigationBarHeight - 12.dp
+                                else -> NavigationBarHeight - 6.dp
+                            }
+
                             val playerBottomSheetState =
                                 rememberBottomSheetState(
                                     dismissedBound = 0.dp,
-                                    collapsedBound = bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight - 16.dp else 0.dp) + MiniPlayerHeight,
+                                    collapsedBound = bottomInset + (if (shouldShowNavigationBar) navBarBottomClearance else 0.dp) + MiniPlayerHeight,
                                     expandedBound = maxHeight,
                                 )
 
@@ -751,6 +757,7 @@ class MainActivity : ComponentActivity() {
                                 remember(
                                     bottomInset,
                                     shouldShowNavigationBar,
+                                    navBarBottomClearance,
                                     playerBottomSheetState.isDismissed,
                                     navBackStackEntry?.destination?.route,
                                     isNameSet
@@ -760,7 +767,7 @@ class MainActivity : ComponentActivity() {
                                     val isAuth = route == "onboarding" || route == "login" || route == "guest_profile_setup" || route == "discord_login" || isNameSet == false
 
                                     var bottom = bottomInset
-                                    if (shouldShowNavigationBar && !isSettings && !isAuth) bottom += NavigationBarHeight - 16.dp
+                                    if (shouldShowNavigationBar && !isSettings && !isAuth) bottom += navBarBottomClearance
                                     if (!playerBottomSheetState.isDismissed && !isSettings && !isAuth) bottom += MiniPlayerHeight
                                     windowsInsets
                                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)

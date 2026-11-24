@@ -102,18 +102,17 @@ jobs:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || env.VERSION_TAG }}
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('IceBeats v{0}', env.VERSION_NAME) }}
           body: |
-            ## 🎵 IceBeats v${{ env.VERSION_NAME }} - Update Logo Baru & Pembukaan Fitur Gratis
+            ## 🎵 IceBeats v${{ env.VERSION_NAME }} - UI Liquid Glass, Tombol Silver & Penyempurnaan Tata Letak
 
             ### 🚀 Pembaruan di Versi ${{ env.VERSION_NAME }}:
-            - **🎧 Logo & Splash Screen Baru**:
-              - Mengganti splash loading GIF 15MB lama dengan logo headphone PNG baru yang bersih, tajam, dan ringan.
-              - Animasi masuk mulus tanpa efek bayangan atau pendaran cahaya berlebih.
-            - **🎬 Login Bersih & Ringan**:
-              - Menghapus aset background video login untuk menghemat memori dan mempercepat waktu buka.
-            - **🔓 Pembukaan Semua Fitur (Gratis untuk Semua)**:
-              - Semua border profil (14 border eksklusif), avatar GIF, banner GIF, Dynamic Island, dan kustomisasi gaya layar/navbar kini dapat digunakan secara gratis tanpa batasan VIP.
-            - **💬 Penyederhanaan Antarmuka**:
-              - Menghapus fitur chat antar-pengguna untuk fokus pada performa pemutar musik terbaik.
+            - **🧊 Tema iOS Liquid Glass & Tombol Silver**:
+              - Desain kartu kaca *Liquid Glass* dengan tombol *Metallic Silver* di halaman Login, Daftar, Lupa Password, Verifikasi OTP, Buat Password Baru, dan *Continue as Guest*.
+              - Pengamanan tombol kembali di halaman Login utama serta penambahan timer hitung mundur 60 detik dan dialog konfirmasi saat verifikasi OTP pendaftaran.
+            - **📱 Perbaikan Ikon Aplikasi & Tata Letak**:
+              - Penyesuaian skala *adaptive & legacy icon* agar ukuran ikon launcher aplikasi proporsional dan rapi.
+              - Penambahan jarak aman (`12.dp`) antara *Mini Player* dan *Navigation Bar* agar tidak lagi menempel.
+            - **🧹 Penyederhanaan Fitur**:
+              - Menghapus fitur Border Profil, Avatar Animasi (GIF), Banner Animasi (GIF), dan banner Top Listener di halaman Home agar aplikasi lebih ringan dan fokus pada pemutar musik.
 
             ### 📱 Multi-Architecture Support:
             - `IceBeats-v${{ env.VERSION_NAME }}.apk` & `IceBeats-v${{ env.VERSION_NAME }}-universal.apk`: Universal untuk semua HP Android.

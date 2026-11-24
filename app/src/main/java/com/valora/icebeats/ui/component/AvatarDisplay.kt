@@ -100,24 +100,11 @@ fun AvatarDisplay(
     }
 }
 
-    if (enableMasterBorder) {
-        MasterProfileBorder(
-            avatarSize = size,
-            modifier = modifier,
-            userRank = userRank,
-            totalListenMs = totalListenMs,
-            forceShowMaster = forceShowMaster,
-            isSelf = true
-        ) {
-            innerAvatar()
-        }
-    } else {
-        Box(
-            modifier = modifier.size(size),
-            contentAlignment = Alignment.Center
-        ) {
-            innerAvatar()
-        }
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        innerAvatar()
     }
 }
 

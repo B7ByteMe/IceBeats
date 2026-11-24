@@ -61,9 +61,6 @@ import com.valora.icebeats.supabase.ChatUser
 import com.valora.icebeats.supabase.FriendshipStatus
 import com.valora.icebeats.supabase.SupabaseClient
 import com.valora.icebeats.supabase.UserPublicPlaylist
-import com.valora.icebeats.ui.component.MasterBorderSelectorSheet
-import com.valora.icebeats.ui.component.MasterBorderStyle
-import com.valora.icebeats.ui.component.MasterProfileBorder
 import com.valora.icebeats.ui.component.RankBadge
 import com.valora.icebeats.ui.component.icebeatsRank
 import androidx.compose.material.icons.Icons
@@ -96,7 +93,6 @@ fun UserProfileSheet(
     var isFriendActionLoading by remember { mutableStateOf(false) }
     var playlists by remember { mutableStateOf<List<UserPublicPlaylist>>(emptyList()) }
     var isLoadingPlaylists by remember { mutableStateOf(true) }
-    var showBorderSelector by remember { mutableStateOf(false) }
 
     var activeUser by remember(targetUser) { mutableStateOf(targetUser) }
 
@@ -108,17 +104,12 @@ fun UserProfileSheet(
         }
     }
 
-    val bannerPrefManager = remember { com.valora.icebeats.ui.component.BannerPreferenceManager(context) }
-    val myBannerUrl by bannerPrefManager.bannerUrl.collectAsState(initial = null)
-    val displayBannerUrl = if (isSelf) myBannerUrl else activeUser.bannerUrl
-
     // Hitung jam dengar & rank
     val totalHours = (activeUser.totalListenMs / (1000 * 3600)).coerceAtLeast(0L)
     val userRank = activeUser.rank ?: icebeatsRank.fromHours(totalHours.toInt())
     val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
         verificationBadge = activeUser.verificationBadge
     )
-    val borderStyle = MasterBorderStyle.fromIdOrNull(activeUser.borderStyle)
 
     // Muat data status pertemanan & playlist
     LaunchedEffect(targetUser.id, currentUserId) {
@@ -167,176 +158,20 @@ fun UserProfileSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 0. HEADER PROFIL (BANNER + AVATAR DENGAN MASTER BORDER)
+            // 0. HEADER PROFIL (AVATAR BERSIH TANPA BANNER/BORDER ANIMASI)
             item {
-                if (!displayBannerUrl.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(210.dp),
-                        contentAlignment = Alignment.TopCenter
+                // Tampilan avatar bersih tanpa banner & border animasi
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .padding(top = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(70.dp)
                     ) {
-                        // Banner Animasi Latar Belakang (tanpa garis kuning)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(140.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-                        ) {
-                            SubcomposeAsyncImage(
-                                model = displayBannerUrl,
-                                contentDescription = "Banner Animasi ${activeUser.name}",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            ) {
-                                val state = painter.state
-                                if (state is AsyncImagePainter.State.Loading) {
-                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = Color(0xFFFFD700),
-                                            strokeWidth = 2.dp
-                                        )
-                                    }
-                                } else if (state is AsyncImagePainter.State.Error) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(Color(0xFF2B2206), Color(0xFF1A1A1E))
-                                                )
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.image),
-                                            contentDescription = null,
-                                            tint = Color.White.copy(alpha = 0.3f),
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    }
-                                } else {
-                                    SubcomposeAsyncImageContent()
-                                }
-                            }
-                            // Gradien halus di bagian bawah agar menyatu secara transparan dengan background tanpa garis kuning
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colorStops = arrayOf(
-                                                0.0f to Color.Transparent,
-                                                0.35f to Color.Transparent,
-                                                0.70f to MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
-                                                1.0f to MaterialTheme.colorScheme.surface
-                                            )
-                                        )
-                                    )
-                            )
-                        }
-
-                        // Avatar dengan Master Border tepat di tengah batas bawah banner
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 70.dp)
-                                .size(140.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            MasterProfileBorder(
-                                avatarSize = 70.dp,
-                                userRank = userRank,
-                                totalListenMs = activeUser.totalListenMs,
-                                borderStyle = if (isSelf) null else borderStyle,
-                                isSelf = isSelf
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(70.dp)
-                                ) {
-                                    if (!activeUser.profileUrl.isNullOrBlank()) {
-                                        SubcomposeAsyncImage(
-                                            model = activeUser.profileUrl,
-                                            contentDescription = activeUser.name,
-                                            modifier = Modifier.size(70.dp),
-                                            contentScale = ContentScale.Crop
-                                        ) {
-                                            val state = painter.state
-                                            if (state is AsyncImagePainter.State.Loading) {
-                                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(20.dp),
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        strokeWidth = 2.dp
-                                                    )
-                                                }
-                                            } else if (state is AsyncImagePainter.State.Error) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(70.dp)
-                                                        .background(MaterialTheme.colorScheme.primaryContainer),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = activeUser.name.take(1).uppercase(),
-                                                        style = MaterialTheme.typography.headlineMedium,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    )
-                                                }
-                                            } else {
-                                                SubcomposeAsyncImageContent()
-                                            }
-                                        }
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(70.dp)
-                                                .background(
-                                                    Brush.linearGradient(
-                                                        listOf(
-                                                            MaterialTheme.colorScheme.primary,
-                                                            MaterialTheme.colorScheme.tertiary
-                                                        )
-                                                    )
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = activeUser.name.take(1).uppercase(),
-                                                style = MaterialTheme.typography.headlineMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Tampilan avatar normal jika tidak ada banner
-                    Box(
-                        modifier = Modifier
-                            .size(140.dp)
-                            .padding(top = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        MasterProfileBorder(
-                            avatarSize = 70.dp,
-                            userRank = userRank,
-                            totalListenMs = activeUser.totalListenMs,
-                            borderStyle = if (isSelf) null else borderStyle,
-                            isSelf = isSelf
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(70.dp)
-                            ) {
                                 if (!activeUser.profileUrl.isNullOrBlank()) {
                                     SubcomposeAsyncImage(
                                         model = activeUser.profileUrl,
@@ -395,8 +230,6 @@ fun UserProfileSheet(
                                 }
                             }
                         }
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -513,42 +346,21 @@ fun UserProfileSheet(
             // 3. TOMBOL AKSI PERTEMANAN / EDIT PROFIL
             item {
                 if (isSelf) {
-                    Row(
+                    OutlinedButton(
+                        onClick = {
+                            onDismiss()
+                            onOpenAccountSettings?.invoke()
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                showBorderSelector = true
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Border Master")
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                onDismiss()
-                                onOpenAccountSettings?.invoke()
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.settings),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Pengaturan")
-                        }
+                        Icon(
+                            painter = painterResource(R.drawable.settings),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Pengaturan")
                     }
                 } else {
                     // Tindakan Berteman untuk User Lain
@@ -767,13 +579,5 @@ fun UserProfileSheet(
                 Spacer(modifier = Modifier.height(30.dp))
             }
         }
-    }
-
-    if (showBorderSelector) {
-        MasterBorderSelectorSheet(
-            onDismiss = { showBorderSelector = false },
-            userRank = userRank,
-            totalListenMs = activeUser.totalListenMs
-        )
     }
 }

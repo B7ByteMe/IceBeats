@@ -779,8 +779,7 @@ fun ProfileSection(
     isLoggedIn: Boolean,
     accountName: String,
     currentSelection: AvatarSelection,
-    verificationType: com.valora.icebeats.ui.component.VerificationType = com.valora.icebeats.ui.component.VerificationType.NONE,
-    bannerUrl: String? = null
+    verificationType: com.valora.icebeats.ui.component.VerificationType = com.valora.icebeats.ui.component.VerificationType.NONE
 ) {
     Column(
         modifier = Modifier
@@ -788,35 +787,6 @@ fun ProfileSection(
             .padding(top = 0.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (!bannerUrl.isNullOrBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp)
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFF1E1E22))
-                    .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.4f), RoundedCornerShape(18.dp))
-            ) {
-                AsyncImage(
-                    model = bannerUrl,
-                    contentDescription = "Banner Profil",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
-                            )
-                        )
-                )
-            }
-            Spacer(modifier = Modifier.height((-45).dp))
-        }
-
         if (isLoggedIn) {
             var imageLoadError by remember { mutableStateOf(false) }
             var isImageLoading by remember { mutableStateOf(false) }
@@ -837,16 +807,6 @@ fun ProfileSection(
                 contentAlignment = Alignment.Center
             ) {
                     when {
-                        currentSelection is AvatarSelection.Gif && !imageLoadError -> {
-                            AsyncImage(
-                                model = (currentSelection as AvatarSelection.Gif).url,
-                                contentDescription = "Avatar GIF $accountName",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
                         currentSelection is AvatarSelection.Custom && !imageLoadError -> {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
@@ -1087,9 +1047,6 @@ fun SettingsScreen(
         var showTranslateDialog by remember { mutableStateOf(false) }
         var showChangelogSheet by remember { mutableStateOf(false) }
         var showVipDialog by remember { mutableStateOf(false) }
-        var showBorderSelectorSheet by remember { mutableStateOf(false) }
-        var showAvatarGifDialog by remember { mutableStateOf(false) }
-        var showBannerGifDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1148,11 +1105,6 @@ fun SettingsScreen(
                 val isVip by vipManager.isVip.collectAsState(initial = false)
                 val vipExpiresAt by vipManager.vipExpiresAt.collectAsState(initial = 0L)
                 val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "")
-                val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
-                val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
-
-                val bannerPrefManager = remember { com.valora.icebeats.ui.component.BannerPreferenceManager(context) }
-                val myBannerUrl by bannerPrefManager.bannerUrl.collectAsState(initial = null)
 
                 val avatarManager = remember { AvatarPreferenceManager(context) }
                 val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
@@ -1174,8 +1126,7 @@ fun SettingsScreen(
                     isLoggedIn = isLoggedIn,
                     accountName = accountName,
                     currentSelection = currentSelection,
-                    verificationType = myVerificationType,
-                    bannerUrl = myBannerUrl
+                    verificationType = myVerificationType
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1185,150 +1136,6 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Profil & Tampilan Kustom
-                    SettingsCategory(
-                        title = "Kustomisasi Profil",
-                        items = listOf(
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.palette),
-                                title = {
-                                    Column {
-                                        Text(
-                                            text = "Border Profil Avatar",
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = "Gaya: ${selectedBorder.title} • Klik untuk ganti border",
-                                            fontSize = 12.sp,
-                                            color = Color.White.copy(alpha = 0.65f)
-                                        )
-                                    }
-                                },
-                                trailingContent = {
-                                    Box(
-                                        modifier = Modifier.size(36.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        com.valora.icebeats.ui.component.MasterProfileBorder(
-                                            avatarSize = 24.dp,
-                                            borderStyle = selectedBorder,
-                                            forceShowMaster = true,
-                                            isSelf = true
-                                        ) {
-                                            com.valora.icebeats.ui.component.AvatarDisplay(
-                                                size = 24.dp,
-                                                showBorder = false,
-                                                enableMasterBorder = false
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    showBorderSelectorSheet = true
-                                }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.image),
-                                title = {
-                                    Column {
-                                        Text(
-                                            text = "Avatar Profil Animasi (GIF)",
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = if (currentSelection is AvatarSelection.Gif) "Status: GIF Aktif • Klik untuk ganti link"
-                                            else "Pasang link GIF agar foto profil bergerak",
-                                            fontSize = 12.sp,
-                                            color = Color.White.copy(alpha = 0.65f)
-                                        )
-                                    }
-                                },
-                                trailingContent = {
-                                    Box(
-                                        modifier = Modifier.size(36.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (currentSelection is AvatarSelection.Gif) {
-                                            AsyncImage(
-                                                model = (currentSelection as AvatarSelection.Gif).url,
-                                                contentDescription = null,
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .clip(CircleShape)
-                                                    .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            Icon(
-                                                painter = painterResource(R.drawable.image),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    showAvatarGifDialog = true
-                                }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.link),
-                                title = {
-                                    Column {
-                                        Text(
-                                            text = "Banner Profil Animasi (GIF)",
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = if (!myBannerUrl.isNullOrBlank()) "Status: Banner GIF Aktif • Klik untuk ganti"
-                                            else "Pasang link GIF banner latar profil",
-                                            fontSize = 12.sp,
-                                            color = Color.White.copy(alpha = 0.65f)
-                                        )
-                                    }
-                                },
-                                trailingContent = {
-                                    Box(
-                                        modifier = Modifier.size(36.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (!myBannerUrl.isNullOrBlank()) {
-                                            AsyncImage(
-                                                model = myBannerUrl,
-                                                contentDescription = null,
-                                                modifier = Modifier
-                                                    .size(34.dp, 24.dp)
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            Icon(
-                                                painter = painterResource(R.drawable.link),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    showBannerGifDialog = true
-                                }
-                            )
-                        )
-                    )
-
                     // General Settings
                     SettingsCategory(
                         title = stringResource(R.string.general_settings),
@@ -1604,24 +1411,6 @@ fun SettingsScreen(
                 }
             }
     }
-
-        if (showBorderSelectorSheet) {
-            com.valora.icebeats.ui.component.MasterBorderSelectorSheet(
-                onDismiss = { showBorderSelectorSheet = false }
-            )
-        }
-
-        if (showAvatarGifDialog) {
-            com.valora.icebeats.ui.component.AnimatedAvatarGifDialog(
-                onDismiss = { showAvatarGifDialog = false }
-            )
-        }
-
-        if (showBannerGifDialog) {
-            com.valora.icebeats.ui.component.AnimatedBannerGifDialog(
-                onDismiss = { showBannerGifDialog = false }
-            )
-        }
     }
 }
 }

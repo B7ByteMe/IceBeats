@@ -1087,62 +1087,56 @@ fun ModernHomeTopBarInline(
                     modifier = Modifier.matchParentSize()
                 )
 
-                com.valora.icebeats.ui.component.MasterProfileBorder(
-                    avatarSize = 36.dp,
-                    userRank = currentRank,
-                    isSelf = true
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .combinedClickable(
+                            onClick = { showMyProfileSheet = true },
+                            onLongClick = { navController.navigate("settings/account") }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .combinedClickable(
-                                onClick = { showMyProfileSheet = true },
-                                onLongClick = { navController.navigate("settings/account") }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        when (currentSelection) {
+                    when (currentSelection) {
 
-                            is AvatarSelection.Custom -> {
-                                AsyncImage(
-                                    model = (currentSelection as AvatarSelection.Custom).uri.toUri(),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
+                        is AvatarSelection.Custom -> {
+                            AsyncImage(
+                                model = (currentSelection as AvatarSelection.Custom).uri.toUri(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
-                            is AvatarSelection.DiceBear -> {
-                                AsyncImage(
-                                    model = (currentSelection as AvatarSelection.DiceBear).url,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
+                        is AvatarSelection.DiceBear -> {
+                            AsyncImage(
+                                model = (currentSelection as AvatarSelection.DiceBear).url,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
-                            else -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFF8E2DE2),
-                                                    Color(0xFF4A00E0)
-                                                )
+                        else -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                Color(0xFF8E2DE2),
+                                                Color(0xFF4A00E0)
                                             )
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.person),
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.person),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
                         }
                     }
@@ -1266,20 +1260,10 @@ fun ModernHomeTopBarInline(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Top 1 Listener Banner (Kompak & Elegan)
-        com.valora.icebeats.ui.component.TopListenerHomeSection(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            navController = navController
-        )
     }
 
     if (showMyProfileSheet) {
         val namePreferenceManager = remember { com.valora.icebeats.ui.component.NamePreferenceManager(context) }
-        val borderPrefManager = remember { com.valora.icebeats.ui.component.BorderPreferenceManager(context) }
-        val selectedBorder by borderPrefManager.selectedBorder.collectAsState(initial = com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN)
         val myName by namePreferenceManager.userName.collectAsState(initial = "")
         val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
         val currentUserId = remember { com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager) }
@@ -1288,14 +1272,14 @@ fun ModernHomeTopBarInline(
             statsPrefs.getLong("saved_max_total_listen_ms_$currentUserId", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
         }
 
-        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, selectedBorder) {
+        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs) {
             com.valora.icebeats.supabase.ChatUser(
                 id = currentUserId,
                 name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
                 profileUrl = null,
                 totalListenMs = myListenMs,
                 rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
-                borderStyle = selectedBorder.id,
+                borderStyle = null,
                 verificationBadge = null
             )
         }

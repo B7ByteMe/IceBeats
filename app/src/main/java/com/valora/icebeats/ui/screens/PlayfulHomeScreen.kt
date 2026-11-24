@@ -261,14 +261,6 @@ fun PlayfulHomeScreen(
                             }
                         }
 
-                        // Top 1 Listener Banner (Kompak & Elegan)
-                        com.valora.icebeats.ui.component.TopListenerHomeSection(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 6.dp),
-                            navController = navController
-                        )
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

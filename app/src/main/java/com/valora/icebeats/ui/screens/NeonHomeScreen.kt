@@ -215,14 +215,6 @@ fun NeonHomeScreen(
                 color = textColor
             )
             
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Top 1 Listener Banner (Kompak & Elegan)
-            com.valora.icebeats.ui.component.TopListenerHomeSection(
-                modifier = Modifier.fillMaxWidth(),
-                navController = navController
-            )
-
             Spacer(modifier = Modifier.height(18.dp))
             
             // New Release Featured Card
