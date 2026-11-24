@@ -32,11 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import com.valora.icebeats.R
 import com.valora.icebeats.ui.component.AvatarPreferenceManager
@@ -67,9 +62,6 @@ import kotlinx.coroutines.launch
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-
-private const val PRIMARY_VIDEO_URL = "https://database.icebeats.net/login_bg_video.mp4"
-private const val FALLBACK_VIDEO_URL = "https://raw.githubusercontent.com/B7ByteMe/IceBeats/main/assets/login_bg_video.mp4"
 
 enum class SyncState {
     IDLE,
@@ -425,88 +417,17 @@ fun OnboardingScreen(
         }
     }
 
-    // Video Background Setup — Packaged Local Asset First (Instant & Offline), then Remote Fallback
-    val cachedVideoFile = remember { File(context.cacheDir, "login_bg_video.mp4") }
-    val hasAssetVideo = remember {
-        runCatching {
-            context.assets.open("login_bg_video.mp4").close()
-            true
-        }.getOrDefault(false)
-    }
-
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            val videoUri = if (hasAssetVideo) {
-                Uri.parse("asset:///login_bg_video.mp4")
-            } else if (cachedVideoFile.exists() && cachedVideoFile.length() > 0) {
-                Uri.fromFile(cachedVideoFile)
-            } else {
-                Uri.parse(FALLBACK_VIDEO_URL)
-            }
-            setMediaItem(MediaItem.fromUri(videoUri))
-            repeatMode = Player.REPEAT_MODE_ALL
-            volume = 0f
-            prepare()
-            playWhenReady = true
-        }
-    }
-
-    LaunchedEffect(hasAssetVideo) {
-        if (!hasAssetVideo && (!cachedVideoFile.exists() || cachedVideoFile.length() == 0L)) {
-            withContext(Dispatchers.IO) {
-                val urls = listOf(FALLBACK_VIDEO_URL, PRIMARY_VIDEO_URL)
-                var downloaded = false
-                for (urlString in urls) {
-                    if (downloaded) break
-                    try {
-                        val url = java.net.URL(urlString)
-                        val connection = url.openConnection() as java.net.HttpURLConnection
-                        connection.connectTimeout = 8000
-                        connection.readTimeout = 15000
-                        if (connection.responseCode == 200) {
-                            connection.inputStream.use { input ->
-                                cachedVideoFile.outputStream().use { output ->
-                                    input.copyTo(output)
-                                }
-                            }
-                            downloaded = true
-                            withContext(Dispatchers.Main) {
-                                exoPlayer.setMediaItem(MediaItem.fromUri(Uri.fromFile(cachedVideoFile)))
-                                exoPlayer.prepare()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Timber.w("Failed to cache video from $urlString: ${e.message}")
-                    }
-                }
-                if (!downloaded && (!cachedVideoFile.exists() || cachedVideoFile.length() == 0L)) {
-                    Timber.w("Could not cache background video from any source")
-                }
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
-    }
-
     val hazeState = remember { HazeState() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // True Fullscreen Video Background using TextureView for Haze capture
-        AndroidView(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0D0B))
+    ) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .haze(hazeState),
-            factory = { ctx ->
-                android.view.TextureView(ctx).apply {
-                    layoutParams = android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    exoPlayer.setVideoTextureView(this)
-                }
-            }
+                .haze(hazeState)
         )
 
         // Top Back Button when in Signup mode or when opened from navigation

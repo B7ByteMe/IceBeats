@@ -100,9 +100,9 @@ fun AnimatedAvatarGifDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_vip_crown),
+                    painter = painterResource(R.drawable.image),
                     contentDescription = null,
-                    tint = Color(0xFFFFD700),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -116,7 +116,7 @@ fun AnimatedAvatarGifDialog(
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Fitur Eksklusif Premium: Masukkan tautan link GIF animasi untuk avatar profil bergerak.",
+                text = "Masukkan tautan link GIF animasi untuk avatar profil bergerak Anda.",
                 fontSize = 13.sp,
                 color = Color.White.copy(alpha = 0.65f),
                 textAlign = TextAlign.Center
@@ -299,9 +299,9 @@ fun AnimatedBannerGifDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_vip_crown),
+                    painter = painterResource(R.drawable.link),
                     contentDescription = null,
-                    tint = Color(0xFFFFD700),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -315,7 +315,7 @@ fun AnimatedBannerGifDialog(
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Fitur Eksklusif Premium: Pasang tautan GIF bergerak sebagai banner latar belakang profil Anda.",
+                text = "Pasang tautan GIF bergerak sebagai banner latar belakang profil Anda.",
                 fontSize = 13.sp,
                 color = Color.White.copy(alpha = 0.65f),
                 textAlign = TextAlign.Center

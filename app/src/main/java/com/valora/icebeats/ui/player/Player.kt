@@ -867,13 +867,10 @@ fun BottomSheetPlayer(
             else MaterialTheme.colorScheme.surfaceContainer
     }
 
-    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
-    val rawNavBarStyle by rememberEnumPreference(
+    val navBarStyle by rememberEnumPreference(
         com.valora.icebeats.constants.NavBarStyleKey,
         defaultValue = com.valora.icebeats.constants.NavBarStyle.CLASSIC
     )
-    val navBarStyle = if (isVip) rawNavBarStyle else com.valora.icebeats.constants.NavBarStyle.CLASSIC
     val isNeon = navBarStyle == com.valora.icebeats.constants.NavBarStyle.NEON
 
     BottomSheet(

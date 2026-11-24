@@ -1180,128 +1180,28 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // VIP Subscription Card
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF2B2206),
-                                    Color(0xFF19160E),
-                                    Color(0xFF141311)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.linearGradient(
-                                listOf(Color(0xFFFFD700).copy(alpha = 0.6f), Color(0xFFB8860B).copy(alpha = 0.2f))
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .clickable { showVipDialog = true }
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFD700).copy(alpha = 0.18f))
-                                .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.5f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_vip_crown),
-                                contentDescription = null,
-                                tint = Color(0xFFFFD700),
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (isVip) "IceBeats VIP Member" else "Upgrade ke IceBeats VIP",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = Color(0xFFFFD700)
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = if (isVip) {
-                                    "Paket $currentVipPlan • Aktif hingga ${com.valora.icebeats.ui.component.VipSubscriptionManager.formatExpiryDate(vipExpiresAt)}"
-                                } else {
-                                    "Mulai Rp 5.000 • Buka semua tema, Dynamic Island, Chat & Border!"
-                                },
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.75f),
-                                lineHeight = 16.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Icon(
-                            painter = painterResource(R.drawable.chevron_right),
-                            contentDescription = null,
-                            tint = Color(0xFFFFD700).copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // Settings Categories
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // IceBeats Premium Fitur
+                    // Profil & Tampilan Kustom
                     SettingsCategory(
-                        title = "IceBeats Premium Fitur",
+                        title = "Kustomisasi Profil",
                         items = listOf(
                             SettingsCategoryItem(
-                                icon = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),
+                                icon = painterResource(R.drawable.palette),
                                 title = {
                                     Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = "Border Profil Avatar",
-                                                color = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(if (isVip) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.White.copy(alpha = 0.1f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (isVip) "VIP AKTIF" else "PREMIUM",
-                                                    color = if (isVip) Color(0xFFFFD700) else Color.White.copy(alpha = 0.6f),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-                                        }
+                                        Text(
+                                            text = "Border Profil Avatar",
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = if (isVip) {
-                                                "Gaya: ${selectedBorder.title} • Klik untuk ganti border"
-                                            } else {
-                                                "Khusus Pelanggan VIP • Beli paket untuk ganti border"
-                                            },
+                                            text = "Gaya: ${selectedBorder.title} • Klik untuk ganti border",
                                             fontSize = 12.sp,
                                             color = Color.White.copy(alpha = 0.65f)
                                         )
@@ -1312,71 +1212,38 @@ fun SettingsScreen(
                                         modifier = Modifier.size(36.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (isVip) {
-                                            com.valora.icebeats.ui.component.MasterProfileBorder(
-                                                avatarSize = 24.dp,
-                                                borderStyle = selectedBorder,
-                                                forceShowMaster = true,
-                                                isSelf = true
-                                            ) {
-                                                com.valora.icebeats.ui.component.AvatarDisplay(
-                                                    size = 24.dp,
-                                                    showBorder = false,
-                                                    enableMasterBorder = false
-                                                )
-                                            }
-                                        } else {
-                                            Icon(
-                                                painter = painterResource(R.drawable.lock),
-                                                contentDescription = "Terkunci",
-                                                tint = Color.White.copy(alpha = 0.4f),
-                                                modifier = Modifier.size(18.dp)
+                                        com.valora.icebeats.ui.component.MasterProfileBorder(
+                                            avatarSize = 24.dp,
+                                            borderStyle = selectedBorder,
+                                            forceShowMaster = true,
+                                            isSelf = true
+                                        ) {
+                                            com.valora.icebeats.ui.component.AvatarDisplay(
+                                                size = 24.dp,
+                                                showBorder = false,
+                                                enableMasterBorder = false
                                             )
                                         }
                                     }
                                 },
                                 onClick = {
-                                    if (isVip) {
-                                        showBorderSelectorSheet = true
-                                    } else {
-                                        showVipDialog = true
-                                    }
+                                    showBorderSelectorSheet = true
                                 }
                             ),
                             SettingsCategoryItem(
-                                icon = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),
+                                icon = painterResource(R.drawable.image),
                                 title = {
                                     Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = "Avatar Profil Animasi (GIF)",
-                                                color = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(if (isVip) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.White.copy(alpha = 0.1f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (isVip) "VIP AKTIF" else "PREMIUM",
-                                                    color = if (isVip) Color(0xFFFFD700) else Color.White.copy(alpha = 0.6f),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-                                        }
+                                        Text(
+                                            text = "Avatar Profil Animasi (GIF)",
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = if (isVip) {
-                                                if (currentSelection is AvatarSelection.Gif) "Status: GIF Aktif • Klik untuk ganti link"
-                                                else "Pasang link GIF agar foto profil bergerak"
-                                            } else {
-                                                "Khusus Pelanggan VIP • Paste link animasi GIF avatar"
-                                            },
+                                            text = if (currentSelection is AvatarSelection.Gif) "Status: GIF Aktif • Klik untuk ganti link"
+                                            else "Pasang link GIF agar foto profil bergerak",
                                             fontSize = 12.sp,
                                             color = Color.White.copy(alpha = 0.65f)
                                         )
@@ -1387,77 +1254,44 @@ fun SettingsScreen(
                                         modifier = Modifier.size(36.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (isVip) {
-                                            if (currentSelection is AvatarSelection.Gif) {
-                                                AsyncImage(
-                                                    model = (currentSelection as AvatarSelection.Gif).url,
-                                                    contentDescription = null,
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .clip(CircleShape)
-                                                        .border(1.dp, Color(0xFFFFD700), CircleShape),
-                                                    contentScale = ContentScale.Crop
-                                                )
-                                            } else {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.image),
-                                                    contentDescription = null,
-                                                    tint = Color(0xFFFFD700),
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                            }
+                                        if (currentSelection is AvatarSelection.Gif) {
+                                            AsyncImage(
+                                                model = (currentSelection as AvatarSelection.Gif).url,
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
                                         } else {
                                             Icon(
-                                                painter = painterResource(R.drawable.lock),
-                                                contentDescription = "Terkunci",
-                                                tint = Color.White.copy(alpha = 0.4f),
-                                                modifier = Modifier.size(18.dp)
+                                                painter = painterResource(R.drawable.image),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
                                             )
                                         }
                                     }
                                 },
                                 onClick = {
-                                    if (isVip) {
-                                        showAvatarGifDialog = true
-                                    } else {
-                                        showVipDialog = true
-                                    }
+                                    showAvatarGifDialog = true
                                 }
                             ),
                             SettingsCategoryItem(
-                                icon = painterResource(if (isVip) R.drawable.ic_vip_crown else R.drawable.lock),
+                                icon = painterResource(R.drawable.link),
                                 title = {
                                     Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = "Banner Profil Animasi (GIF)",
-                                                color = if (isVip) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(if (isVip) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.White.copy(alpha = 0.1f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (isVip) "VIP AKTIF" else "PREMIUM",
-                                                    color = if (isVip) Color(0xFFFFD700) else Color.White.copy(alpha = 0.6f),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-                                        }
+                                        Text(
+                                            text = "Banner Profil Animasi (GIF)",
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = if (isVip) {
-                                                if (!myBannerUrl.isNullOrBlank()) "Status: Banner GIF Aktif • Klik untuk ganti"
-                                                else "Pasang link GIF banner latar profil"
-                                            } else {
-                                                "Khusus Pelanggan VIP • Paste link animasi GIF banner"
-                                            },
+                                            text = if (!myBannerUrl.isNullOrBlank()) "Status: Banner GIF Aktif • Klik untuk ganti"
+                                            else "Pasang link GIF banner latar profil",
                                             fontSize = 12.sp,
                                             color = Color.White.copy(alpha = 0.65f)
                                         )
@@ -1468,41 +1302,28 @@ fun SettingsScreen(
                                         modifier = Modifier.size(36.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (isVip) {
-                                            if (!myBannerUrl.isNullOrBlank()) {
-                                                AsyncImage(
-                                                    model = myBannerUrl,
-                                                    contentDescription = null,
-                                                    modifier = Modifier
-                                                        .size(34.dp, 24.dp)
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(4.dp)),
-                                                    contentScale = ContentScale.Crop
-                                                )
-                                            } else {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.link),
-                                                    contentDescription = null,
-                                                    tint = Color(0xFFFFD700),
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                            }
+                                        if (!myBannerUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = myBannerUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(34.dp, 24.dp)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
                                         } else {
                                             Icon(
-                                                painter = painterResource(R.drawable.lock),
-                                                contentDescription = "Terkunci",
-                                                tint = Color.White.copy(alpha = 0.4f),
-                                                modifier = Modifier.size(18.dp)
+                                                painter = painterResource(R.drawable.link),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
                                             )
                                         }
                                     }
                                 },
                                 onClick = {
-                                    if (isVip) {
-                                        showBannerGifDialog = true
-                                    } else {
-                                        showVipDialog = true
-                                    }
+                                    showBannerGifDialog = true
                                 }
                             )
                         )
@@ -1783,10 +1604,6 @@ fun SettingsScreen(
                 }
             }
     }
-
-        if (showVipDialog) {
-            VipSubscriptionDialog(onDismiss = { showVipDialog = false })
-        }
 
         if (showBorderSelectorSheet) {
             com.valora.icebeats.ui.component.MasterBorderSelectorSheet(

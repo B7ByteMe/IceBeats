@@ -98,10 +98,6 @@ fun UserProfileSheet(
     var isLoadingPlaylists by remember { mutableStateOf(true) }
     var showBorderSelector by remember { mutableStateOf(false) }
 
-    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
-    var showVipDialog by remember { mutableStateOf(false) }
-
     var activeUser by remember(targetUser) { mutableStateOf(targetUser) }
 
     LaunchedEffect(targetUser.id) {
@@ -654,46 +650,20 @@ fun UserProfileSheet(
                         }
 
                         FriendshipStatus.FRIENDS -> {
-                            Row(
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        isFriendActionLoading = true
+                                        supabaseClient.rejectOrRemoveFriend(currentUserId, targetUser.id)
+                                        friendshipStatus = FriendshipStatus.NONE
+                                        isFriendActionLoading = false
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = !isFriendActionLoading
                             ) {
-                                Button(
-                                    onClick = {
-                                        if (isVip) {
-                                            onDismiss()
-                                            onStartChat?.invoke(activeUser)
-                                        } else {
-                                            showVipDialog = true
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.chat),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Mulai Obrolan")
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            isFriendActionLoading = true
-                                            supabaseClient.rejectOrRemoveFriend(currentUserId, targetUser.id)
-                                            friendshipStatus = FriendshipStatus.NONE
-                                            isFriendActionLoading = false
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    enabled = !isFriendActionLoading
-                                ) {
-                                    Text("Hapus Teman")
-                                }
+                                Text("Hapus Teman")
                             }
                         }
                     }
@@ -809,12 +779,6 @@ fun UserProfileSheet(
             onDismiss = { showBorderSelector = false },
             userRank = userRank,
             totalListenMs = activeUser.totalListenMs
-        )
-    }
-
-    if (showVipDialog) {
-        com.valora.icebeats.ui.component.VipSubscriptionDialog(
-            onDismiss = { showVipDialog = false }
         )
     }
 }

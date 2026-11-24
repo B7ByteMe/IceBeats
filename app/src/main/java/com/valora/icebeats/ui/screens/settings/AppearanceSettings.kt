@@ -423,10 +423,6 @@ fun AppearanceSettings(
         }
     }
 
-    if (showVipDialog) {
-        VipSubscriptionDialog(onDismiss = { showVipDialog = false })
-    }
-
     if (showIslandAdjustmentDialog) {
         val context = LocalContext.current
         val (islandOffsetX, onIslandOffsetXChange) = rememberPreference(DynamicIslandOffsetXKey, defaultValue = 0)
@@ -546,58 +542,34 @@ fun AppearanceSettings(
                 SettingsGeneralCategory(
                     title = stringResource(R.string.theme),
                     items = listOf(
-                        {PreferenceEntry(
-                            title = {
-                                Text(
-                                    if (isVip) "IceBeats VIP Aktif" else "Buka Semua Tema dengan VIP",
-                                    color = Color(0xFFFFD700),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            description = if (isVip) "Ketuk untuk melihat status atau perpanjang paket VIP" else "Mulai Rp 5.000 untuk buka Dynamic Island, tema kustom, chat & border!",
-                            icon = { Icon(painterResource(R.drawable.ic_vip_crown), null, tint = Color(0xFFFFD700)) },
-                            onClick = { showVipDialog = true }
-                        )},
                         {EnumListPreference(
                             title = { Text(stringResource(R.string.home_screen_style)) },
                             icon = { Icon(painterResource(R.drawable.home), null) },
-                            selectedValue = if (isVip) homeScreenStyle else HomeScreenStyle.CLASSIC,
-                            onValueSelected = { newStyle ->
-                                if (newStyle != HomeScreenStyle.CLASSIC && !isVip) {
-                                    showVipDialog = true
-                                } else {
-                                    onHomeScreenStyleChange(newStyle)
-                                }
-                            },
+                            selectedValue = homeScreenStyle,
+                            onValueSelected = onHomeScreenStyleChange,
                             valueText = {
                                 when (it) {
-                                    HomeScreenStyle.CLASSIC -> "Classic (Gratis)"
-                                    HomeScreenStyle.PLAYFUL -> "Playful (VIP)"
-                                    HomeScreenStyle.NEON -> "Neon (VIP)"
-                                    HomeScreenStyle.SPOTIFY -> "Spotify (VIP)"
-                                    HomeScreenStyle.APPLE -> "Apple (VIP)"
+                                    HomeScreenStyle.CLASSIC -> "Classic"
+                                    HomeScreenStyle.PLAYFUL -> "Playful"
+                                    HomeScreenStyle.NEON -> "Neon"
+                                    HomeScreenStyle.SPOTIFY -> "Spotify"
+                                    HomeScreenStyle.APPLE -> "Apple"
                                 }
                             },
                         )},
                         {EnumListPreference(
                             title = { Text(stringResource(R.string.navigation_bar_style)) },
                             icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-                            selectedValue = if (isVip) navBarStyle else NavBarStyle.CLASSIC,
-                            onValueSelected = { newStyle ->
-                                if (newStyle != NavBarStyle.CLASSIC && !isVip) {
-                                    showVipDialog = true
-                                } else {
-                                    onNavBarStyleChange(newStyle)
-                                }
-                            },
+                            selectedValue = navBarStyle,
+                            onValueSelected = onNavBarStyleChange,
                             valueText = {
                                 when (it) {
-                                    NavBarStyle.CLASSIC -> "Classic (Gratis)"
-                                    NavBarStyle.LIQUID_GLASS -> "Liquid Glass (VIP)"
-                                    NavBarStyle.SPOTIFY -> "Spotify (VIP)"
-                                    NavBarStyle.APPLE -> "Apple (VIP)"
-                                    NavBarStyle.NEON -> "Neon (VIP)"
-                                    NavBarStyle.NEW_CLASSIC -> "New Classic (VIP)"
+                                    NavBarStyle.CLASSIC -> "Classic"
+                                    NavBarStyle.LIQUID_GLASS -> "Liquid Glass"
+                                    NavBarStyle.SPOTIFY -> "Spotify"
+                                    NavBarStyle.APPLE -> "Apple"
+                                    NavBarStyle.NEON -> "Neon"
+                                    NavBarStyle.NEW_CLASSIC -> "New Classic"
                                 }
                             },
                         )},
@@ -630,14 +602,12 @@ fun AppearanceSettings(
                         {
                             val context = LocalContext.current
                             SwitchPreference(
-                                title = { Text(stringResource(R.string.enable_dynamic_island) + if (!isVip) " (VIP)" else "") },
+                                title = { Text(stringResource(R.string.enable_dynamic_island)) },
                                 description = stringResource(R.string.enable_dynamic_island_desc),
                                 icon = { Icon(painterResource(R.drawable.music_note), null) },
-                                checked = if (isVip) enableDynamicIsland else false,
+                                checked = enableDynamicIsland,
                                 onCheckedChange = { newValue ->
-                                    if (newValue && !isVip) {
-                                        showVipDialog = true
-                                    } else if (newValue && !Settings.canDrawOverlays(context)) {
+                                    if (newValue && !Settings.canDrawOverlays(context)) {
                                         val intent = Intent(
                                             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                                             Uri.parse("package:${context.packageName}")

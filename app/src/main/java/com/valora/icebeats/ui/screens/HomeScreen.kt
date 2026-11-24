@@ -1157,17 +1157,6 @@ fun ModernHomeTopBarInline(
             ) {
 
                 CircleIconButton(
-                    icon = R.drawable.chat,
-                    onClick = {
-                        if (isVip) {
-                            navController.navigate("chats")
-                        } else {
-                            showVipDialog = true
-                        }
-                    }
-                )
-
-                CircleIconButton(
                     icon = R.drawable.notification_on,
                     onClick = { navController.navigate("new_release") }
                 )
@@ -1299,18 +1288,15 @@ fun ModernHomeTopBarInline(
             statsPrefs.getLong("saved_max_total_listen_ms_$currentUserId", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
         }
 
-        val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-        val isVip by vipManager.isVip.collectAsState(initial = false)
-
-        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, selectedBorder, isVip) {
+        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs, selectedBorder) {
             com.valora.icebeats.supabase.ChatUser(
                 id = currentUserId,
                 name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
                 profileUrl = null,
                 totalListenMs = myListenMs,
                 rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
-                borderStyle = if (isVip) selectedBorder.id else null,
-                verificationBadge = if (isVip) "premium" else null
+                borderStyle = selectedBorder.id,
+                verificationBadge = null
             )
         }
 
@@ -1324,10 +1310,6 @@ fun ModernHomeTopBarInline(
                 navController.navigate("settings/account")
             }
         )
-    }
-
-    if (showVipDialog) {
-        com.valora.icebeats.ui.component.VipSubscriptionDialog(onDismiss = { showVipDialog = false })
     }
 
     if (showUpdateDialog) {

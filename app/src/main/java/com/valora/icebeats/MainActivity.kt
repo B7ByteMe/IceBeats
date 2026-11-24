@@ -493,7 +493,7 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(isNameSet) {
                 if (isNameSet != null) {
-                    delay(1500)
+                    delay(1800)
                     showSplash = false
                 }
             }
@@ -524,18 +524,9 @@ class MainActivity : ComponentActivity() {
 
             var showFullscreenLyrics by remember { mutableStateOf(false) }
 
-            val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(this) }
-            val isVip by vipManager.isVip.collectAsState(initial = false)
-
-            LaunchedEffect(Unit) {
-                vipManager.checkExpiryAndRevertIfNeeded()
-            }
-
             val playerScreenStyle by rememberEnumPreference<PlayerScreenStyle>(PlayerScreenStyleKey, defaultValue = PlayerScreenStyle.IOS_STYLED)
-            val rawHomeScreenStyle by rememberEnumPreference(HomeScreenStyleKey, defaultValue = HomeScreenStyle.CLASSIC)
-            val rawNavBarStyle by rememberEnumPreference(NavBarStyleKey, defaultValue = NavBarStyle.CLASSIC)
-            val homeScreenStyle = if (isVip) rawHomeScreenStyle else HomeScreenStyle.CLASSIC
-            val navBarStyle = if (isVip) rawNavBarStyle else NavBarStyle.CLASSIC
+            val homeScreenStyle by rememberEnumPreference(HomeScreenStyleKey, defaultValue = HomeScreenStyle.CLASSIC)
+            val navBarStyle by rememberEnumPreference(NavBarStyleKey, defaultValue = NavBarStyle.CLASSIC)
             val enableNewLyricsScreen by rememberPreference(com.valora.icebeats.constants.EnableNewLyricsScreenKey, defaultValue = true)
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
@@ -626,10 +617,7 @@ class MainActivity : ComponentActivity() {
 
                 val backdrop = rememberBackdrop()
 
-                if (showSplash) {
-                    HeadphoneSplashScreen()
-                } else {
-
+                Box(modifier = Modifier.fillMaxSize()) {
                     NameProvider(
                         namePreferenceManager = namePreferenceManager
                     ) {
@@ -768,13 +756,12 @@ class MainActivity : ComponentActivity() {
                                     isNameSet
                                 ) {
                                     val route = navBackStackEntry?.destination?.route
-                                    val isChat = route?.startsWith("chat") == true
                                     val isSettings = route?.startsWith("settings") == true
                                     val isAuth = route == "onboarding" || route == "login" || route == "guest_profile_setup" || route == "discord_login" || isNameSet == false
 
                                     var bottom = bottomInset
-                                    if (shouldShowNavigationBar && !isChat && !isSettings && !isAuth) bottom += NavigationBarHeight - 16.dp
-                                    if (!playerBottomSheetState.isDismissed && !isChat && !isSettings && !isAuth) bottom += MiniPlayerHeight
+                                    if (shouldShowNavigationBar && !isSettings && !isAuth) bottom += NavigationBarHeight - 16.dp
+                                    if (!playerBottomSheetState.isDismissed && !isSettings && !isAuth) bottom += MiniPlayerHeight
                                     windowsInsets
                                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
@@ -1231,7 +1218,6 @@ class MainActivity : ComponentActivity() {
 
                                             val isPlayfulHome = (currentRoute == Screens.Home.route || currentRoute == Screens.Library.route || currentRoute == Screens.Explore.route) && homeScreenStyle == HomeScreenStyle.PLAYFUL
 
-                                            val isChatScreen = currentRoute?.startsWith("chat") == true
                                             val isSettingsScreen = currentRoute?.startsWith("settings") == true
 
                                             val isAuthScreen = isNameSet == false ||
@@ -1251,7 +1237,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
 
-                                            if (!isAuthScreen && !isChatScreen && !isSettingsScreen && (!isPlayfulHome || !playerBottomSheetState.isCollapsed)) {
+                                            if (!isAuthScreen && !isSettingsScreen && (!isPlayfulHome || !playerBottomSheetState.isCollapsed)) {
                                                 BottomSheetPlayer(
                                                     state = playerBottomSheetState,
                                                     navController = navController,
@@ -1667,6 +1653,14 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                    }
+
+                    AnimatedVisibility(
+                        visible = showSplash,
+                        enter = fadeIn(),
+                        exit = fadeOut(animationSpec = tween(600, easing = FastOutSlowInEasing))
+                    ) {
+                        HeadphoneSplashScreen()
                     }
                 }
             }
@@ -2133,8 +2127,14 @@ fun HeadphoneSplashScreen() {
 
     val alpha by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(900),
+        animationSpec = tween(700, easing = FastOutSlowInEasing),
         label = "alpha"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0.85f,
+        animationSpec = tween(750, easing = FastOutSlowInEasing),
+        label = "scale"
     )
 
     LaunchedEffect(Unit) {
@@ -2147,31 +2147,18 @@ fun HeadphoneSplashScreen() {
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier.graphicsLayer {
-                this.alpha = alpha
-            }
-        ) {
-            val context = LocalContext.current
-            val imageLoader = remember {
-                ImageLoader.Builder(context)
-                    .components {
-                        if (Build.VERSION.SDK_INT >= 28) {
-                            add(ImageDecoderDecoder.Factory())
-                        } else {
-                            add(GifDecoder.Factory())
-                        }
-                    }
-                    .build()
-            }
-
-            AsyncImage(
-                model = R.drawable.splash_loading,
-                contentDescription = null,
-                imageLoader = imageLoader,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+        // PNG Headphone Icon cleanly displayed with smooth entrance, no glow or shadow
+        Image(
+            painter = painterResource(id = R.drawable.splash_logo),
+            contentDescription = "IceBeats",
+            modifier = Modifier
+                .size(160.dp)
+                .graphicsLayer {
+                    this.alpha = alpha
+                    scaleX = scale
+                    scaleY = scale
+                }
+        )
 
         Column(
             modifier = Modifier

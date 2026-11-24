@@ -171,9 +171,6 @@ class BorderPreferenceManager @Inject constructor(
     }
 
     suspend fun saveSelectedBorder(style: MasterBorderStyle) {
-        val isVip = VipSubscriptionManager(context).isVip.first()
-        if (!isVip) return
-
         val uid = getCurrentUserId()
         context.borderDataStore.edit { prefs ->
             if (uid.isNotBlank()) {

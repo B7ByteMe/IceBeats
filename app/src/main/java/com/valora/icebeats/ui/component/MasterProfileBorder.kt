@@ -49,17 +49,13 @@ fun MasterProfileBorder(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val vipManager = remember { VipSubscriptionManager(context) }
-    val isLocalVip by vipManager.isVip.collectAsState(initial = false)
-
     val borderPreferenceManager = remember { BorderPreferenceManager(context) }
     val userSavedStyle by borderPreferenceManager.selectedBorder.collectAsState(initial = MasterBorderStyle.ROYAL_CROWN)
 
-    // Logika Border Premium: Hanya yang membeli VIP/Premium yang berhak menggunakan border.
-    // Untuk orang lain di leaderboard/chat: hanya tampil jika orang tersebut punya borderStyle sendiri dari server.
+    // Border Kustom: Aktif untuk semua pengguna
     val effectiveStyle: MasterBorderStyle? = when {
         forceShowMaster -> borderStyle ?: userSavedStyle
-        isSelf -> if (isLocalVip) (borderStyle ?: userSavedStyle) else null
+        isSelf -> borderStyle ?: userSavedStyle
         else -> borderStyle // Orang lain: pakai borderStyle miliknya sendiri, jangan fallback ke userSavedStyle
     }
 

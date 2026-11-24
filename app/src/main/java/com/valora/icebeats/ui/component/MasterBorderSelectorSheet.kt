@@ -68,12 +68,6 @@ fun MasterBorderSelectorSheet(
 
     var previewStyle by remember(currentSavedStyle) { mutableStateOf(currentSavedStyle) }
 
-    val vipManager = remember { VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
-    var showVipDialog by remember { mutableStateOf(false) }
-
-    val isAllowed = isVip
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -86,7 +80,7 @@ fun MasterBorderSelectorSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Pilih Border Profil Premium",
+                text = "Pilih Border Profil",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -94,40 +88,12 @@ fun MasterBorderSelectorSheet(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            if (isAllowed) {
-                Text(
-                    text = "Pilih gaya border animasi eksklusif IceBeats Premium favorit Anda",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFFFFD700).copy(alpha = 0.15f))
-                        .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-                        .clickable { showVipDialog = true }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_vip_crown),
-                            contentDescription = null,
-                            tint = Color(0xFFFFD700),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Khusus IceBeats Premium (Mulai Rp 5.000)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFFFD700),
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
+            Text(
+                text = "Pilih gaya border animasi eksklusif favorit Anda",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -186,11 +152,7 @@ fun MasterBorderSelectorSheet(
                             .background(cardBg)
                             .border(if (isSelected) 2.dp else 1.dp, cardBorder, RoundedCornerShape(14.dp))
                             .clickable {
-                                if (isAllowed) {
-                                    previewStyle = style
-                                } else {
-                                    showVipDialog = true
-                                }
+                                previewStyle = style
                             }
                             .padding(12.dp)
                     ) {
@@ -225,15 +187,6 @@ fun MasterBorderSelectorSheet(
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1
                             )
-
-                            if (!isAllowed) {
-                                Text(
-                                    text = "Terkunci",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
                         }
                     }
                 }
@@ -241,54 +194,28 @@ fun MasterBorderSelectorSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (!isAllowed) {
-                Button(
-                    onClick = { showVipDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFFD700),
-                        contentColor = Color.Black
-                    )
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_vip_crown),
-                        contentDescription = null,
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Beli VIP untuk Buka Semua Border (Mulai Rp 5.000)", fontWeight = FontWeight.Bold)
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            } else {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            borderPreferenceManager.saveSelectedBorder(previewStyle)
-                            val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
-                            supabaseClient.updateUserProfileFields(borderStyle = previewStyle.id)
-                            onDismiss()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.check),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Gunakan Border Ini", fontWeight = FontWeight.Bold)
-                }
+            Button(
+                onClick = {
+                    scope.launch {
+                        borderPreferenceManager.saveSelectedBorder(previewStyle)
+                        val supabaseClient = com.valora.icebeats.supabase.SupabaseClient(context)
+                        supabaseClient.updateUserProfileFields(borderStyle = previewStyle.id)
+                        onDismiss()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.check),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Gunakan Border Ini", fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(18.dp))
         }
-    }
-
-    if (showVipDialog) {
-        VipSubscriptionDialog(onDismiss = { showVipDialog = false })
     }
 }
