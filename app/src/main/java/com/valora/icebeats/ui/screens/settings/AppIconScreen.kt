@@ -128,30 +128,9 @@ Scaffold(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
-                        scrolledContainerColor = Color.Transparent
+                        scrolledContainerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground()
                     ),
-                    scrollBehavior = scrollBehavior,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 0.6.dp,
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.25f),
-                                    Color.White.copy(alpha = 0.05f),
-                                    Color.White.copy(alpha = 0.25f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-                        )
+                    scrollBehavior = scrollBehavior
                 )
             }
         ) { innerPadding ->
@@ -394,36 +373,16 @@ private fun HomeScreenMockupCard(
     onPinToHomeScreen: ((AppIcon) -> Unit)? = null
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 10.dp, shape = RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
-            containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.5f)
-        )
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()
+        ),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.7f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                        )
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.horizontalGradient(
-                        listOf(
-                            (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.35f),
-                            Color.Transparent,
-                            (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.2f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(28.dp)
-                )
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -460,10 +419,9 @@ private fun HomeScreenMockupCard(
                 Box(
                     modifier = Modifier
                         .size(88.dp)
-                        .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black))
                         .clip(RoundedCornerShape(22.dp))
                         .background(Brush.linearGradient(icon.bgColors))
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(22.dp)),
+                        .border(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor(), RoundedCornerShape(22.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (icon.id == "default" || icon.id == "icebeats_winters") {
@@ -566,31 +524,16 @@ private fun InAppIconCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.01f else 1.0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "scale"
-    )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(scale)
             .clip(com.valora.icebeats.ui.component.BitChordGroupShape)
-            .clickable(onClick = onClick)
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else com.valora.icebeats.ui.component.bitChordSettingsOutlineColor().copy(alpha = 0.4f),
-                shape = com.valora.icebeats.ui.component.BitChordGroupShape
-            ),
+            .clickable(onClick = onClick),
         shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)).copy(alpha = 0.25f)
-            } else {
-                com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.35f)
-            }
-        )
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()
+        ),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Row(
             modifier = Modifier
@@ -602,10 +545,9 @@ private fun InAppIconCard(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .shadow(8.dp, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.linearGradient(icon.bgColors))
-                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
+                    .border(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor(), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (icon.id == "default" || icon.id == "icebeats_winters") {
@@ -664,33 +606,14 @@ private fun InAppIconCard(
                 )
             }
 
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background((if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = stringResource(R.string.ui_a11y_active_icon),
-                        tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White),
-                        modifier = Modifier.size(18.dp)
-                    )
+            com.valora.icebeats.ui.component.BitChordIosSwitch(
+                checked = isSelected,
+                onCheckedChange = { checked ->
+                    if (checked && !isSelected) {
+                        onClick()
+                    }
                 }
-            } else {
-                Button(
-                    onClick = onClick,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
-                    ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Text(text = stringResource(R.string.apply), style = MaterialTheme.typography.labelMedium)
-                }
-            }
+            )
         }
     }
 }
