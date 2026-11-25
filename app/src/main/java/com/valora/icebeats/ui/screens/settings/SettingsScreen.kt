@@ -78,6 +78,14 @@ import com.valora.icebeats.constants.InnerTubeCookieKey
 import com.valora.icebeats.ui.component.AppleSegmentedSwitch
 import com.valora.icebeats.ui.component.AvatarPreferenceManager
 import com.valora.icebeats.ui.component.AvatarSelection
+import com.valora.icebeats.ui.component.BitChordSettingsGroup
+import com.valora.icebeats.ui.component.BitChordSettingsPageTitle
+import com.valora.icebeats.ui.component.BitChordSettingsRow
+import com.valora.icebeats.ui.component.BitChordSettingsSearchField
+import com.valora.icebeats.ui.component.BitChordRowDivider
+import com.valora.icebeats.ui.component.bitChordSettingsBackground
+import com.valora.icebeats.ui.component.bitChordSettingsCardColor
+import com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor
 import com.valora.icebeats.ui.component.ChangelogScreen
 import com.valora.icebeats.ui.component.UpdateAvailableDialog
 import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
@@ -416,114 +424,29 @@ fun VersionCard(uriHandler: UriHandler, navController: NavController? = null) {
     val context = LocalContext.current
     val appVersion = remember { getAppVersion(context) }
 
-    Spacer(Modifier.height(16.dp))
-
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = stringResource(R.string.app_info),
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.5.sp
-            ),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-        )
-
-        GlassCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                // Version item
-                SettingsCategoryItemContent(
-                    item = SettingsCategoryItem(
-                        icon = painterResource(R.drawable.info),
-                        title = {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.Version),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = appVersion,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
-                        },
-                        trailingContent = {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.arrow_forward),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        },
-                        onClick = {
-                            if (navController != null) {
-                                navController.navigate("settings/app_info")
-                            } else {
-                                uriHandler.openUri(com.valora.icebeats.utils.RemoteConfigManager.getLatestReleasePageUrl())
-                            }
-                        }
-                    ),
-                    isLast = false
-                )
-
-                SettingsDivider(modifier = Modifier.padding(start = 72.dp, end = 16.dp))
-
-                // Website item
-                SettingsCategoryItemContent(
-                    item = SettingsCategoryItem(
-                        icon = painterResource(R.drawable.resource_public),
-                        title = {
-                            Text(
-                                text = stringResource(R.string.ui_text_official_website),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        trailingContent = {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.arrow_forward),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        },
-                        onClick = {
-                            val url = com.valora.icebeats.utils.RemoteConfigManager.websiteUrl
-                            val safeUrl = if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) url else "https://$url"
-                            runCatching { uriHandler.openUri(safeUrl) }
-                        }
-                    ),
-                    isLast = true
-                )
+    BitChordSettingsGroup(header = stringResource(R.string.app_info)) {
+        BitChordSettingsRow(
+            iconPainter = painterResource(R.drawable.info),
+            title = stringResource(R.string.Version),
+            value = appVersion,
+            onClick = {
+                if (navController != null) {
+                    navController.navigate("settings/app_info")
+                } else {
+                    uriHandler.openUri(com.valora.icebeats.utils.RemoteConfigManager.getLatestReleasePageUrl())
+                }
             }
-        }
+        )
+        BitChordRowDivider()
+        BitChordSettingsRow(
+            iconPainter = painterResource(R.drawable.resource_public),
+            title = stringResource(R.string.ui_text_official_website),
+            onClick = {
+                val url = com.valora.icebeats.utils.RemoteConfigManager.websiteUrl
+                val safeUrl = if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) url else "https://$url"
+                runCatching { uriHandler.openUri(safeUrl) }
+            }
+        )
     }
 }
 
@@ -565,79 +488,14 @@ fun UpdateCard(latestVersion: String = "") {
     }
 
     if (showUpdateCard) {
-        Spacer(Modifier.height(16.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDownloadDialog = true }
-                        .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Update icon with animation
-                    val infiniteTransition = rememberInfiniteTransition(label = "update")
-                    val scale by infiniteTransition.animateFloat(
-                        initialValue = 1f,
-                        targetValue = 1.1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1000, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "scale"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .scale(scale)
-                            .clip(CircleShape)
-                            .background(
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.update),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.NewVersion) + ": $currentLatestVersion",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = stringResource(R.string.tap_to_update),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Icon(
-                        painter = painterResource(R.drawable.download),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+        BitChordSettingsGroup(topSpacing = 16.dp) {
+            BitChordSettingsRow(
+                iconPainter = painterResource(R.drawable.update),
+                title = stringResource(R.string.NewVersion) + ": $currentLatestVersion",
+                subtitle = stringResource(R.string.tap_to_update),
+                badge = "NEW",
+                onClick = { showDownloadDialog = true }
+            )
         }
     }
 }
@@ -838,97 +696,48 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     var showTranslateDialog by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
-    // Get player connection for album artwork
-    val playerConnection = LocalPlayerConnection.current
-    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
-        ?: remember { mutableStateOf(null) }
+    val bgColor = bitChordSettingsBackground()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
-        val artworkUrl = mediaMetadata?.thumbnailUrl
-        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
-            artworkUrl = artworkUrl
-        )
-
-        // Main Scaffold with TopAppBar that scrolls
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+    ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent,
+            containerColor = bgColor,
             topBar = {
-                // U-Shaped TopAppBar that scrolls with content
                 TopAppBar(
-                    title = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.settings),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        Spacer(modifier = Modifier.width(48.dp))
-                    },
-                    actions = {
-                        Spacer(modifier = Modifier.width(48.dp))
-                    },
-                    modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(
-                                bottomStart = 30.dp,
-                                bottomEnd = 30.dp
-                            )
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 0.6.dp,
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.3f),
-                                    Color.White.copy(alpha = 0.1f),
-                                    Color.White.copy(alpha = 0.3f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(
-                                bottomStart = 30.dp,
-                                bottomEnd = 30.dp
-                            )
-                        ),
+                    title = {},
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent
+                        containerColor = bgColor,
+                        scrolledContainerColor = bgColor
                     ),
                     scrollBehavior = scrollBehavior
                 )
             }
         ) { innerPadding ->
-            // Content with proper padding from Scaffold
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding) // VERY IMPORTANT
+                    .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
                     .windowInsetsPadding(
                         LocalPlayerAwareWindowInsets.current.only(
                             WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                         )
                     )
-            )
+            ) {
+                BitChordSettingsPageTitle(stringResource(R.string.settings))
 
-            {
-                // Add a small top padding to separate from header
+                BitChordSettingsSearchField(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    placeholder = stringResource(R.string.search),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+                )
 
                 val context = LocalContext.current
                 val avatarManager = remember { AvatarPreferenceManager(context) }
@@ -939,239 +748,192 @@ fun SettingsScreen(
                     "SAPISID" in parseCookieString(innerTubeCookie)
                 }
 
-                // Profile Section
-                ProfileSection(
-                    isLoggedIn = isLoggedIn,
-                    accountName = accountName,
-                    currentSelection = currentSelection
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                val (appMode, onAppModeChange) = rememberPreference(AppModeKey, defaultValue = APP_MODE_LITE)
+                val (appMode, _) = rememberPreference(AppModeKey, defaultValue = APP_MODE_LITE)
                 val isLiteMode = appMode == APP_MODE_LITE
-                val isFrosted = isFrostedGlassUiEnabled()
 
-                // Settings Categories
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // General Settings
-                    val generalSettingsItems = listOfNotNull(
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.palette),
-                            title = {
-                                Text(
-                                    stringResource(R.string.appearance),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/appearance") }
-                        ),
-                        if (!isLiteMode) SettingsCategoryItem(
-                            icon = painterResource(R.drawable.schedule),
-                            title = {
-                                Text(
-                                    stringResource(R.string.always_on_display),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/always_on_display") }
-                        ) else null,
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.person),
-                            title = {
-                                Text(
-                                    stringResource(R.string.account),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/account") }
-                        ),
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.language),
-                            title = {
-                                Text(
-                                    stringResource(R.string.content),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/content") }
-                        ),
-                        if (!isLiteMode) SettingsCategoryItem(
-                            icon = painterResource(R.drawable.lyrics),
-                            title = { Text(stringResource(R.string.lyrics), color = MaterialTheme.colorScheme.onSurface) },
-                            onClick = { navController.navigate("settings/lyrics") }
-                        ) else null,
-                        if (!isLiteMode) SettingsCategoryItem(
-                            icon = painterResource(R.drawable.ic_gen_ai),
-                            title = { Text(stringResource(R.string.ai_integration), color = MaterialTheme.colorScheme.onSurface) },
-                            onClick = { navController.navigate("settings/ai") }
-                        ) else null,
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.play),
-                            title = {
-                                Text(
-                                    stringResource(R.string.player_and_audio),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/player") }
-                        ),
-                        if (!isLiteMode) SettingsCategoryItem(
-                            icon = painterResource(R.drawable.swipe),
-                            title = {
-                                Text(
-                                    stringResource(R.string.ui_text_gestures),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/gestures") }
-                        ) else null,
-                        if (!isLiteMode) SettingsCategoryItem(
-                            icon = painterResource(R.drawable.graphic_eq),
-                            title = {
-                                Text(
-                                    stringResource(R.string.ui_text_scrobbler),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/scrobbler") }
-                        ) else null,
-                        if (!isLiteMode) SettingsCategoryItem(
-                            icon = painterResource(R.drawable.play),
-                            title = {
-                                Text(
-                                    stringResource(R.string.android_auto),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/android_auto") }
-                        ) else null,
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.group),
-                            title = {
-                                Text(
-                                    stringResource(R.string.listen_together),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("listen_together") }
-                        ),
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.storage),
-                            title = {
-                                Text(
-                                    stringResource(R.string.storage),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/storage") }
-                        ),
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.security),
-                            title = {
-                                Text(
-                                    stringResource(R.string.privacy),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/privacy") }
-                        ),
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.restore),
-                            title = {
-                                Text(
-                                    stringResource(R.string.backup_restore),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/backup_restore") }
-                        ),
-                        SettingsCategoryItem(
-                            icon = painterResource(R.drawable.bug_report),
-                            title = {
-                                Text(
-                                    stringResource(R.string.ui_text_experimental_settings),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = { navController.navigate("settings/experimental") }
-                        )
-                    )
+                val needle = searchQuery.trim()
+                fun matches(vararg words: String): Boolean =
+                    needle.isEmpty() || words.any { it.contains(needle, ignoreCase = true) }
 
-                    SettingsCategory(
-                        title = stringResource(R.string.general_settings),
-                        items = generalSettingsItems
-                    )
+                // Account & Listen Together group (top card, matching BitChord)
+                val accountTitle = stringResource(R.string.account)
+                val listenTogetherTitle = stringResource(R.string.listen_together)
+                val showAccountRow = matches(accountTitle, accountName, "profile", "login", "supabase")
+                val showListenRow = matches(listenTogetherTitle, "jam", "party", "sync")
 
-                    // About & Community
-                    SettingsCategory(
-                        title = stringResource(R.string.community),
-                        items = listOf(
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.newspaper),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.ui_text_news_from_developers_2),
-                                        color = MaterialTheme.colorScheme.onSurface
+                if (showAccountRow || showListenRow) {
+                    BitChordSettingsGroup(topSpacing = 16.dp) {
+                        if (showAccountRow) {
+                            BitChordSettingsRow(
+                                iconPainter = painterResource(R.drawable.person),
+                                iconContent = {
+                                    BitChordProfileAvatarSmall(
+                                        isLoggedIn = isLoggedIn,
+                                        accountName = accountName,
+                                        currentSelection = currentSelection
                                     )
                                 },
-                                onClick = { navController.navigate("settings/developer_news") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.info),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.about),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/about") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.translate), // Assuming R.drawable.translate exists. If not, I can use R.drawable.language
-                                title = {
-                                    Text(
-                                        stringResource(R.string.ui_text_help_translate),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { uriHandler.openUri("https://crowdin.com/project/airbeats") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.schedule),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.Changelog),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { showChangelogSheet = true }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.telegram),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.ui_text_telegram),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = {
-                                    val telegramUrl = RemoteConfigManager.telegramUrl.ifBlank { RemoteConfigManager.DEFAULT_TELEGRAM_URL }
-                                    uriHandler.openUri(telegramUrl)
-                                }
+                                title = if (accountName.isNotBlank()) accountName.replace("@", "") else accountTitle,
+                                subtitle = if (isLoggedIn) stringResource(R.string.account) else "IceBeats • Valora Official",
+                                onClick = { navController.navigate("settings/account") }
                             )
-                        )
-                    )
+                        }
+                        if (showAccountRow && showListenRow) {
+                            BitChordRowDivider()
+                        }
+                        if (showListenRow) {
+                            BitChordSettingsRow(
+                                iconPainter = painterResource(R.drawable.group),
+                                title = listenTogetherTitle,
+                                onClick = { navController.navigate("listen_together") }
+                            )
+                        }
+                    }
                 }
 
-                // Update Card
-                UpdateCard()
+                // General & Customization group
+                val appearanceTitle = stringResource(R.string.appearance)
+                val aodTitle = stringResource(R.string.always_on_display)
+                val contentTitle = stringResource(R.string.content)
+                val lyricsTitle = stringResource(R.string.lyrics)
+                val aiTitle = stringResource(R.string.ai_integration)
+                val playerTitle = stringResource(R.string.player_and_audio)
+                val gesturesTitle = stringResource(R.string.ui_text_gestures)
+                val scrobblerTitle = stringResource(R.string.ui_text_scrobbler)
+                val androidAutoTitle = stringResource(R.string.android_auto)
+                val storageTitle = stringResource(R.string.storage)
+                val privacyTitle = stringResource(R.string.privacy)
+                val backupTitle = stringResource(R.string.backup_restore)
+                val experimentalTitle = stringResource(R.string.ui_text_experimental_settings)
 
-                // Version Card
-                VersionCard(uriHandler, navController)
+                data class MenuRowSpec(
+                    val title: String,
+                    val iconRes: Int,
+                    val route: String,
+                )
+
+                val mainRows = buildList {
+                    if (matches(appearanceTitle, "theme", "dark", "light", "font", "icon", "navbar")) {
+                        add(MenuRowSpec(appearanceTitle, R.drawable.palette, "settings/appearance"))
+                    }
+                    if (!isLiteMode && matches(aodTitle, "always on", "display", "screen")) {
+                        add(MenuRowSpec(aodTitle, R.drawable.schedule, "settings/always_on_display"))
+                    }
+                    if (matches(contentTitle, "language", "country", "youtube")) {
+                        add(MenuRowSpec(contentTitle, R.drawable.language, "settings/content"))
+                    }
+                    if (!isLiteMode && matches(lyricsTitle, "translate", "lrc", "provider")) {
+                        add(MenuRowSpec(lyricsTitle, R.drawable.lyrics, "settings/lyrics"))
+                    }
+                    if (!isLiteMode && matches(aiTitle, "gemini", "recommendation")) {
+                        add(MenuRowSpec(aiTitle, R.drawable.ic_gen_ai, "settings/ai"))
+                    }
+                    if (matches(playerTitle, "audio", "equalizer", "crossfade", "quality", "playback")) {
+                        add(MenuRowSpec(playerTitle, R.drawable.play, "settings/player"))
+                    }
+                    if (!isLiteMode && matches(gesturesTitle, "swipe", "gesture")) {
+                        add(MenuRowSpec(gesturesTitle, R.drawable.swipe, "settings/gestures"))
+                    }
+                    if (!isLiteMode && matches(scrobblerTitle, "last.fm", "lastfm", "scrobble")) {
+                        add(MenuRowSpec(scrobblerTitle, R.drawable.graphic_eq, "settings/scrobbler"))
+                    }
+                    if (!isLiteMode && matches(androidAutoTitle, "car", "auto")) {
+                        add(MenuRowSpec(androidAutoTitle, R.drawable.play, "settings/android_auto"))
+                    }
+                }
+
+                if (mainRows.isNotEmpty()) {
+                    BitChordSettingsGroup(header = stringResource(R.string.general_settings)) {
+                        mainRows.forEachIndexed { idx, row ->
+                            if (idx > 0) BitChordRowDivider()
+                            BitChordSettingsRow(
+                                iconPainter = painterResource(row.iconRes),
+                                title = row.title,
+                                onClick = { navController.navigate(row.route) }
+                            )
+                        }
+                    }
+                }
+
+                val dataRows = buildList {
+                    if (matches(storageTitle, "cache", "download", "space")) {
+                        add(MenuRowSpec(storageTitle, R.drawable.storage, "settings/storage"))
+                    }
+                    if (matches(privacyTitle, "history", "search", "incognito")) {
+                        add(MenuRowSpec(privacyTitle, R.drawable.security, "settings/privacy"))
+                    }
+                    if (matches(backupTitle, "drive", "restore", "export", "import")) {
+                        add(MenuRowSpec(backupTitle, R.drawable.restore, "settings/backup_restore"))
+                    }
+                    if (matches(experimentalTitle, "debug", "experimental")) {
+                        add(MenuRowSpec(experimentalTitle, R.drawable.bug_report, "settings/experimental"))
+                    }
+                }
+
+                if (dataRows.isNotEmpty()) {
+                    BitChordSettingsGroup(header = stringResource(R.string.storage)) {
+                        dataRows.forEachIndexed { idx, row ->
+                            if (idx > 0) BitChordRowDivider()
+                            BitChordSettingsRow(
+                                iconPainter = painterResource(row.iconRes),
+                                title = row.title,
+                                onClick = { navController.navigate(row.route) }
+                            )
+                        }
+                    }
+                }
+
+                // Community & Info group
+                val newsTitle = stringResource(R.string.ui_text_news_from_developers_2)
+                val aboutTitle = stringResource(R.string.about)
+                val translateTitle = stringResource(R.string.ui_text_help_translate)
+                val changelogTitle = stringResource(R.string.Changelog)
+                val telegramTitle = stringResource(R.string.ui_text_telegram)
+
+                data class ActionRowSpec(
+                    val title: String,
+                    val iconRes: Int,
+                    val onClick: () -> Unit,
+                )
+
+                val communityRows = buildList {
+                    if (matches(newsTitle, "news", "developer")) {
+                        add(ActionRowSpec(newsTitle, R.drawable.newspaper) { navController.navigate("settings/developer_news") })
+                    }
+                    if (matches(aboutTitle, "license", "contributor", "valora")) {
+                        add(ActionRowSpec(aboutTitle, R.drawable.info) { navController.navigate("settings/about") })
+                    }
+                    if (matches(translateTitle, "crowdin", "language")) {
+                        add(ActionRowSpec(translateTitle, R.drawable.translate) { showTranslateDialog = true })
+                    }
+                    if (matches(changelogTitle, "update", "notes")) {
+                        add(ActionRowSpec(changelogTitle, R.drawable.schedule) { showChangelogSheet = true })
+                    }
+                    if (matches(telegramTitle, "community", "channel")) {
+                        add(ActionRowSpec(telegramTitle, R.drawable.telegram) {
+                            val telegramUrl = RemoteConfigManager.telegramUrl.ifBlank { RemoteConfigManager.DEFAULT_TELEGRAM_URL }
+                            uriHandler.openUri(telegramUrl)
+                        })
+                    }
+                }
+
+                if (communityRows.isNotEmpty()) {
+                    BitChordSettingsGroup(header = stringResource(R.string.community)) {
+                        communityRows.forEachIndexed { idx, row ->
+                            if (idx > 0) BitChordRowDivider()
+                            BitChordSettingsRow(
+                                iconPainter = painterResource(row.iconRes),
+                                title = row.title,
+                                onClick = row.onClick
+                            )
+                        }
+                    }
+                }
+
+                if (needle.isEmpty()) {
+                    UpdateCard()
+                    VersionCard(uriHandler, navController)
+                }
 
                 Spacer(Modifier.height(32.dp))
             }
@@ -1599,7 +1361,7 @@ fun ProfileSection(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             ) {
-                                append("Air")
+                                append("Ice")
                             }
 
                             withStyle(
@@ -1615,9 +1377,67 @@ fun ProfileSection(
                     )
 
                     Text(
-                        text = "Dev By DxV STUDIO 亗",
+                        text = "Valora Official",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BitChordProfileAvatarSmall(
+    isLoggedIn: Boolean,
+    accountName: String,
+    currentSelection: AvatarSelection,
+) {
+    Box(
+        modifier = Modifier
+            .size(26.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+        contentAlignment = Alignment.Center
+    ) {
+        when (currentSelection) {
+            is AvatarSelection.Custom -> {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(currentSelection.uri.toUri())
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            is AvatarSelection.DiceBear -> {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(currentSelection.url)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            else -> {
+                val initial = accountName.replace("@", "").trim().firstOrNull()?.uppercaseChar()?.toString()
+                if (isLoggedIn && !initial.isNullOrBlank()) {
+                    Text(
+                        text = initial,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.person),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
