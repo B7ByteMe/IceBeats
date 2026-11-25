@@ -34,6 +34,8 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import com.valora.icebeats.innertube.YouTube
+import com.valora.icebeats.innertube.models.SongItem
+import com.valora.icebeats.innertube.utils.completedPlaylistPage
 import com.valora.icebeats.LocalDatabase
 import com.valora.icebeats.LocalDownloadUtil
 import com.valora.icebeats.LocalPlayerConnection
@@ -42,17 +44,22 @@ import com.valora.icebeats.db.entities.Playlist
 import com.valora.icebeats.db.entities.PlaylistSong
 import com.valora.icebeats.db.entities.Song
 import com.valora.icebeats.extensions.toMediaItem
+import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.playback.queues.ListQueue
 import com.valora.icebeats.playback.queues.YouTubeQueue
 import com.valora.icebeats.ui.component.DefaultDialog
 import com.valora.icebeats.ui.component.DownloadGridMenu
+import com.valora.icebeats.constants.SongSortType
+import com.valora.icebeats.db.entities.PlaylistEntity
+import com.valora.icebeats.models.MediaMetadata
 import com.valora.icebeats.ui.component.GridMenu
 import com.valora.icebeats.ui.component.GridMenuItem
 import com.valora.icebeats.ui.component.PlaylistListItem
 import com.valora.icebeats.ui.component.TextFieldDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -91,6 +98,62 @@ fun PlaylistMenu(
     var downloadState by remember {
         mutableIntStateOf(Download.STATE_STOPPED)
     }
+
+    val currentPlaylist = playlist
+    val currentSongs by androidx.compose.runtime.rememberUpdatedState(songs)
+    val exportPlaylistLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain")
+        ) { uri ->
+            onDismiss()
+            if (uri != null) {
+                com.valora.icebeats.utils.SaveToStorageUtil.applicationScope.launch(Dispatchers.IO) {
+                    val songEntities: List<Song> = when {
+                        currentSongs.isNotEmpty() -> currentSongs
+                        currentPlaylist.id == PlaylistEntity.LIKED_PLAYLIST_ID -> {
+                            database.likedSongs(SongSortType.CREATE_DATE, true).first()
+                        }
+                        else -> {
+                            database.playlistSongs(currentPlaylist.id).first().map(PlaylistSong::song)
+                        }
+                    }
+
+                    val mediaToExport = if (songEntities.isNotEmpty()) {
+                        songEntities.map { song ->
+                            MediaMetadata(
+                                id = song.id,
+                                title = song.title,
+                                artists = song.artists.map { MediaMetadata.Artist(id = it.id, name = it.name) },
+                                duration = song.duration,
+                                thumbnailUrl = song.thumbnailUrl,
+                                album = song.album?.let { MediaMetadata.Album(id = it.id, title = it.title) }
+                            )
+                        }
+                    } else {
+                        val browseId = currentPlaylist.playlist.browseId
+                        if (browseId != null) {
+                            YouTube.playlist(browseId).completedPlaylistPage().getOrNull()?.songs.orEmpty().map { it.toMediaMetadata() }
+                        } else {
+                            emptyList()
+                        }
+                    }
+
+                    val result = com.valora.icebeats.utils.PlaylistFileHelper.exportPlaylistToUri(
+                        context = context,
+                        uri = uri,
+                        playlistName = currentPlaylist.playlist.name,
+                        mediaList = mediaToExport
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (result.isSuccess) {
+                            android.widget.Toast.makeText(context, R.string.playlist_exported, android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            android.widget.Toast.makeText(context, result.exceptionOrNull()?.message ?: "Export failed", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
 
     val editable: Boolean = playlist.playlist.isEditable == true
 
@@ -387,6 +450,42 @@ fun PlaylistMenu(
                     showRemoveDownloadDialog = true
                 },
             )
+        }
+
+        if (songs.isNotEmpty() || playlist.songCount > 0 || playlist.playlist.browseId != null) {
+            GridMenuItem(
+                icon = R.drawable.export,
+                title = R.string.export_playlist,
+            ) {
+                val safeName = playlist.playlist.name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().ifEmpty { "playlist" }
+                exportPlaylistLauncher.launch("$safeName.txt")
+            }
+        }
+
+        GridMenuItem(
+            icon = R.drawable.save_to_storage,
+            title = R.string.save_playlist_to_storage,
+        ) {
+            val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                true
+            } else {
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+
+            if (hasPermission) {
+                val savingToastMsg = context.getString(R.string.saving_playlist_to_storage, playlist.playlist.name)
+                val playlistName = playlist.playlist.name
+                android.widget.Toast.makeText(context, savingToastMsg, android.widget.Toast.LENGTH_SHORT).show()
+                com.valora.icebeats.utils.SaveToStorageUtil.savePlaylistToMusicFolderAsync(
+                    context = context,
+                    playlistName = playlistName,
+                    mediaList = songs.map { it.toMediaMetadata() }
+                )
+                onDismiss()
+            }
         }
 
         if (autoPlaylist != true) {

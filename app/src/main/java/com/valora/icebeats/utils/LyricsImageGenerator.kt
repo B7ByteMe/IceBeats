@@ -61,7 +61,7 @@ object ComposeToImage {
     private fun buildContentValues(fileName: String): ContentValues = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.png")
         put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
-        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/icebeats")
+        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/IceBeats")
     }
 
     private fun saveToCache(context: Context, bitmap: Bitmap, fileName: String): Uri {
@@ -572,7 +572,7 @@ object ComposeToImage {
         logoSizeMultiplier: Float
     ) {
         val logoBitmap = getBitmapFromVectorDrawable(
-            context, R.drawable.icebeats, logoSize.toInt(), logoSize.toInt()
+            context, R.drawable.airbeats, logoSize.toInt(), logoSize.toInt()
         ) ?: return
 
         val appName = context.getString(R.string.app_name)

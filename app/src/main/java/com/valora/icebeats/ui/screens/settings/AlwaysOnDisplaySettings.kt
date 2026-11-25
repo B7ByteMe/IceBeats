@@ -1,7 +1,7 @@
-﻿@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -105,7 +105,11 @@ import com.valora.icebeats.constants.AodTextScaleKey
 import com.valora.icebeats.constants.AodTransitionDurationKey
 import com.valora.icebeats.ui.component.IconButton
 import com.valora.icebeats.ui.component.PreferenceGroupTitle
+import com.valora.icebeats.ui.component.SettingsPage
 import com.valora.icebeats.ui.component.SwitchPreference
+import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
+import com.valora.icebeats.ui.component.settingsCardContainerColor
+import com.valora.icebeats.ui.component.settingsCardBorder
 import com.valora.icebeats.ui.utils.backToMain
 import com.valora.icebeats.utils.rememberPreference
 import me.saket.squiggles.SquigglySlider
@@ -116,7 +120,7 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// -- Shapes (mismos que ten•as, no cambian) --------------------------------
+// ── Shapes (mismos que tenías, no cambian) ────────────────────────────────
 
 private val squircleShape: Shape = GenericShape { size, _ ->
     val cx = size.width / 2.0; val cy = size.height / 2.0
@@ -198,9 +202,9 @@ enum class AodAutoTimeout(val seconds: Int, val labelRes: Int) {
     MINUTE_2(120, R.string.aod_auto_2m)
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  PANTALLA PRINCIPAL DE AJUSTES AOD
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -208,7 +212,7 @@ fun AODSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    // -- Preferencias -----------------------------------------------------
+    // ── Preferencias ─────────────────────────────────────────────────────
     val (rawStyle, setRawStyle) = rememberPreference(AodStyleKey, AodStyle.CLASSIC.name)
     val (rawShape, setRawShape) = rememberPreference(AodArtShapeKey, AodArtShape.ROUNDED.name)
     val (darkness, setDarkness) = rememberPreference(AodDarknessKey, 0.55f)
@@ -253,15 +257,13 @@ fun AODSettings(
         AodAutoTimeout.MINUTE_1, AodAutoTimeout.MINUTE_2
     )
 
-    Column(
-        modifier = Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-            .verticalScroll(rememberScrollState())
+    SettingsPage(
+        title = stringResource(R.string.aod_screen_title),
+        navController = navController,
+        scrollBehavior = scrollBehavior
     ) {
 
-        Spacer(Modifier.height(8.dp))
-
-        // -- SECCI•N: Pantalla ---------------------------------------------
+        // ── SECCIÓN: Pantalla ─────────────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_fullscreen_title)) {
             AodSwitchRow(
                 icon = R.drawable.fullscreen,
@@ -272,7 +274,7 @@ fun AODSettings(
             )
         }
 
-        // -- SECCI•N: Auto-activaci•n --------------------------------------
+        // ── SECCIÓN: Auto-activación ──────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_auto_activation_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Row(
@@ -320,7 +322,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Estilo visual ----------------------------------------
+        // ── SECCIÓN: Estilo visual ────────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_style_title)) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -338,7 +340,7 @@ fun AODSettings(
                 }
             }
 
-            // Opciones extra s•lo para SPOTLIGHT
+            // Opciones extra sólo para SPOTLIGHT
             AnimatedVisibility(
                 visible = currentStyle == AodStyle.SPOTLIGHT,
                 enter = expandVertically() + fadeIn(),
@@ -366,7 +368,7 @@ fun AODSettings(
             }
         }
 
-// -- SECCI•N: Forma de la portada ----------------------------------
+// ── SECCIÓN: Forma de la portada ──────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_shape_title)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
@@ -387,7 +389,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Controles --------------------------------------------
+        // ── SECCIÓN: Controles ────────────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_controls_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
@@ -410,7 +412,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Tipograf•a -------------------------------------------
+        // ── SECCIÓN: Tipografía ───────────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_typography_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 AodSliderRow(
@@ -437,7 +439,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Fondo y brillo ---------------------------------------
+        // ── SECCIÓN: Fondo y brillo ───────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_darkness_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 AodSliderRow(
@@ -453,7 +455,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Transiciones -----------------------------------------
+        // ── SECCIÓN: Transiciones ─────────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_transitions_title)) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 AodSliderRow(
@@ -469,7 +471,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Reloj del sistema ------------------------------------
+        // ── SECCIÓN: Reloj del sistema ────────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_system_clock_title)) {
             AodSwitchRow(
                 icon = R.drawable.schedule,
@@ -493,7 +495,7 @@ fun AODSettings(
             }
         }
 
-        // -- SECCI•N: Elementos visibles -----------------------------------
+        // ── SECCIÓN: Elementos visibles ───────────────────────────────────
         AodSettingsSection(title = stringResource(R.string.aod_visible_elements_title)) {
             AodSwitchRow(
                 icon = R.drawable.format_align_center,
@@ -529,46 +531,40 @@ fun AODSettings(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
     }
-
-    TopAppBar(
-        title = { Text(stringResource(R.string.aod_screen_title)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
-            ) {
-                Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
-            }
-        },
-        scrollBehavior = scrollBehavior,
-    )
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  COMPONENTES DE UI M3 Expressive
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Secci•n con t•tulo y contenido en una tarjeta M3 con bordes suaves.
+ * Sección con título y contenido en una tarjeta M3 con bordes suaves.
  */
 @Composable
 private fun AodSettingsSection(
     title: String,
     content: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 10.dp, start = 4.dp)
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp
+            ),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 12.dp)
         )
+        val isFrosted = isFrostedGlassUiEnabled()
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(28.dp),
+            color = settingsCardContainerColor(isFrosted),
+            border = settingsCardBorder(isFrosted),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
@@ -685,7 +681,7 @@ private fun AodSliderRow(
 }
 
 /**
- * Pill / chip con color primario • M3 Expressive style.
+ * Pill / chip con color primario — M3 Expressive style.
  */
 @Composable
 private fun ExpressivePill(text: String) {
@@ -750,7 +746,7 @@ private fun ControlStyleChip(
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .width(72.dp)
     ) {
-        // Mini preview del estilo de bot•n
+        // Mini preview del estilo de botón
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -808,9 +804,9 @@ private fun ControlStyleChip(
     }
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  CARD: Estilo AOD (horizontal scroll)
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun AodStyleCard(
@@ -878,7 +874,7 @@ private fun AodStyleCard(
             AodStylePreview(style = style)
         }
 
-        // Nombre + descripci•n
+        // Nombre + descripción
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
@@ -904,7 +900,7 @@ private fun AodStyleCard(
 }
 
 /**
- * Preview visual de cada estilo en miniaturas • extra•do para limpieza.
+ * Preview visual de cada estilo en miniaturas — extraído para limpieza.
  */
 @Composable
 private fun AodStylePreview(style: AodStyle) {
@@ -1276,9 +1272,9 @@ private fun AodStylePreview(style: AodStyle) {
     }
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  CARD: Forma de portada
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun AodShapeCard(

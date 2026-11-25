@@ -228,7 +228,9 @@ fun LibraryPlaylistListItem(
     }
 
     val openPlaylist: () -> Unit = {
-        if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0) {
+        if (playlist.playlist.browseId?.startsWith("sp:") == true && playlist.songCount == 0) {
+            navController.navigate("online_playlist/${playlist.playlist.browseId}")
+        } else if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0) {
             navController.navigate("online_playlist/${playlist.playlist.browseId}")
         } else {
             navController.navigate("local_playlist/${playlist.id}")
@@ -260,7 +262,9 @@ fun LibraryPlaylistGridItem(
         .fillMaxWidth()
         .combinedClickable(
             onClick = {
-                if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0)
+                if (playlist.playlist.browseId?.startsWith("sp:") == true && playlist.songCount == 0)
+                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
+                else if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0)
                     navController.navigate("online_playlist/${playlist.playlist.browseId}")
                 else
                     navController.navigate("local_playlist/${playlist.id}")

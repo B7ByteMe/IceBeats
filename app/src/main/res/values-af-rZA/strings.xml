@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <!-- Bottom navigation -->
     <string name="home">Tuiste</string>
     <string name="songs">Liedjies</string>
@@ -378,7 +378,7 @@
     <string name="restore_failed">Kon nie die rugsteun herstel nie</string>
 
     <string name="discord_integration">Onenigheidsintegrasie</string>
-    <string name="discord_information">icebeats gebruik die KizzyRPC -biblioteek om u status van u Discord -rekening in te stel. Dit behels die gebruik van die Discord Gateway -verbinding, wat beskou kan word as "n oortreding van die TOS van Discord. Daar is egter geen bekende gevalle van gebruikersrekeninge wat om hierdie rede opgeskort word nie. Gebruik u eie risiko.  Opentunne sal net u teken uittrek, en alles anders word plaaslik geberg.</string>
+    <string name="discord_information">IceBeats gebruik die KizzyRPC -biblioteek om u status van u Discord -rekening in te stel. Dit behels die gebruik van die Discord Gateway -verbinding, wat beskou kan word as "n oortreding van die TOS van Discord. Daar is egter geen bekende gevalle van gebruikersrekeninge wat om hierdie rede opgeskort word nie. Gebruik u eie risiko.  Opentunne sal net u teken uittrek, en alles anders word plaaslik geberg.</string>
     <string name="dismiss">Afdank</string>
     <string name="options">Opsies</string>
     <string name="preview">Voorskou</string>

@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -31,6 +31,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import me.saket.squiggles.SquigglySlider
+import com.valora.icebeats.ui.component.PlayerSliderTrack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,6 +43,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.valora.icebeats.ui.component.AudioPipelineDialog
+import com.valora.icebeats.ui.component.AudioQualityTag
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,7 +82,18 @@ import com.valora.icebeats.models.MediaMetadata
 import com.valora.icebeats.ui.component.Lyrics
 import com.valora.icebeats.ui.component.LyricsV2
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import com.valora.icebeats.constants.RotateBackgroundKey
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.compositeOver
 import com.valora.icebeats.ui.component.LocalMenuState
 import com.valora.icebeats.ui.component.BigSeekBar
 import androidx.navigation.NavController
@@ -95,7 +113,7 @@ import com.valora.icebeats.utils.makeTimeString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun icebeatsLyricsScreen(
+fun IceBeatsLyricsScreen(
     mediaMetadata: MediaMetadata,
     navController: NavController,
     onBackClick: () -> Unit,
@@ -115,7 +133,31 @@ fun icebeatsLyricsScreen(
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
     
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
-    val useLyricsV2 = true
+    val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
+    var showAudioPipelineDialog by rememberSaveable { mutableStateOf(false) }
+    val lyricsScreenStyle by rememberEnumPreference(
+        com.valora.icebeats.constants.LyricsScreenStyleKey,
+        com.valora.icebeats.constants.LyricsScreenStyle.LYRICS_2
+    )
+    val useLyricsV2 = lyricsScreenStyle == com.valora.icebeats.constants.LyricsScreenStyle.LYRICS_2
+    val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.SQUIGGLY)
+    val rawRotateBackground by rememberPreference(RotateBackgroundKey, defaultValue = false)
+    val rotateBackground = if (com.valora.icebeats.utils.isLiteModeActive()) false else rawRotateBackground
+    val isBlurDisabled = com.valora.icebeats.utils.isBlurDisabled()
+
+    val infiniteTransition = rememberInfiniteTransition(label = "backgroundRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 20000,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
 
     // Auto-fetch lyrics when no lyrics found (same logic as refetch)
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
@@ -146,43 +188,108 @@ fun icebeatsLyricsScreen(
         }
     }
 
-    var position by remember { mutableLongStateOf(0L) }
-    var duration by remember { mutableLongStateOf(C.TIME_UNSET) }
+    var position by remember(mediaMetadata.id) { mutableLongStateOf(0L) }
+    var duration by remember(mediaMetadata.id) {
+        val metaDur = mediaMetadata.duration * 1000L
+        mutableLongStateOf(if (metaDur > 0) metaDur else C.TIME_UNSET)
+    }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(mediaMetadata.id) {
+        sliderPosition = null
+        position = 0L
+        val metaDur = mediaMetadata.duration * 1000L
+        if (metaDur > 0) {
+            duration = metaDur
+        } else if (player.duration > 0) {
+            duration = player.duration
+        }
+    }
     
     // Track loading state: when buffering or when user is seeking
-    val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
+    // Only show the spinner while the player is actually buffering (not on every seek/drag).
+    val isLoading = playbackState == STATE_BUFFERING
 
     val textBackgroundColor = Color.White
     val icBackgroundColor = Color.Black
 
-    LaunchedEffect(playbackState) {
-        if (playbackState == STATE_READY) {
+    LaunchedEffect(playbackState, mediaMetadata.id) {
+        if (playbackState == STATE_READY || playbackState == STATE_BUFFERING) {
             while (isActive) {
+                val currentPos = player.currentPosition
+                if (currentPos >= 0) {
+                    position = currentPos
+                }
+                val dur = player.duration
+                if (dur > 0) {
+                    duration = dur
+                } else {
+                    val metaDur = mediaMetadata.duration * 1000L
+                    if (metaDur > 0) {
+                        duration = metaDur
+                    }
+                }
                 delay(100)
-                position = player.currentPosition
-                duration = player.duration
             }
         }
     }
 
     BackHandler(onBack = onBackClick)
 
+    if (showAudioPipelineDialog) {
+        AudioPipelineDialog(
+            currentFormat = currentFormat,
+            mediaMetadata = mediaMetadata,
+            onDismiss = { showAudioPipelineDialog = false }
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            coil.compose.AsyncImage(
-                model = mediaMetadata.thumbnailUrl,
-                contentDescription = null,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(48.dp)
-            )
+        if (isBlurDisabled) {
+            // Lite mode / blur disabled: lyrics text is always white, so the screen needs a
+            // dark, theme-tinted backdrop. Without it the screen is white-on-white in light theme.
+            val backdropBase = MaterialTheme.colorScheme.primary
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f))
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(
+                                backdropBase.copy(alpha = 0.55f).compositeOver(Color(0xFF101014)),
+                                Color(0xFF101014),
+                                Color(0xFF08080A)
+                            )
+                        )
+                    )
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clipToBounds()
+            ) {
+                coil.compose.AsyncImage(
+                    model = mediaMetadata.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(48.dp)
+                        .graphicsLayer {
+                            if (rotateBackground) {
+                                scaleX = 2.5f
+                                scaleY = 2.5f
+                                rotationZ = rotation
+                                transformOrigin = TransformOrigin.Center
+                            }
+                        }
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f))
+                )
+            }
         }
 
         // Check orientation and layout accordingly
@@ -258,6 +365,7 @@ fun icebeatsLyricsScreen(
                                         LyricsMenu(
                                             lyricsProvider = { currentLyrics },
                                             mediaMetadataProvider = { mediaMetadata },
+                                            navController = navController,
                                             onDismiss = menuState::dismiss
                                         )
                                     }
@@ -316,12 +424,14 @@ fun icebeatsLyricsScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Slider
-                            androidx.compose.material3.Slider(
-                                value = (sliderPosition ?: position).toFloat(),
-                                valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                onValueChange = {
-                                    sliderPosition = it.toLong()
-                                },
+                            LyricsSlider(
+                                sliderStyle = sliderStyle,
+                                sliderPosition = sliderPosition,
+                                position = position,
+                                duration = duration,
+                                isPlaying = isPlaying,
+                                textBackgroundColor = textBackgroundColor,
+                                onValueChange = { sliderPosition = it },
                                 onValueChangeFinished = {
                                     sliderPosition?.let {
                                         player.seekTo(it)
@@ -329,10 +439,6 @@ fun icebeatsLyricsScreen(
                                     }
                                     sliderPosition = null
                                 },
-                                colors = androidx.compose.material3.SliderDefaults.colors(
-                                    activeTrackColor = textBackgroundColor,
-                                    thumbColor = textBackgroundColor
-                                ),
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -341,12 +447,19 @@ fun icebeatsLyricsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = makeTimeString(sliderPosition ?: position),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = textBackgroundColor.copy(alpha = 0.7f)
+                                )
+                                AudioQualityTag(
+                                    currentFormat = currentFormat,
+                                    mediaMetadata = mediaMetadata,
+                                    tint = textBackgroundColor,
+                                    onClick = { showAudioPipelineDialog = true }
                                 )
                                 Text(
                                     text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
@@ -367,15 +480,14 @@ fun icebeatsLyricsScreen(
                             ) {
                                 // Repeat button
                                 IconButton(
-                                    onClick = { playerConnection.player.toggleRepeatMode() },
+                                    onClick = { playerConnection.toggleRepeatMode() },
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
                                         painter = painterResource(
                                             when (repeatMode) {
-                                                Player.REPEAT_MODE_OFF, 
-                                                Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                                 Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                                Player.REPEAT_MODE_ALL -> R.drawable.repeat_on
                                                 else -> R.drawable.repeat
                                             }
                                         ),
@@ -445,7 +557,7 @@ fun icebeatsLyricsScreen(
 
                                 // Shuffle button
                                 IconButton(
-                                    onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
+                                    onClick = { playerConnection.toggleShuffle() },
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
@@ -473,7 +585,7 @@ fun icebeatsLyricsScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.volume_off),
-                                    contentDescription = "Minimum Volume",
+                                    contentDescription = stringResource(R.string.ui_a11y_minimum_volume),
                                     modifier = Modifier.size(20.dp),
                                     tint = textBackgroundColor
                                 )
@@ -490,7 +602,7 @@ fun icebeatsLyricsScreen(
 
                                 Icon(
                                     painter = painterResource(R.drawable.volume_up),
-                                    contentDescription = "Maximum Volume",
+                                    contentDescription = stringResource(R.string.ui_a11y_maximum_volume),
                                     modifier = Modifier.size(20.dp),
                                     tint = textBackgroundColor
                                 )
@@ -569,6 +681,7 @@ fun icebeatsLyricsScreen(
                                         LyricsMenu(
                                             lyricsProvider = { currentLyrics },
                                             mediaMetadataProvider = { mediaMetadata },
+                                            navController = navController,
                                             onDismiss = menuState::dismiss
                                         )
                                     }
@@ -609,12 +722,14 @@ fun icebeatsLyricsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 48.dp, vertical = 16.dp)
                     ) {
-                        androidx.compose.material3.Slider(
-                            value = (sliderPosition ?: position).toFloat(),
-                            valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                            onValueChange = {
-                                sliderPosition = it.toLong()
-                            },
+                        LyricsSlider(
+                            sliderStyle = sliderStyle,
+                            sliderPosition = sliderPosition,
+                            position = position,
+                            duration = duration,
+                            isPlaying = isPlaying,
+                            textBackgroundColor = textBackgroundColor,
+                            onValueChange = { sliderPosition = it },
                             onValueChangeFinished = {
                                 sliderPosition?.let {
                                     player.seekTo(it)
@@ -622,10 +737,6 @@ fun icebeatsLyricsScreen(
                                 }
                                 sliderPosition = null
                             },
-                            colors = androidx.compose.material3.SliderDefaults.colors(
-                                activeTrackColor = textBackgroundColor,
-                                thumbColor = textBackgroundColor
-                            ),
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -634,12 +745,19 @@ fun icebeatsLyricsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = makeTimeString(sliderPosition ?: position),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = textBackgroundColor.copy(alpha = 0.7f)
+                            )
+                            AudioQualityTag(
+                                currentFormat = currentFormat,
+                                mediaMetadata = mediaMetadata,
+                                tint = textBackgroundColor,
+                                onClick = { showAudioPipelineDialog = true }
                             )
                             Text(
                                 text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
@@ -660,15 +778,14 @@ fun icebeatsLyricsScreen(
                         ) {
                             // Repeat button with clear state indication
                             IconButton(
-                                onClick = { playerConnection.player.toggleRepeatMode() },
+                                onClick = { playerConnection.toggleRepeatMode() },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(
                                         when (repeatMode) {
-                                            Player.REPEAT_MODE_OFF, 
-                                            Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                             Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                            Player.REPEAT_MODE_ALL -> R.drawable.repeat_on
                                             else -> R.drawable.repeat
                                         }
                                     ),
@@ -740,7 +857,7 @@ fun icebeatsLyricsScreen(
 
                             // Shuffle button with clear state indication
                             IconButton(
-                                onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
+                                onClick = { playerConnection.toggleShuffle() },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
@@ -770,7 +887,7 @@ fun icebeatsLyricsScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.volume_off),
-                                contentDescription = "Minimum Volume",
+                                contentDescription = stringResource(R.string.ui_a11y_minimum_volume),
                                 modifier = Modifier.size(20.dp),
                                 tint = textBackgroundColor
                             )
@@ -787,7 +904,7 @@ fun icebeatsLyricsScreen(
 
                             Icon(
                                 painter = painterResource(R.drawable.volume_up),
-                                contentDescription = "Maximum Volume",
+                                contentDescription = stringResource(R.string.ui_a11y_maximum_volume),
                                 modifier = Modifier.size(20.dp),
                                 tint = textBackgroundColor
                             )
@@ -797,6 +914,75 @@ fun icebeatsLyricsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LyricsSlider(
+    sliderStyle: SliderStyle,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    isPlaying: Boolean,
+    textBackgroundColor: Color,
+    onValueChange: (Long) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sliderColors = SliderDefaults.colors(
+        activeTrackColor = textBackgroundColor,
+        inactiveTrackColor = textBackgroundColor.copy(alpha = 0.3f),
+        thumbColor = textBackgroundColor
+    )
+    val sliderValue = (sliderPosition ?: position).toFloat()
+    val sliderRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat())
+
+    when (sliderStyle) {
+        SliderStyle.DEFAULT -> {
+            Slider(
+                value = sliderValue,
+                valueRange = sliderRange,
+                onValueChange = { onValueChange(it.toLong()) },
+                onValueChangeFinished = onValueChangeFinished,
+                colors = sliderColors,
+                modifier = modifier
+            )
+        }
+
+        SliderStyle.SQUIGGLY -> {
+            SquigglySlider(
+                value = sliderValue,
+                valueRange = sliderRange,
+                onValueChange = { onValueChange(it.toLong()) },
+                onValueChangeFinished = onValueChangeFinished,
+                colors = sliderColors,
+                modifier = modifier,
+                squigglesSpec = SquigglySlider.SquigglesSpec(
+                    amplitude = if (isPlaying) 2.dp else 0.dp,
+                    strokeWidth = 3.dp,
+                )
+            )
+        }
+
+        SliderStyle.SLIM -> {
+            Slider(
+                value = sliderValue,
+                valueRange = sliderRange,
+                onValueChange = { onValueChange(it.toLong()) },
+                onValueChangeFinished = onValueChangeFinished,
+                thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+                track = { sliderState ->
+                    PlayerSliderTrack(
+                        sliderState = sliderState,
+                        colors = sliderColors,
+                        trackHeight = 6.dp
+                    )
+                },
+                colors = sliderColors,
+                modifier = modifier
+            )
         }
     }
 }

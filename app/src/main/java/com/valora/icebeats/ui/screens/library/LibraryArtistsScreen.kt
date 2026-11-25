@@ -27,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,18 +57,26 @@ import com.valora.icebeats.constants.GridThumbnailHeight
 import com.valora.icebeats.constants.LibraryViewType
 import com.valora.icebeats.constants.YtmSyncKey
 import com.valora.icebeats.ui.component.ChipsRow
+import com.valora.icebeats.ui.component.LibraryFilterRow
+import com.valora.icebeats.ui.component.CreatePlaylistDialog
 import com.valora.icebeats.ui.component.EmptyPlaceholder
 import com.valora.icebeats.ui.component.LibraryArtistGridItem
 import com.valora.icebeats.ui.component.LibraryArtistListItem
+import com.valora.icebeats.ui.component.LibraryFloatingActions
 import com.valora.icebeats.ui.component.LocalMenuState
 import com.valora.icebeats.ui.component.SortHeader
 import com.valora.icebeats.utils.rememberEnumPreference
 import com.valora.icebeats.utils.rememberPreference
 import com.valora.icebeats.viewmodels.LibraryArtistsViewModel
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
@@ -88,43 +98,29 @@ fun LibraryArtistsScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
     val filterContent = @Composable {
-        Row {
-            Spacer(Modifier.width(12.dp))
-            FilterChip(
-                label = { Text(stringResource(R.string.artists)) },
-                selected = true,
-                colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-                onClick = onDeselect,
-                shape = RoundedCornerShape(16.dp),
-                leadingIcon = {
-                    Icon(painter = painterResource(R.drawable.close), contentDescription = "")
-                },
-            )
-            ChipsRow(
-                chips =
-                    listOf(
+        LibraryFilterRow(
+            selectedLabel = stringResource(R.string.artists),
+            onDeselect = onDeselect,
+            chips = listOf(
                         ArtistFilter.LIKED to stringResource(R.string.filter_liked),
                         ArtistFilter.LIBRARY to stringResource(R.string.filter_library)
                     ),
-                currentValue = filter,
-                onValueUpdate = {
-                    filter = it
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
+            currentValue = filter,
+            onValueUpdate = { filter = it },
+        )
     }
 
-    LaunchedEffect(filter) {
-        if (ytmSync && filter == ArtistFilter.LIKED) {
-            withContext(Dispatchers.IO) {
-                viewModel.sync()
-            }
-        }
-    }
 
     val artists by viewModel.allArtists.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(Unit) {
+        viewModel.sync()
+    }
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
@@ -191,7 +187,21 @@ fun LibraryArtistsScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .pullToRefresh(
+                isRefreshing = isRefreshing,
+                state = pullRefreshState,
+                onRefresh = {
+                    if (ytmSync) {
+                        isRefreshing = true
+                        coroutineScope.launch {
+                            viewModel.sync()
+                            isRefreshing = false
+                        }
+                    }
+                }
+            ),
     ) {
         when (viewType) {
             LibraryViewType.LIST ->
@@ -292,5 +302,30 @@ fun LibraryArtistsScreen(
                     }
                 }
         }
+
+        LibraryFloatingActions(
+            lazyListState = lazyListState,
+            lazyGridState = lazyGridState,
+            onOpenGenerator = {
+                navController.navigate("generator")
+            },
+            onCreatePlaylist = {
+                showCreatePlaylistDialog = true
+            },
+        )
+
+        PullToRefreshDefaults.LoadingIndicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+        )
+    }
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(onDismiss = { showCreatePlaylistDialog = false })
     }
 }

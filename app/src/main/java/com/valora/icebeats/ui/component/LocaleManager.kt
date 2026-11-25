@@ -1,4 +1,4 @@
-﻿@file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.valora.icebeats.ui.component
 
@@ -116,7 +116,7 @@ enum class CompletionStatus(val label: String, val color: @Composable () -> Colo
     EXPERIMENTAL("Exp", { MaterialTheme.colorScheme.secondary })
 }
 
-/** Estados de la operaci•n de cambio de idioma */
+/** Estados de la operación de cambio de idioma */
 sealed class LanguageChangeState {
     object Idle : LanguageChangeState()
     object Changing : LanguageChangeState()
@@ -142,30 +142,30 @@ class LocaleManager private constructor(private val context: Context) {
             }
         }
 
-        // Mapeo de banderas y estados de traducci•n
+        // Mapeo de banderas y estados de traducción
         private val LANGUAGE_METADATA = mapOf(
-            "en" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "es" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "fr" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "de" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "it" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "pt-rBR" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "pt" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "ru" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "zh-rCN" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "zh-rTW" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "ja" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "ko" to LanguageMetadata("????", CompletionStatus.COMPLETE),
-            "ar" to LanguageMetadata("????", CompletionStatus.BETA),
-            "hi" to LanguageMetadata("????", CompletionStatus.BETA),
-            "th" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
-            "vi" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
-            "tr" to LanguageMetadata("????", CompletionStatus.BETA),
-            "pl" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
-            "nl" to LanguageMetadata("????", CompletionStatus.INCOMPLETE),
-            "id" to LanguageMetadata("????", CompletionStatus.BETA),
-            "uk" to LanguageMetadata("????", CompletionStatus.BETA),
-            "he" to LanguageMetadata("????", CompletionStatus.BETA)
+            "en" to LanguageMetadata("🇺🇸", CompletionStatus.COMPLETE),
+            "es" to LanguageMetadata("🇪🇸", CompletionStatus.COMPLETE),
+            "fr" to LanguageMetadata("🇫🇷", CompletionStatus.COMPLETE),
+            "de" to LanguageMetadata("🇩🇪", CompletionStatus.COMPLETE),
+            "it" to LanguageMetadata("🇮🇹", CompletionStatus.COMPLETE),
+            "pt-rBR" to LanguageMetadata("🇧🇷", CompletionStatus.COMPLETE),
+            "pt" to LanguageMetadata("🇵🇹", CompletionStatus.COMPLETE),
+            "ru" to LanguageMetadata("🇷🇺", CompletionStatus.COMPLETE),
+            "zh-rCN" to LanguageMetadata("🇨🇳", CompletionStatus.COMPLETE),
+            "zh-rTW" to LanguageMetadata("🇹🇼", CompletionStatus.COMPLETE),
+            "ja" to LanguageMetadata("🇯🇵", CompletionStatus.COMPLETE),
+            "ko" to LanguageMetadata("🇰🇷", CompletionStatus.COMPLETE),
+            "ar" to LanguageMetadata("🇸🇦", CompletionStatus.BETA),
+            "hi" to LanguageMetadata("🇮🇳", CompletionStatus.BETA),
+            "th" to LanguageMetadata("🇹🇭", CompletionStatus.INCOMPLETE),
+            "vi" to LanguageMetadata("🇻🇳", CompletionStatus.INCOMPLETE),
+            "tr" to LanguageMetadata("🇹🇷", CompletionStatus.BETA),
+            "pl" to LanguageMetadata("🇵🇱", CompletionStatus.INCOMPLETE),
+            "nl" to LanguageMetadata("🇳🇱", CompletionStatus.INCOMPLETE),
+            "id" to LanguageMetadata("🇮🇩", CompletionStatus.BETA),
+            "uk" to LanguageMetadata("🇺🇦", CompletionStatus.BETA),
+            "he" to LanguageMetadata("🇮🇱", CompletionStatus.BETA)
         )
 
         private data class LanguageMetadata(
@@ -265,7 +265,7 @@ class LocaleManager private constructor(private val context: Context) {
     }
 
     /**
-     * Verifica si existen traducciones para un locale espec•fico
+     * Verifica si existen traducciones para un locale específico
      */
     private fun hasTranslationsForLocale(localeCode: String): Boolean {
         return try {
@@ -281,7 +281,7 @@ class LocaleManager private constructor(private val context: Context) {
             val localizedContext = context.createConfigurationContext(config)
             val localizedResources = localizedContext.resources
 
-            // Intentar obtener un string b•sico para verificar
+            // Intentar obtener un string básico para verificar
             try {
                 val appName = localizedResources.getString(R.string.app_name)
                 true
@@ -313,18 +313,25 @@ class LocaleManager private constructor(private val context: Context) {
     }
 
     /**
-     * Convierte c•digo de locale a Locale
+     * Convierte código de locale a Locale
      */
     private fun parseLocaleCode(code: String): Locale {
         return when {
-            code == "zh-rCN" || code == "zh-CN" -> Locale.SIMPLIFIED_CHINESE
-            code == "zh-rTW" || code == "zh-TW" -> Locale.TRADITIONAL_CHINESE
+            code == "zh-rCN" || code == "zh-CN" || code == "zh_CN" || code == "zh" -> Locale.SIMPLIFIED_CHINESE
+            code == "zh-rTW" || code == "zh-TW" || code == "zh_TW" -> Locale.TRADITIONAL_CHINESE
+            code == "iw" || code == "iw-rIL" || code == "he" || code == "he-rIL" -> Locale("he", "IL")
+            code == "in" || code == "id" -> Locale("id")
+            code == "fr" || code == "fr-rFR" || code == "fr-FR" || code == "fr_FR" -> Locale.FRENCH
             code.contains("-r") -> {
                 val parts = code.split("-r")
                 Locale(parts[0], parts[1])
             }
             code.contains("-") -> {
                 val parts = code.split("-")
+                Locale(parts[0], parts[1])
+            }
+            code.contains("_") -> {
+                val parts = code.split("_")
                 Locale(parts[0], parts[1])
             }
             else -> Locale(code)
@@ -338,7 +345,7 @@ class LocaleManager private constructor(private val context: Context) {
 
             val languages = mutableListOf<LanguageItem>()
 
-            // Agregar opci•n de sistema
+            // Agregar opción de sistema
             val systemDisplayName = try {
                 val locale = parseLocaleCode(systemLanguageCode)
                 locale.displayLanguage.replaceFirstChar { it.uppercase() }
@@ -353,7 +360,7 @@ class LocaleManager private constructor(private val context: Context) {
                     nativeName = systemDisplayName,
                     completionStatus = CompletionStatus.COMPLETE,
                     isSystemDefault = true,
-                    flag = "??"
+                    flag = "🌐"
                 )
             )
 
@@ -361,14 +368,30 @@ class LocaleManager private constructor(private val context: Context) {
             availableLocaleCodes.forEach { localeCode ->
                 try {
                     val locale = parseLocaleCode(localeCode)
-                    val displayName = locale.getDisplayLanguage(Locale.ENGLISH)
-                        .replaceFirstChar { it.uppercase() }
-                    val nativeName = locale.getDisplayLanguage(locale)
-                        .replaceFirstChar { it.uppercase() }
+                    val isBrazilianPortuguese = locale.language == "pt" && locale.country == "BR"
+                    val isPortugalPortuguese = locale.language == "pt" &&
+                        (locale.country == "PT" || locale.country.isEmpty())
+                    val displayName = when {
+                        isBrazilianPortuguese -> "Portuguese (Brazil)"
+                        isPortugalPortuguese -> "Portuguese (Portugal)"
+                        else -> locale.getDisplayLanguage(Locale.ENGLISH)
+                            .replaceFirstChar { it.uppercase() }
+                    }
+                    val nativeName = when {
+                        isBrazilianPortuguese -> "português (Brasil)"
+                        isPortugalPortuguese -> "português (Portugal)"
+                        else -> locale.getDisplayLanguage(locale)
+                            .replaceFirstChar { it.uppercase() }
+                    }
 
-                    // Obtener metadata (bandera y estado)
-                    val metadata = LANGUAGE_METADATA[localeCode]
-                        ?: LanguageMetadata("??", CompletionStatus.COMPLETE)
+                    // Resource locales can be reported as pt_BR instead of pt-rBR.
+                    val metadataCode = when {
+                        isBrazilianPortuguese -> "pt-rBR"
+                        isPortugalPortuguese -> "pt"
+                        else -> localeCode
+                    }
+                    val metadata = LANGUAGE_METADATA[metadataCode]
+                        ?: LanguageMetadata("🌍", CompletionStatus.COMPLETE)
 
                     languages.add(
                         LanguageItem(
@@ -385,7 +408,7 @@ class LocaleManager private constructor(private val context: Context) {
                 }
             }
 
-            // Ordenar por: sistema primero, luego completos, luego alfab•ticamente
+            // Ordenar por: sistema primero, luego completos, luego alfabéticamente
             val sorted = languages.sortedWith(
                 compareBy<LanguageItem> { !it.isSystemDefault }
                     .thenBy { it.completionStatus.ordinal }
@@ -451,22 +474,18 @@ class LocaleManager private constructor(private val context: Context) {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val localeManager = context.getSystemService(android.app.LocaleManager::class.java)
-                // Android 13 keeps its own per-app locale.  It must be cleared when
-                // the user selects "System default"; otherwise the previous language
-                // remains active even after the activity is recreated.
                 if (useSystemLocale) {
                     localeManager?.applicationLocales = LocaleList.getEmptyLocaleList()
                 } else {
-                    localeManager?.applicationLocales =
-                        LocaleList.forLanguageTags(locale.toLanguageTag())
+                    localeManager?.applicationLocales = LocaleList(locale)
                 }
 
-                val localeList = LocaleList.forLanguageTags(locale.toLanguageTag())
+                val localeList = LocaleList(locale)
                 LocaleList.setDefault(localeList)
                 config.setLocales(localeList)
                 config.setLocale(locale)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val localeList = LocaleList.forLanguageTags(locale.toLanguageTag())
+                val localeList = LocaleList(locale)
                 LocaleList.setDefault(localeList)
                 config.setLocales(localeList)
                 config.setLocale(locale)
@@ -477,7 +496,7 @@ class LocaleManager private constructor(private val context: Context) {
             @Suppress("DEPRECATION")
             context.resources.updateConfiguration(config, context.resources.displayMetrics)
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error aplicando configuraci•n de idioma")
+            Timber.tag(TAG).e(e, "Error aplicando configuración de idioma")
         }
     }
 
@@ -490,10 +509,10 @@ class LocaleManager private constructor(private val context: Context) {
             val config = Configuration(baseContext.resources.configuration)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                config.setLocale(locale)
-                val localeList = LocaleList.forLanguageTags(locale.toLanguageTag())
+                val localeList = LocaleList(locale)
                 LocaleList.setDefault(localeList)
                 config.setLocales(localeList)
+                config.setLocale(locale)
                 baseContext.createConfigurationContext(config)
             } else {
                 config.locale = locale
@@ -515,7 +534,10 @@ class LocaleManager private constructor(private val context: Context) {
             val activity = findActivity(context)
             Handler(Looper.getMainLooper()).postDelayed({
                 if (activity != null && !activity.isFinishing) {
-                    activity.recreate()
+                    val intent = Intent(activity, activity.javaClass)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    activity.startActivity(intent)
+                    activity.finish()
                     activity.overridePendingTransition(
                         android.R.anim.fade_in,
                         android.R.anim.fade_out
@@ -530,7 +552,7 @@ class LocaleManager private constructor(private val context: Context) {
                 }
             }, RESTART_DELAY)
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error reiniciando aplicaci•n")
+            Timber.tag(TAG).e(e, "Error reiniciando aplicación")
         }
     }
 
@@ -767,7 +789,7 @@ private fun SearchBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Limpiar b•squeda",
+                        contentDescription = stringResource(R.string.ui_a11y_limpiar_busqueda),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -826,12 +848,12 @@ private fun EmptySearchResult(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Sin resultados",
+            text = stringResource(R.string.ui_empty_no_results),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Prueba con otro t•rmino",
+            text = stringResource(R.string.ui_empty_try_another_term),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 4.dp)
@@ -888,7 +910,7 @@ private fun LanguageItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Informaci•n
+            // Información
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = language.displayName,

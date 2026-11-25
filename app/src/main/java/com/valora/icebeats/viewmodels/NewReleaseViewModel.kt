@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.innertube.models.AlbumItem
+import com.valora.icebeats.innertube.models.AlbumReleaseType
 import com.valora.icebeats.innertube.models.filterExplicit
 import com.valora.icebeats.constants.HideExplicitKey
 import com.valora.icebeats.constants.LastNewReleaseCheckKey
@@ -22,7 +23,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-typealias AlbumReleaseType = com.valora.icebeats.innertube.models.AlbumReleaseType
+
+
+
 
 sealed interface NewReleaseUiState {
     data object Loading : NewReleaseUiState

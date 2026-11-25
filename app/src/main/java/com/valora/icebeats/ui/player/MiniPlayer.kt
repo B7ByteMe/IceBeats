@@ -1,5 +1,7 @@
 package com.valora.icebeats.ui.player
 
+import androidx.compose.ui.res.stringResource
+
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
@@ -75,8 +77,8 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -165,7 +167,7 @@ fun MiniPlayer(
     )
 
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
-        true
+        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
     val miniPlayerThumbnailShapeState = rememberPreference(
@@ -187,7 +189,15 @@ fun MiniPlayer(
         else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f)
     }
 
-    val currentView = LocalView.current
+    val context = LocalContext.current
+    val thumbnailRequest = remember(mediaMetadata?.thumbnailUrl) {
+        mediaMetadata?.thumbnailUrl?.highQualityThumbnail()?.let { thumbnailUrl ->
+            ImageRequest.Builder(context)
+                .data(thumbnailUrl)
+                .crossfade(true)
+                .build()
+        }
+    }
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -235,7 +245,7 @@ fun MiniPlayer(
     fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
         return (600 / (1f + exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
     }
-    val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
+    val autoSwipeThreshold = remember { calculateAutoSwipeThreshold(0.73f) }
 
     Box(
         modifier = modifier
@@ -382,12 +392,9 @@ fun MiniPlayer(
                                     }
                                 }
                         ) {
-                            mediaMetadata?.let { metadata ->
+                            thumbnailRequest?.let { request ->
                                 AsyncImage(
-                                    model = ImageRequest.Builder(LocalView.current.context)
-                                        .data(metadata.thumbnailUrl?.highQualityThumbnail())
-                                        .crossfade(true)
-                                        .build(),
+                                    model = request,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
@@ -478,7 +485,7 @@ fun MiniPlayer(
                                 exit = fadeOut(),
                             ) {
                                 Text(
-                                    text = "Error playing",
+                                    text = stringResource(R.string.ui_text_error_playing),
                                     color = MaterialTheme.colorScheme.error,
                                     fontSize = 10.sp,
                                     maxLines = 1,
@@ -646,7 +653,7 @@ fun ModernMiniPlayer(
     )
 
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
-        true
+        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
     val backgroundColor = if (enableLiquidGlass && backdrop != null) {
         Color.Transparent
@@ -830,7 +837,7 @@ fun ModernMiniPlayer(
 
                     AnimatedVisibility(visible = error != null, enter = fadeIn(), exit = fadeOut()) {
                         Text(
-                            text = "Error playing",
+                            text = stringResource(R.string.ui_text_error_playing),
                             color = MaterialTheme.colorScheme.error,
                             fontSize = 10.sp,
                             maxLines = 1,

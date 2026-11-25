@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
         android:enabled="true"
@@ -27,6 +27,16 @@
         android:shortcutShortLabel="@string/filter_library">
         <intent
             android:action="com.valora.icebeats.action.LIBRARY"
+            android:targetClass="com.valora.icebeats.MainActivity"
+            android:targetPackage="com.valora.icebeats" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/mic"
+        android:shortcutId="music_recognition"
+        android:shortcutShortLabel="@string/identify_music">
+        <intent
+            android:action="com.valora.icebeats.action.MUSIC_RECOGNITION"
             android:targetClass="com.valora.icebeats.MainActivity"
             android:targetPackage="com.valora.icebeats" />
     </shortcut>

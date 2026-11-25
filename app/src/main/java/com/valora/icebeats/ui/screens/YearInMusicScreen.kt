@@ -1,5 +1,5 @@
-﻿/*
- * icebeats Insight • Year in Music, redesigned (2026)
+/*
+ * Airbeats Insight — Year in Music, redesigned (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -80,9 +80,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Design tokens
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 private val Ink      = Color(0xFF040406)
 private val Snow     = Color(0xFFFDFDFD)
@@ -91,7 +91,7 @@ private val SnowDim  = Color(0x55FDFDFD)
 private val GlassHi  = Color(0x28FFFFFF)
 private val GlassBorder = Color(0x18FFFFFF)
 
-// Per-card gradient palettes - each card has its own visual identity
+// Per-card gradient palettes ─ each card has its own visual identity
 private val WelcomeA  = Color(0xFF110024)
 private val WelcomeB  = Color(0xFF8A1FFF)
 private val WelcomeC  = Color(0xFFFB3E7E)
@@ -123,41 +123,41 @@ private val SummaryB  = Color(0xFF6A0DAD)
 private val SummaryC  = Color(0xFF1560FF)
 private val SummaryD  = Color(0xFF1DB954)
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Listening Personality
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 private data class InsightPersonality(
     val emoji: String,
-    val title: String,
-    val description: String,
+    @androidx.annotation.StringRes val titleRes: Int,
+    @androidx.annotation.StringRes val descriptionRes: Int,
     val gradTop: Color,
     val gradBot: Color,
     val accent: Color,
 )
 
 private val PersonalityDevoted = InsightPersonality(
-    emoji = "??",
-    title = "Devoted Fan",
-    description = "When you find a song you love, you play it on repeat. Your loyalty to your favourites is unmatched • and that's your superpower.",
+    emoji = "🎯",
+    titleRes = R.string.ui_heading_devoted_fan,
+    descriptionRes = R.string.ui_extra_when_you_find_a_song_you_love_you_play_it_on_repeat_your_loyalty_to_,
     gradTop = PersonA, gradBot = PersonB, accent = PersonB,
 )
 private val PersonalityExplorer = InsightPersonality(
-    emoji = "??",
-    title = "Music Explorer",
-    description = "Always discovering, never settling. Your taste spans worlds, and your playlist never sounds the same twice.",
+    emoji = "🧭",
+    titleRes = R.string.ui_heading_music_explorer,
+    descriptionRes = R.string.ui_extra_always_discovering_never_settling_your_taste_spans_worlds_and_your_p,
     gradTop = WelcomeA, gradBot = WelcomeB, accent = WelcomeB,
 )
 private val PersonalityAudiophile = InsightPersonality(
-    emoji = "??",
-    title = "True Audiophile",
-    description = "Hours melt away when you're in the zone. Music isn't background noise for you • it's everything.",
+    emoji = "🎧",
+    titleRes = R.string.ui_heading_true_audiophile,
+    descriptionRes = R.string.ui_extra_hours_melt_away_when_you_re_in_the_zone_music_isn_t_background_noise,
     gradTop = MinutesA, gradBot = MinutesB, accent = MinutesC,
 )
 private val PersonalityCasual = InsightPersonality(
-    emoji = "??",
-    title = "Laid-Back Listener",
-    description = "Music moves effortlessly with your life. It's always there when you need it, easy and perfectly in tune.",
+    emoji = "🌊",
+    titleRes = R.string.ui_heading_laid_back_listener,
+    descriptionRes = R.string.ui_extra_music_moves_effortlessly_with_your_life_it_s_always_there_when_you_n,
     gradTop = SongsA, gradBot = SongsB, accent = SongsC,
 )
 
@@ -177,18 +177,18 @@ private fun computePersonality(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Page enum
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 private enum class YearInMusicPage {
     Welcome, Minutes, TopSongsList, SongSpotlight,
     ArtistSpotlight, TopAlbumsList, Personality, Summary,
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Main screen
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -252,7 +252,7 @@ fun YearInMusicScreen(
             .onGloballyPositioned { shareBounds = it.boundsInRoot() }
     ) {
 
-        // -- Story pager ----------------------------------------------------
+        // ── Story pager ────────────────────────────────────────────────────
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
@@ -276,7 +276,7 @@ fun YearInMusicScreen(
             )
         }
 
-        // -- Instagram-style tap zones (left = back, right = forward) -------
+        // ── Instagram-style tap zones (left = back, right = forward) ───────
         if (!isShareCaptureMode) {
             Row(
                 modifier = Modifier
@@ -312,7 +312,7 @@ fun YearInMusicScreen(
             }
         }
 
-        // -- Top chrome: progress bar + nav ---------------------------------
+        // ── Top chrome: progress bar + nav ─────────────────────────────────
         if (!isShareCaptureMode) {
             Column(
                 modifier = Modifier
@@ -349,17 +349,17 @@ fun YearInMusicScreen(
                         Icon(painterResource(R.drawable.arrow_back), null, tint = Snow)
                     }
                     Spacer(Modifier.weight(1f))
-                    // Brand label • centered
+                    // Brand label — centered
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text       = "icebeats",
+                            text       = stringResource(R.string.ui_text_airbeats_2),
                             style      = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color      = SnowDim,
                             letterSpacing = 1.5.sp,
                         )
                         Text(
-                            text       = "Insight",
+                            text       = stringResource(R.string.ui_text_insight),
                             style      = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color      = Snow,
@@ -375,7 +375,7 @@ fun YearInMusicScreen(
             }
         }
 
-        // -- Share FAB -------------------------------------------------------
+        // ── Share FAB ───────────────────────────────────────────────────────
         if (!isShareCaptureMode && isLastPage && hasData) {
             InsightShareFab(
                 isGenerating = isGeneratingImage,
@@ -387,8 +387,8 @@ fun YearInMusicScreen(
                                 isShareCaptureMode = true
                                 awaitNextPreDraw(view)
                                 awaitNextPreDraw(view)
-                                val bitmap = com.valora.icebeats.utils.icebeatsComposeToImage.captureViewBitmap(view)
-                                val file = java.io.File(context.cacheDir, "icebeats_Insight_${selectedYear}.png")
+                                val bitmap = com.valora.icebeats.utils.IceBeatsComposeToImage.captureViewBitmap(view)
+                                val file = java.io.File(context.cacheDir, "IceBeats_Insight_${selectedYear}.png")
                                 val stream = java.io.FileOutputStream(file)
                                 try {
                                     bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
@@ -420,7 +420,7 @@ fun YearInMusicScreen(
             )
         }
 
-        // -- Year picker dialog ----------------------------------------------
+        // ── Year picker dialog ──────────────────────────────────────────────
         if (!isShareCaptureMode && isYearPickerOpen) {
             InsightYearPickerDialog(
                 availableYears = availableYears,
@@ -432,9 +432,9 @@ fun YearInMusicScreen(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // awaitNextPreDraw
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 private suspend fun awaitNextPreDraw(view: View) = suspendCancellableCoroutine<Unit> { cont ->
     val vto = view.viewTreeObserver
@@ -450,9 +450,9 @@ private suspend fun awaitNextPreDraw(view: View) = suspendCancellableCoroutine<U
     view.invalidate()
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Page content router
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -544,9 +544,9 @@ private fun YearInMusicPageContent(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. Welcome page
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
@@ -589,7 +589,7 @@ private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
         ) {
             // "Your" label
             Text(
-                text       = "your",
+                text       = stringResource(R.string.ui_text_your),
                 style      = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Light,
                 color      = SnowMid,
@@ -599,7 +599,7 @@ private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
 
             // "Insight" wordmark
             Text(
-                text       = "Insight",
+                text       = stringResource(R.string.ui_text_insight),
                 style      = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
                 fontWeight = FontWeight.ExtraBold,
                 color      = Snow,
@@ -630,7 +630,7 @@ private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
 
             // Tagline
             Text(
-                text       = "Everything you listened to\nthis year, in one place.",
+                text       = stringResource(R.string.ui_year_in_review_intro),
                 style      = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color      = SnowMid,
@@ -661,7 +661,7 @@ private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
                 }
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text  = "Swipe to explore",
+                    text  = stringResource(R.string.ui_text_swipe_to_explore),
                     style = MaterialTheme.typography.labelMedium,
                     color = SnowDim,
                 )
@@ -670,9 +670,9 @@ private fun WelcomePage(year: Int, modifier: Modifier = Modifier) {
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 2. Minutes page  (animated counter)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun MinutesPage(
@@ -728,7 +728,7 @@ private fun MinutesPage(
             Spacer(Modifier.height(32.dp))
 
             Text(
-                text       = "You listened to",
+                text       = stringResource(R.string.ui_text_you_listened_to),
                 style      = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Light,
                 color      = SnowMid,
@@ -754,7 +754,7 @@ private fun MinutesPage(
             )
 
             Text(
-                text  = "of music",
+                text  = stringResource(R.string.ui_text_of_music),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Light,
                 color = SnowMid,
@@ -770,9 +770,9 @@ private fun MinutesPage(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("??", fontSize = 28.sp)
+                        Text("🎬", fontSize = 28.sp)
                         Text(
-                            text = "That's like watching $movieCount full movies back-to-back.",
+                            text = stringResource(R.string.ui_sweep_that_s_like_watching_moviecount_full_movies_back_to_back, movieCount),
                             style = MaterialTheme.typography.bodyMedium,
                             color = SnowMid,
                             lineHeight = 22.sp,
@@ -788,9 +788,9 @@ private fun MinutesPage(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text("??", fontSize = 28.sp)
+                    Text("🎵", fontSize = 28.sp)
                     Text(
-                        text  = "Across $totalSongsPlayed plays of your top songs.",
+                        text  = stringResource(R.string.ui_sweep_across_totalsongsplayed_plays_of_your_top_songs, totalSongsPlayed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = SnowMid,
                     )
@@ -800,9 +800,9 @@ private fun MinutesPage(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 3. Top Songs list page
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Modifier) {
@@ -829,13 +829,13 @@ private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Mo
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text       = "Your Top",
+                text       = stringResource(R.string.ui_text_your_top),
                 style      = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Light,
                 color      = SnowMid,
             )
             Text(
-                text       = "Songs",
+                text       = stringResource(R.string.filter_songs),
                 style      = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Black,
                 color      = SongsB,
@@ -917,7 +917,7 @@ private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Mo
 
                     // #1 crown badge
                     if (index == 0) {
-                        Text("??", fontSize = 20.sp)
+                        Text("👑", fontSize = 20.sp)
                     }
                 }
 
@@ -932,9 +932,9 @@ private fun TopSongsListPage(songs: List<SongWithStats>, modifier: Modifier = Mo
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 4. Song spotlight (#1 song full-screen)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -951,12 +951,14 @@ private fun SongSpotlightPage(
         modifier = modifier.combinedClickable(onClick = {}, onLongClick = onLongClick)
     ) {
         // Blurred album art full-screen background
-        AsyncImage(
-            model             = imageModel,
-            contentDescription = null,
-            contentScale      = ContentScale.Crop,
-            modifier          = Modifier.fillMaxSize().blur(20.dp),
-        )
+        if (!com.valora.icebeats.utils.isBlurDisabled()) {
+            AsyncImage(
+                model             = imageModel,
+                contentDescription = null,
+                contentScale      = ContentScale.Crop,
+                modifier          = Modifier.fillMaxSize().blur(20.dp),
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -982,7 +984,7 @@ private fun SongSpotlightPage(
 
             // Badge
             InsightBadge(
-                text       = "#1 Song this year",
+                text       = stringResource(R.string.ui_sweep_1_song_this_year),
                 background = Brush.linearGradient(listOf(SpotB, SpotA.copy(alpha = 0.6f))),
             )
 
@@ -1015,12 +1017,12 @@ private fun SongSpotlightPage(
             // Stat chips
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 InsightStatChip(
-                    emoji  = "?",
+                    emoji  = "▶",
                     value  = pluralStringResource(R.plurals.n_time, song.songCountListened, song.songCountListened),
                     accent = SpotB,
                 )
                 InsightStatChip(
-                    emoji  = "?",
+                    emoji  = "⏱",
                     value  = makeTimeString(song.timeListened),
                     accent = MinutesC,
                 )
@@ -1029,7 +1031,7 @@ private fun SongSpotlightPage(
             Spacer(Modifier.weight(0.5f))
 
             Text(
-                text  = "Hold to see song options",
+                text  = stringResource(R.string.ui_text_hold_to_see_song_options),
                 style = MaterialTheme.typography.labelSmall,
                 color = SnowDim,
             )
@@ -1037,9 +1039,9 @@ private fun SongSpotlightPage(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 5. Artist spotlight
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1062,12 +1064,14 @@ private fun ArtistSpotlightPage(
         modifier = modifier.combinedClickable(onClick = {}, onLongClick = onLongClick)
     ) {
         // Blurred artist photo background
-        AsyncImage(
-            model             = imageModel,
-            contentDescription = null,
-            contentScale      = ContentScale.Crop,
-            modifier          = Modifier.fillMaxSize().blur(24.dp),
-        )
+        if (!com.valora.icebeats.utils.isBlurDisabled()) {
+            AsyncImage(
+                model             = imageModel,
+                contentDescription = null,
+                contentScale      = ContentScale.Crop,
+                modifier          = Modifier.fillMaxSize().blur(24.dp),
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1087,7 +1091,7 @@ private fun ArtistSpotlightPage(
             verticalArrangement = Arrangement.Center,
         ) {
             InsightBadge(
-                text       = "#1 Artist",
+                text       = stringResource(R.string.ui_sweep_1_artist),
                 background = Brush.linearGradient(listOf(ArtistB, ArtistC)),
             )
 
@@ -1137,13 +1141,13 @@ private fun ArtistSpotlightPage(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 InsightStatChip(
-                    emoji  = "?",
+                    emoji  = "▶",
                     value  = pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
                     accent = ArtistB,
                 )
                 artist.timeListened?.let { t ->
                     InsightStatChip(
-                        emoji  = "?",
+                        emoji  = "⏱",
                         value  = makeTimeString(t.toLong()),
                         accent = PersonB,
                     )
@@ -1152,7 +1156,7 @@ private fun ArtistSpotlightPage(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text  = "Hold to see artist options",
+                text  = stringResource(R.string.ui_text_hold_to_see_artist_options),
                 style = MaterialTheme.typography.labelSmall,
                 color = SnowDim,
             )
@@ -1160,9 +1164,9 @@ private fun ArtistSpotlightPage(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 6. Top Albums page
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
@@ -1189,13 +1193,13 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text       = "Your Top",
+                text       = stringResource(R.string.ui_text_your_top),
                 style      = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Light,
                 color      = SnowMid,
             )
             Text(
-                text       = "Albums",
+                text       = stringResource(R.string.filter_albums),
                 style      = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Black,
                 color      = AlbumB,
@@ -1206,7 +1210,7 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
 
             albums.take(5).forEachIndexed { index, album ->
                 val imageModel = rememberSafeImageRequest(album.thumbnailUrl)
-                val artistNames = album.artists.take(2).joinToString(" • ") { it.name }
+                val artistNames = album.artists.take(2).joinToString(" · ") { it.name }
 
                 Row(
                     modifier = Modifier
@@ -1255,7 +1259,7 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
                             )
                         }
                     }
-                    if (index == 0) Text("??", fontSize = 20.sp)
+                    if (index == 0) Text("🏆", fontSize = 20.sp)
                 }
 
                 if (index < albums.size - 1 && index < 4) {
@@ -1269,9 +1273,9 @@ private fun TopAlbumsPage(albums: List<Album>, modifier: Modifier = Modifier) {
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 7. Listening Personality page
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun PersonalityPage(
@@ -1311,7 +1315,7 @@ private fun PersonalityPage(
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
-                text  = "Your listening\npersonality",
+                text  = stringResource(R.string.ui_year_listening_personality),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Light,
                 color = SnowMid,
@@ -1330,7 +1334,7 @@ private fun PersonalityPage(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                text       = personality.title,
+                text       = stringResource(personality.titleRes),
                 style      = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Black,
                 color      = personality.accent,
@@ -1341,7 +1345,7 @@ private fun PersonalityPage(
 
             InsightGlassCard {
                 Text(
-                    text       = personality.description,
+                    text       = stringResource(personality.descriptionRes),
                     style      = MaterialTheme.typography.bodyLarge,
                     color      = SnowMid,
                     lineHeight = 26.sp,
@@ -1355,7 +1359,7 @@ private fun PersonalityPage(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text("??", fontSize = 20.sp)
+                        Text("🎵", fontSize = 20.sp)
                         Text(
                             text  = "Your anthem this year: ${song.title}",
                             style = MaterialTheme.typography.bodyMedium,
@@ -1370,9 +1374,9 @@ private fun PersonalityPage(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // 8. Summary / Share page
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun SummaryPage(
@@ -1432,7 +1436,7 @@ private fun SummaryPage(
 
             // Header
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // icebeats branding row
+                // Airbeats branding row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1452,7 +1456,7 @@ private fun SummaryPage(
                     }
                     Column {
                         Text(
-                            "icebeats Insight",
+                            stringResource(R.string.ui_text_airbeats_insight_2),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = Snow,
@@ -1468,7 +1472,7 @@ private fun SummaryPage(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text       = "Your year\nwrapped up.",
+                    text       = stringResource(R.string.ui_year_wrapped_title),
                     style      = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Black,
                     color      = Snow,
@@ -1484,15 +1488,15 @@ private fun SummaryPage(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     SummaryStatBox(
-                        emoji = "?",
-                        label = "Time listened",
+                        emoji = "⏱",
+                        label = stringResource(R.string.ui_extra_time_listened),
                         value = makeTimeString(totalListeningTime),
                         accent = MinutesC,
                         modifier = Modifier.weight(1f),
                     )
                     SummaryStatBox(
-                        emoji = "?",
-                        label = "Total plays",
+                        emoji = "▶",
+                        label = stringResource(R.string.ui_extra_total_plays),
                         value = totalSongsPlayed.toString(),
                         accent = SongsB,
                         modifier = Modifier.weight(1f),
@@ -1510,38 +1514,38 @@ private fun SummaryPage(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text(
-                            text  = "Highlights",
+                            text  = stringResource(R.string.ui_text_highlights),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = SnowMid,
                         )
                         topSong?.let {
                             SummaryHighlight(
-                                emoji  = "??",
-                                label  = "Top Song",
+                                emoji  = "🎵",
+                                label = stringResource(R.string.ui_extra_top_song),
                                 value  = it.title,
                                 accent = SpotB,
                             )
                         }
                         topArtist?.let {
                             SummaryHighlight(
-                                emoji  = "??",
-                                label  = "Top Artist",
+                                emoji  = "🎤",
+                                label = stringResource(R.string.ui_extra_top_artist),
                                 value  = it.artist.name,
                                 accent = ArtistB,
                             )
                         }
                         topAlbum?.let {
                             SummaryHighlight(
-                                emoji  = "??",
-                                label  = "Top Album",
+                                emoji  = "💿",
+                                label = stringResource(R.string.ui_extra_top_album),
                                 value  = it.album.title,
                                 accent = AlbumB,
                             )
                         }
                         if (topSong == null && topArtist == null && topAlbum == null) {
                             Text(
-                                text  = "No listening data available",
+                                text  = stringResource(R.string.ui_text_no_listening_data_available),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = SnowDim,
                             )
@@ -1559,12 +1563,12 @@ private fun SummaryPage(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    joinByBullet("icebeats", year.toString()),
+                    joinByBullet("Airbeats", year.toString()),
                     style = MaterialTheme.typography.labelSmall,
                     color = SnowDim,
                 )
                 Text(
-                    "icebeats Insight",
+                    stringResource(R.string.ui_text_airbeats_insight_2),
                     style = MaterialTheme.typography.labelSmall,
                     color = SnowDim,
                 )
@@ -1573,9 +1577,9 @@ private fun SummaryPage(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Reusable small composables
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun InsightProgressBar(
@@ -1707,7 +1711,7 @@ private fun InsightYearPickerDialog(
         titleContentColor = Snow,
         title = {
             Text(
-                "Select year",
+                stringResource(R.string.ui_text_select_year),
                 fontWeight = FontWeight.ExtraBold,
                 color      = Snow,
             )
@@ -1877,9 +1881,9 @@ private fun SummaryHighlight(emoji: String, label: String, value: String, accent
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Animated counter
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun rememberAnimatedLong(target: Long, durationMs: Int = 1400): Long {
@@ -1898,9 +1902,9 @@ private fun rememberAnimatedLong(target: Long, durationMs: Int = 1400): Long {
     return current
 }
 
-// -----------------------------------------------------------------------------
-// Safe image request (no hardware bitmap • required for share capture)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Safe image request (no hardware bitmap — required for share capture)
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun rememberSafeImageRequest(data: Any?): Any? {

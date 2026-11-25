@@ -1,6 +1,5 @@
-﻿/*
- * OpenTune Project Original (2026)
- * Arturo254 (github.com/Arturo254)
+/*
+ * AirBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -16,6 +15,10 @@ sealed class YTItem {
     abstract val thumbnail: String?
     abstract val explicit: Boolean
     abstract val shareLink: String
+
+    companion object {
+        var shareDomainProvider: () -> String = { "" }
+    }
 }
 
 data class Artist(
@@ -58,7 +61,7 @@ data class SongItem(
     val setVideoId: String? = null,
 ) : YTItem() {
     override val shareLink: String
-        get() = "https://icebeats.pages.dev/song?id=$id"
+        get() = "${shareDomainProvider()}/song?id=$id"
 }
 
 data class AlbumItem(
@@ -73,7 +76,7 @@ data class AlbumItem(
     val releaseType: AlbumReleaseType = AlbumReleaseType.ALBUM,
 ) : YTItem() {
     override val shareLink: String
-        get() = "https://icebeats.pages.dev/playlist?id=$playlistId"
+        get() = "${shareDomainProvider()}/playlist?id=$playlistId"
 }
 
 data class PlaylistItem(
@@ -91,7 +94,7 @@ data class PlaylistItem(
     override val explicit: Boolean
         get() = false
     override val shareLink: String
-        get() = "https://icebeats.pages.dev/playlist?id=$id"
+        get() = "${shareDomainProvider()}/playlist?id=$id"
 }
 
 data class ArtistItem(
@@ -108,7 +111,7 @@ data class ArtistItem(
     override val explicit: Boolean
         get() = false
     override val shareLink: String
-        get() = "https://icebeats.pages.dev/artist?id=$id"
+        get() = "${shareDomainProvider()}/artist?id=$id"
 }
 
 fun <T : YTItem> List<T>.filterExplicit(enabled: Boolean = true) =

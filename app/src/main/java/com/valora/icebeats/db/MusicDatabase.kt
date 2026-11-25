@@ -26,6 +26,7 @@ import com.valora.icebeats.db.entities.PlayCountEntity
 import com.valora.icebeats.db.entities.PlaylistEntity
 import com.valora.icebeats.db.entities.PlaylistSongMap
 import com.valora.icebeats.db.entities.PlaylistSongMapPreview
+import com.valora.icebeats.db.entities.RecommendationExclusionEntity
 import com.valora.icebeats.db.entities.RelatedSongMap
 import com.valora.icebeats.db.entities.SearchHistory
 import com.valora.icebeats.db.entities.SetVideoIdEntity
@@ -39,12 +40,32 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.Date
+import com.valora.icebeats.constants.PauseSearchHistoryKey
+import com.valora.icebeats.utils.dataStore
+import kotlinx.coroutines.flow.first
 
 class MusicDatabase(
     private val delegate: InternalDatabase,
+    private val context: Context? = null,
 ) : DatabaseDao by delegate.dao {
     val openHelper: SupportSQLiteOpenHelper
         get() = delegate.openHelper
+
+    override fun insert(searchHistory: SearchHistory) {
+        val isPaused = (com.valora.icebeats.utils.dataStoreCache[PauseSearchHistoryKey.name] as? Boolean)
+            ?: runCatching {
+                context?.let { ctx ->
+                    kotlinx.coroutines.runBlocking {
+                        ctx.dataStore.data.first()[PauseSearchHistoryKey]
+                    }
+                }
+            }.getOrNull()
+            ?: false
+        if (isPaused) {
+            return
+        }
+        delegate.dao.insert(searchHistory)
+    }
 
     fun query(block: MusicDatabase.() -> Unit) =
         with(delegate) {
@@ -61,6 +82,20 @@ class MusicDatabase(
                 }
             }
         }
+
+    fun runInTransaction(block: () -> Unit) = delegate.runInTransaction(block)
+
+    override fun checkpoint() {
+        try {
+            openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)".toSQLiteQuery()).use { cursor ->
+                cursor.moveToFirst()
+            }
+        } catch (_: Exception) {
+            try {
+                delegate.dao.raw("PRAGMA wal_checkpoint(TRUNCATE)".toSQLiteQuery())
+            } catch (_: Exception) {}
+        }
+    }
 
     fun close() = delegate.close()
 }
@@ -81,14 +116,15 @@ class MusicDatabase(
         Event::class,
         RelatedSongMap::class,
         SetVideoIdEntity::class,
-        PlayCountEntity::class
+        PlayCountEntity::class,
+        RecommendationExclusionEntity::class
     ],
     views = [
         SortedSongArtistMap::class,
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -108,6 +144,7 @@ class MusicDatabase(
         AutoMigration(from = 16, to = 17, spec = Migration16To17::class),
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
+        AutoMigration(from = 19, to = 20),
     ],
 )
 @TypeConverters(Converters::class)
@@ -123,16 +160,8 @@ abstract class InternalDatabase : RoomDatabase() {
                     Room
                         .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
                         .addMigrations(MIGRATION_1_2)
-                        .addCallback(object : RoomDatabase.Callback() {
-                            override fun onOpen(db: SupportSQLiteDatabase) {
-                                super.onOpen(db)
-                                runCatching {
-                                    db.execSQL("UPDATE playlist SET browseId = NULL WHERE browseId = 'null' OR browseId LIKE 'Success(%' OR browseId LIKE 'Failure(%'")
-                                    db.execSQL("UPDATE playlist SET bookmarkedAt = COALESCE(lastUpdateTime, createdAt, ${System.currentTimeMillis()}) WHERE isEditable = 1 AND bookmarkedAt IS NULL")
-                                }
-                            }
-                        })
                         .build(),
+                context = context.applicationContext,
             )
     }
 }

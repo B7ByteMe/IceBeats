@@ -1,81 +1,90 @@
-﻿/*
- * icebeats Project Original (2026)
+/*
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
 package com.valora.icebeats.ui.component
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.valora.icebeats.R
 
-// -----------------------------------------------------------------------------
-// Layout styles • cada valor representa un dise•o visual distinto para la tarjeta
-// Agregar un nuevo estilo = a•adir un entry aqu• + un composable en LyricsCardLayouts
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout styles — each value represents a distinct visual layout for the card
+// Adding a new style = add an entry here + composable in LyricsCardLayouts
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum class LyricsLayoutStyle(
     val displayName: String,
-    val description: String,
+    @StringRes val descriptionRes: Int,
+    @StringRes val titleRes: Int,
 ) {
     GlassCard(
         displayName = "Glass Card",
-        description = "Panel de vidrio l•quido",
+        descriptionRes = R.string.ui_extra_liquid_glass_panel,
+        titleRes = R.string.lyrics_layout_glass_card,
     ),
     Minimal(
         displayName = "Minimal",
-        description = "Limpio y sin distracciones",
+        descriptionRes = R.string.ui_extra_clean_and_distraction_free,
+        titleRes = R.string.lyrics_layout_minimal,
     ),
     CoverFocused(
         displayName = "Cover Focus",
-        description = "Portada del •lbum destacada",
+        descriptionRes = R.string.ui_extra_prominent_album_cover_art,
+        titleRes = R.string.lyrics_layout_cover_focus,
     ),
     Centered(
-        displayName = "Centrado",
-        description = "Letra como protagonista",
+        displayName = "Centered",
+        descriptionRes = R.string.ui_extra_lyrics_front_and_center,
+        titleRes = R.string.lyrics_layout_centered,
     ),
     BlurWash(
         displayName = "Blur Wash",
-        description = "Fondo ultra difuminado",
+        descriptionRes = R.string.ui_extra_ultra_blurred_backdrop,
+        titleRes = R.string.lyrics_layout_blur_wash,
     ),
     StreamingModern(
         displayName = "Streaming",
-        description = "Estilo app de m•sica moderna",
+        descriptionRes = R.string.ui_extra_modern_music_app_aesthetic,
+        titleRes = R.string.lyrics_layout_streaming,
     ),
 }
 
-// -----------------------------------------------------------------------------
-// Tipo de fondo para layouts que aceptan variantes de fondo
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Background type for layouts accepting background variations
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum class LyricsBackgroundType(val displayName: String) {
-    AlbumArt("Portada"),
-    SolidDark("Oscuro"),
-    SolidLight("Claro"),
-    Gradient("Degradado"),
+    AlbumArt("Album Art"),
+    SolidDark("Dark"),
+    SolidLight("Light"),
+    Gradient("Gradient"),
 }
 
-// -----------------------------------------------------------------------------
-// LyricsCardConfig • estado inmutable del usuario.
+// ─────────────────────────────────────────────────────────────────────────────
+// LyricsCardConfig — estado inmutable del usuario.
 // Se pasa a LyricsCardByLayout y a LyricsShareCarouselSheet.
-// Modifica con .copy(...) para aplicar cambios sin mutaci•n.
-// -----------------------------------------------------------------------------
+// Modifica con .copy(...) para aplicar cambios sin mutación.
+// ─────────────────────────────────────────────────────────────────────────────
 
 data class LyricsCardConfig(
 
-    /** Qu• template visual se renderiza en la tarjeta */
+    /** Qué template visual se renderiza en la tarjeta */
     val layoutStyle: LyricsLayoutStyle = LyricsLayoutStyle.GlassCard,
 
     /** Estilo de vidrio/colores/blur; solo los layouts que usan cloudy/liquidGlass lo consumen */
     val glassStyle: LyricsGlassStyle = LyricsGlassStyle.FrostedDark,
 
     /**
-     * Multiplicador sobre el tama•o de fuente calculado autom•ticamente.
-     * Rango recomendado: 0.6f • 1.5f
+     * Multiplicador sobre el tamaño de fuente calculado automáticamente.
+     * Rango recomendado: 0.6f – 1.5f
      */
     val textSizeMultiplier: Float = 1f,
 
-    /** Alineaci•n del bloque de letra */
+    /** Alineación del bloque de letra */
     val textAlign: TextAlign = TextAlign.Center,
 
     /** Visibilidad de elementos dentro de la tarjeta */
@@ -89,7 +98,7 @@ data class LyricsCardConfig(
 
     /**
      * Padding interno de la tarjeta.
-     * Rango recomendado: 12.dp • 36.dp
+     * Rango recomendado: 12.dp – 36.dp
      */
     val cardPadding: Dp = 24.dp,
 )

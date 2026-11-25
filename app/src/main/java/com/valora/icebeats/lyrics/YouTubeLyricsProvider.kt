@@ -1,13 +1,16 @@
 package com.valora.icebeats.lyrics
 
 import android.content.Context
+import com.valora.icebeats.constants.EnableYouTubeMusicLyricsKey
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.innertube.models.WatchEndpoint
+import com.valora.icebeats.utils.dataStore
+import com.valora.icebeats.utils.get
 
 object YouTubeLyricsProvider : LyricsProvider {
     override val name = "YouTube Music"
 
-    override fun isEnabled(context: Context) = true
+    override fun isEnabled(context: Context) = context.dataStore[EnableYouTubeMusicLyricsKey] ?: true
 
     override suspend fun getLyrics(
         id: String,

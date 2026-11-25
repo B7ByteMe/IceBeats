@@ -304,7 +304,7 @@ fun Thumbnail(
                                     contentAlignment = Alignment.Center
                                 ) {
 
-                                    // ?? Waves Behind
+                                    // 🌊 Waves Behind
                                     ConcentricWaveEffect(
                                         isPlaying = playerConnection.isPlaying.collectAsState().value,
                                         colors = listOf(
@@ -315,11 +315,14 @@ fun Thumbnail(
                                         modifier = Modifier.fillMaxSize()
                                     )
 
-                                    // ?? Circular Album Art
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(LocalContext.current)
+                                    // 🎵 Circular Album Art
+                                    val thumbnailRequest = remember(item.mediaMetadata.artworkUri) {
+                                        ImageRequest.Builder(context)
                                             .data(item.mediaMetadata.artworkUri?.toString()?.highQualityThumbnail())
-                                            .build(),
+                                            .build()
+                                    }
+                                    AsyncImage(
+                                        model = thumbnailRequest,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier

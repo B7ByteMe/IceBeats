@@ -106,11 +106,15 @@ import com.valora.icebeats.db.entities.PlaylistEntity
 import com.valora.icebeats.db.entities.PlaylistSongMap
 import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.extensions.togglePlayPause
+import com.valora.icebeats.innertube.YouTube
+import com.valora.icebeats.innertube.models.SongItem
+import com.valora.icebeats.innertube.utils.completedPlaylistPage
 import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.playback.queues.ListQueue
 import com.valora.icebeats.playback.queues.YouTubeQueue
 import com.valora.icebeats.ui.component.DefaultDialog
+import com.valora.icebeats.ui.component.DownloadQualityDialog
 import com.valora.icebeats.ui.component.DraggableScrollbar
 import com.valora.icebeats.ui.component.EmptyPlaceholder
 import com.valora.icebeats.ui.component.IconButton
@@ -125,16 +129,18 @@ import com.valora.icebeats.ui.theme.PlayerColorExtractor
 import com.valora.icebeats.ui.utils.ItemWrapper
 import com.valora.icebeats.ui.utils.backToMain
 import com.valora.icebeats.ui.utils.resize
+import com.valora.icebeats.utils.SpotifyImporter
 import com.valora.icebeats.utils.makeTimeString
 import com.valora.icebeats.utils.rememberPreference
 import com.valora.icebeats.viewmodels.OnlinePlaylistViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @SuppressLint("RememberReturnType")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun OnlinePlaylistScreen(
     navController: NavController,
@@ -160,6 +166,8 @@ fun OnlinePlaylistScreen(
 
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    val effectiveDisableBlur = disableBlur || isLiteMode
 
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -171,6 +179,8 @@ fun OnlinePlaylistScreen(
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
+    var isConvertingToYouTube by remember { mutableStateOf(false) }
+    var convertProgress by remember { mutableStateOf(0 to 0) }
 
     val filteredSongs = remember(songs, query, hideExplicit) {
         var result = songs
@@ -216,6 +226,37 @@ fun OnlinePlaylistScreen(
 
     val downloadUtil = LocalDownloadUtil.current
     var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
+    var showQualityDialog by remember { mutableStateOf(false) }
+
+    val exportPlaylistLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain")
+        ) { uri ->
+            if (uri != null && playlist != null) {
+                val playlistTitle = playlist!!.title
+                val safeSongs = songs
+                val playlistId = playlist!!.id
+                com.valora.icebeats.utils.SaveToStorageUtil.applicationScope.launch(Dispatchers.IO) {
+                    val songsToExport = safeSongs.ifEmpty {
+                        YouTube.playlist(playlistId).completedPlaylistPage().getOrNull()?.songs.orEmpty()
+                    }.map { it.toMediaMetadata() }
+
+                    val result = com.valora.icebeats.utils.PlaylistFileHelper.exportPlaylistToUri(
+                        context = context,
+                        uri = uri,
+                        playlistName = playlistTitle,
+                        mediaList = songsToExport
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (result.isSuccess) {
+                            android.widget.Toast.makeText(context, R.string.playlist_exported, android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            android.widget.Toast.makeText(context, result.exceptionOrNull()?.message ?: "Export failed", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
 
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
@@ -274,6 +315,23 @@ fun OnlinePlaylistScreen(
                     Text(text = stringResource(android.R.string.ok))
                 }
             },
+        )
+    }
+
+    if (isConvertingToYouTube) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.ui_text_converting_spotify_to_youtube)) },
+            text = {
+                Column {
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { if (convertProgress.second > 0) convertProgress.first.toFloat() / convertProgress.second.toFloat() else 0f },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    )
+                    Text(stringResource(R.string.ui_dynamic_matching_tracks, convertProgress.first, convertProgress.second))
+                }
+            },
+            confirmButton = {}
         )
     }
 
@@ -360,7 +418,7 @@ fun OnlinePlaylistScreen(
 
     val transparentAppBar by remember {
         derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle
+            !effectiveDisableBlur && !selection && !showTopBarTitle
         }
     }
 
@@ -374,7 +432,7 @@ fun OnlinePlaylistScreen(
                 onRefresh = viewModel::refresh
             ),
     ) {
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!effectiveDisableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -722,19 +780,7 @@ fun OnlinePlaylistScreen(
                                                 }
                                             }
                                             else -> {
-                                                songs.forEach { song ->
-                                                    val downloadRequest = DownloadRequest
-                                                        .Builder(song.id, song.id.toUri())
-                                                        .setCustomCacheKey(song.id)
-                                                        .setData(song.title.toByteArray())
-                                                        .build()
-                                                    DownloadService.sendAddDownload(
-                                                        context,
-                                                        ExoDownloadService::class.java,
-                                                        downloadRequest,
-                                                        false,
-                                                    )
-                                                }
+                                                showQualityDialog = true
                                             }
                                         }
                                     },
@@ -770,6 +816,82 @@ fun OnlinePlaylistScreen(
                                                     modifier = Modifier.size(24.dp)
                                                 )
                                             }
+                                        }
+                                    }
+                                }
+                                if (showQualityDialog) {
+                                    DownloadQualityDialog(
+                                        onDismiss = { showQualityDialog = false },
+                                        onQualitySelected = {
+                                            showQualityDialog = false
+                                            songs.forEach { song ->
+                                                val downloadRequest = DownloadRequest
+                                                    .Builder(song.id, song.id.toUri())
+                                                    .setCustomCacheKey(song.id)
+                                                    .setData(song.title.toByteArray())
+                                                    .build()
+                                                DownloadService.sendAddDownload(
+                                                    context,
+                                                    ExoDownloadService::class.java,
+                                                    downloadRequest,
+                                                    false,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+
+                                if (viewModel.playlistId.startsWith("sp:")) {
+                                    Surface(
+                                        onClick = {
+                                            if (!isConvertingToYouTube) {
+                                                isConvertingToYouTube = true
+                                                coroutineScope.launch {
+                                                    val spId = viewModel.playlistId.removePrefix("sp:")
+                                                    val targetEntityId = dbPlaylist?.playlist?.id ?: run {
+                                                        val newId = "LP" + java.util.UUID.randomUUID().toString().replace("-", "").take(8)
+                                                        val newEntity = PlaylistEntity(
+                                                            id = newId,
+                                                            name = playlist?.title ?: "Spotify Playlist",
+                                                            browseId = viewModel.playlistId,
+                                                            bookmarkedAt = java.time.LocalDateTime.now(),
+                                                            remoteSongCount = songs.size
+                                                        )
+                                                        database.insert(newEntity)
+                                                        newId
+                                                    }
+
+                                                    val result = SpotifyImporter.convertPlaylistToYouTube(
+                                                        spPlaylistId = spId,
+                                                        targetPlaylistEntityId = targetEntityId,
+                                                        dao = database,
+                                                        onProgress = { cur, max ->
+                                                            convertProgress = cur to max
+                                                        }
+                                                    )
+                                                    isConvertingToYouTube = false
+                                                    result.onSuccess { count ->
+                                                        snackbarHostState.showSnackbar("Converted $count songs to YouTube!")
+                                                    }.onFailure { err ->
+                                                        snackbarHostState.showSnackbar("Conversion failed: ${err.message}")
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.youtube),
+                                                contentDescription = stringResource(R.string.ui_a11y_convert_to_youtube),
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -825,7 +947,7 @@ fun OnlinePlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.radio),
-                                            contentDescription = "Start Radio",
+                                            contentDescription = stringResource(R.string.ui_text_start_radio),
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Spacer(modifier = Modifier.size(8.dp))
@@ -1109,6 +1231,19 @@ fun OnlinePlaylistScreen(
                     }
                 } else if (!isSearching) {
                     IconButton(
+                        onClick = {
+                            val safeName = playlist?.title?.replace(Regex("[\\\\/:*?\"<>|]"), "_")?.trim()?.ifEmpty { "playlist" } ?: "playlist"
+                            exportPlaylistLauncher.launch("$safeName.txt")
+                        },
+                        onLongClick = {}
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.export),
+                            contentDescription = stringResource(R.string.export_playlist)
+                        )
+                    }
+
+                    IconButton(
                         onClick = { isSearching = true },
                         onLongClick = {}
                     ) {
@@ -1121,9 +1256,11 @@ fun OnlinePlaylistScreen(
             }
         )
 
-        PullToRefreshDefaults.Indicator(
+        PullToRefreshDefaults.LoadingIndicator(
             isRefreshing = isRefreshing,
             state = pullRefreshState,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),

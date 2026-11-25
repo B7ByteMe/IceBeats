@@ -9,29 +9,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.valora.icebeats.LocalDatabase
 import com.valora.icebeats.NotificationPermissionPreference
 import com.valora.icebeats.R
 import com.valora.icebeats.innertube.YouTube
-import com.valora.icebeats.constants.ContentCountryKey
-import com.valora.icebeats.constants.MusicProviderKey
-import com.valora.icebeats.constants.ContentLanguageKey
-import com.valora.icebeats.constants.CountryCodeToName
-import com.valora.icebeats.constants.EnableKugouKey
-import com.valora.icebeats.constants.EnableLrcLibKey
-import com.valora.icebeats.constants.HideExplicitKey
-import com.valora.icebeats.constants.HistoryDuration
-import com.valora.icebeats.constants.LanguageCodeToName
-import com.valora.icebeats.constants.PreferredLyricsProvider
-import com.valora.icebeats.constants.PreferredLyricsProviderKey
-import com.valora.icebeats.constants.ProxyEnabledKey
-import com.valora.icebeats.constants.ProxyTypeKey
-import com.valora.icebeats.constants.ProxyUrlKey
-import com.valora.icebeats.constants.QuickPicks
-import com.valora.icebeats.constants.QuickPicksKey
-import com.valora.icebeats.constants.SYSTEM_DEFAULT
-import com.valora.icebeats.constants.TopSize
+import com.valora.icebeats.constants.*
 import com.valora.icebeats.ui.component.EditTextPreference
 import com.valora.icebeats.ui.component.ListPreference
+import com.valora.icebeats.ui.component.PreferenceEntry
 import com.valora.icebeats.ui.component.SettingsGeneralCategory
 import com.valora.icebeats.ui.component.SettingsPage
 import com.valora.icebeats.ui.component.SliderPreference
@@ -51,6 +38,10 @@ fun ContentSettings(
     val (contentLanguage, onContentLanguageChange) = rememberPreference(
         key = ContentLanguageKey,
         defaultValue = SYSTEM_DEFAULT
+    )
+    val (enableJioSaavn, onEnableJioSaavnChange) = rememberPreference(
+        key = EnableJioSaavnKey,
+        defaultValue = false
     )
     val (musicProvider, onMusicProviderChange) = rememberPreference(
         key = MusicProviderKey,
@@ -88,20 +79,6 @@ fun ContentSettings(
         key = QuickPicksKey,
         defaultValue = QuickPicks.QUICK_PICKS
     )
-    val (enableKugou, onEnableKugouChange) = rememberPreference(
-        key = EnableKugouKey,
-        defaultValue = true
-    )
-    val (enableLrclib, onEnableLrclibChange) = rememberPreference(
-        key = EnableLrcLibKey,
-        defaultValue = true
-    )
-    val (preferredProvider, onPreferredProviderChange) = rememberEnumPreference(
-        key = PreferredLyricsProviderKey,
-        defaultValue = PreferredLyricsProvider.LRCLIB
-    )
-
-
     SettingsPage(
         title = stringResource(R.string.content),
         navController = navController,
@@ -111,16 +88,15 @@ fun ContentSettings(
         SettingsGeneralCategory(
             title = stringResource(R.string.general),
             items = listOf(
-                {ListPreference(
-                    title = { Text(stringResource(R.string.module)) },
-                    icon = { Icon(painterResource(R.drawable.music_note), null) },
-                    selectedValue = musicProvider,
-                    values = listOf("YT", "JIOSAAVN"),
-                    valueText = {
-                        if (it == "YT") "YT (Compatible)" else "Jio Saavn (Incompatible Supported VPN)"
-                    },
-                    onValueSelected = onMusicProviderChange,
-                )},
+                {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.enable_jiosaavn)) },
+                        description = stringResource(R.string.enable_jiosaavn_desc),
+                        icon = { Icon(painterResource(R.drawable.music_note), null) },
+                        checked = enableJioSaavn,
+                        onCheckedChange = onEnableJioSaavnChange,
+                    )
+                },
                 {ListPreference(
                     title = { Text(stringResource(R.string.content_language)) },
                     icon = { Icon(painterResource(R.drawable.language), null) },
@@ -172,6 +148,23 @@ fun ContentSettings(
             )
         )
 
+        // Recommendations
+        val database = LocalDatabase.current
+        val excludedCount by database.getRecommendationExclusionsCount().collectAsState(initial = 0)
+        SettingsGeneralCategory(
+            title = stringResource(R.string.recommendations),
+            items = listOf(
+                {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.excluded_songs)) },
+                        description = stringResource(R.string.excluded_songs_desc, excludedCount),
+                        icon = { Icon(painterResource(R.drawable.block), null) },
+                        onClick = { navController.navigate("settings/content/excluded_songs") },
+                    )
+                }
+            )
+        )
+
         // Proxy settings
         SettingsGeneralCategory(
             title = stringResource(R.string.proxy),
@@ -198,25 +191,6 @@ fun ContentSettings(
                         )
                     }
                 }}
-            )
-        )
-
-        // Lyrics settings
-        SettingsGeneralCategory(
-            title = stringResource(R.string.lyrics),
-            items = listOf(
-                {SwitchPreference(
-                    title = { Text(stringResource(R.string.enable_lrclib)) },
-                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                    checked = enableLrclib,
-                    onCheckedChange = onEnableLrclibChange,
-                )},
-                {SwitchPreference(
-                    title = { Text(stringResource(R.string.enable_kugou)) },
-                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                    checked = enableKugou,
-                    onCheckedChange = onEnableKugouChange,
-                )},
             )
         )
 

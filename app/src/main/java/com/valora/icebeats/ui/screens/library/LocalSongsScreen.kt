@@ -1,10 +1,13 @@
-﻿package com.valora.icebeats.ui.screens.library
+package com.valora.icebeats.ui.screens.library
+
+import androidx.compose.ui.res.stringResource
 
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,9 +40,11 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import com.valora.icebeats.LocalPlayerConnection
 import com.valora.icebeats.R
 import com.valora.icebeats.models.LocalSong
+import com.valora.icebeats.playback.queues.ListQueue
 import com.valora.icebeats.viewmodels.LocalSongsViewModel
 
 @Composable
@@ -47,6 +52,8 @@ fun LocalSongsScreen(
     navController: NavController,
     viewModel: LocalSongsViewModel = hiltViewModel(),
 ) {
+    val localSongsQueueTitle = stringResource(R.string.ui_text_local_songs)
+
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
 
@@ -54,7 +61,7 @@ fun LocalSongsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
-    // -- Permission state ------------------------------------------------------
+    // ── Permission state ──────────────────────────────────────────────────────
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
     } else {
@@ -82,39 +89,18 @@ fun LocalSongsScreen(
 
     val listState = rememberLazyListState()
 
-    // -- Blur background same as other screens ---------------------------------
+    // ── Blur background same as other screens ─────────────────────────────────
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
         ?: remember { mutableStateOf(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        mediaMetadata?.thumbnailUrl?.let { imageUrl ->
-            com.valora.icebeats.ui.component.BlurredBackground(
-                model = imageUrl
-            )
-            val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        if (isDark) Brush.verticalGradient(
-                            listOf(
-                                Color.Black.copy(alpha = 0.2f),
-                                Color.Black.copy(alpha = 0.5f),
-                                Color.Black.copy(alpha = 0.85f)
-                            )
-                        ) else Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
-                            )
-                        )
-                    )
-            )
-        }
+        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
+        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+            artworkUrl = mediaMetadata?.thumbnailUrl
+        )
 
-        // -- Main content ------------------------------------------------------
+        // ── Main content ──────────────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,9 +114,15 @@ fun LocalSongsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
+                IconButton(onClick = navController::navigateUp) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_back),
+                        contentDescription = stringResource(R.string.back),
+                    )
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Local Songs",
+                        text = stringResource(R.string.ui_text_local_songs),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                     )
@@ -147,14 +139,14 @@ fun LocalSongsScreen(
                     IconButton(onClick = { viewModel.loadSongs() }) {
                         Icon(
                             painter = painterResource(R.drawable.refresh),
-                            contentDescription = "Refresh",
+                            contentDescription = stringResource(R.string.ui_text_refresh),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
 
-            // -- Search bar ----------------------------------------------------
+            // ── Search bar ────────────────────────────────────────────────────
             if (hasPermission && songs.isNotEmpty() || searchQuery.isNotEmpty()) {
                 SearchBar(
                     query = searchQuery,
@@ -166,7 +158,7 @@ fun LocalSongsScreen(
                 )
             }
 
-            // -- Permission gate / content -------------------------------------
+            // ── Permission gate / content ─────────────────────────────────────
             when {
                 !hasPermission -> {
                     PermissionRequestCard(
@@ -190,8 +182,8 @@ fun LocalSongsScreen(
                 songs.isEmpty() && searchQuery.isNotEmpty() -> {
                     EmptyState(
                         icon = R.drawable.search,
-                        title = "No results",
-                        subtitle = "No songs match \"$searchQuery\"",
+                        title = stringResource(R.string.ui_text_no_results),
+                        subtitle = stringResource(R.string.ui_heading_no_songs_match_searchquery, searchQuery),
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -199,8 +191,8 @@ fun LocalSongsScreen(
                 songs.isEmpty() -> {
                     EmptyState(
                         icon = R.drawable.music_note,
-                        title = "No local songs found",
-                        subtitle = "Audio files of at least 30 seconds will appear here",
+                        title = stringResource(R.string.ui_heading_no_local_songs_found),
+                        subtitle = stringResource(R.string.ui_heading_audio_files_of_at_least_30_seconds_will_appea),
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -208,7 +200,11 @@ fun LocalSongsScreen(
                 else -> {
                     LazyColumn(
                         state = listState,
-                        contentPadding = PaddingValues(bottom = 160.dp),
+                        contentPadding = PaddingValues(
+                            bottom = LocalPlayerAwareWindowInsets.current
+                                .asPaddingValues()
+                                .calculateBottomPadding() + 16.dp,
+                        ),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(
@@ -220,9 +216,13 @@ fun LocalSongsScreen(
                                 onClick = {
                                     playerConnection?.let { pc ->
                                         val mediaItems = songs.map { it.toMediaItem() }
-                                        pc.player.setMediaItems(mediaItems, index, 0L)
-                                        pc.player.prepare()
-                                        pc.player.play()
+                                        pc.playQueue(
+                                            ListQueue(
+                                                title = localSongsQueueTitle,
+                                                items = mediaItems,
+                                                startIndex = index,
+                                            )
+                                        )
                                     }
                                 },
                             )
@@ -241,7 +241,7 @@ fun LocalSongsScreen(
     }
 }
 
-// -- Song row item -------------------------------------------------------------
+// ── Song row item ─────────────────────────────────────────────────────────────
 @Composable
 private fun LocalSongItem(
     song: LocalSong,
@@ -303,18 +303,28 @@ private fun LocalSongItem(
     }
 }
 
-// -- Search bar ----------------------------------------------------------------
+// ── Search bar ────────────────────────────────────────────────────────────────
 @Composable
 private fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isFrosted = com.valora.icebeats.ui.component.isFrostedGlassUiEnabled()
+    val barShape = RoundedCornerShape(50.dp)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .clip(RoundedCornerShape(50.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
+            .clip(barShape)
+            .then(
+                if (isFrosted) {
+                    Modifier.border(1.dp, Color.White.copy(alpha = 0.15f), barShape)
+                } else Modifier
+            )
+            .background(
+                if (isFrosted) Color.White.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)
+            )
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Icon(
@@ -336,8 +346,11 @@ private fun SearchBar(
                 Box {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search songs, artists, albums•",
+                            text = stringResource(R.string.ui_sweep_search_songs_artists_albums),
                             style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
                     }
@@ -358,7 +371,7 @@ private fun SearchBar(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.close),
-                    contentDescription = "Clear",
+                    contentDescription = stringResource(R.string.clear),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(10.dp)
                 )
@@ -367,7 +380,7 @@ private fun SearchBar(
     }
 }
 
-// -- Permission request card ---------------------------------------------------
+// ── Permission request card ───────────────────────────────────────────────────
 @Composable
 private fun PermissionRequestCard(
     denied: Boolean,
@@ -432,7 +445,7 @@ private fun PermissionRequestCard(
     }
 }
 
-// -- Empty state ---------------------------------------------------------------
+// ── Empty state ───────────────────────────────────────────────────────────────
 @Composable
 private fun EmptyState(
     icon: Int,
@@ -468,11 +481,12 @@ private fun EmptyState(
     }
 }
 
-// -- Extension: LocalSong ? MediaItem -----------------------------------------
+// ── Extension: LocalSong → MediaItem ─────────────────────────────────────────
 fun LocalSong.toMediaItem(): MediaItem =
     MediaItem.Builder()
-        .setMediaId(uri.toString()) // ? FIXED
+        .setMediaId(uri.toString())
         .setUri(uri)
+        .setCustomCacheKey(uri.toString())
         .setTag(
             com.valora.icebeats.models.MediaMetadata(
                 id = uri.toString(),

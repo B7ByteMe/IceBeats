@@ -1,7 +1,10 @@
 package com.valora.icebeats.ui.player
 
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -45,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -52,6 +56,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.isActive
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,6 +95,8 @@ fun NewClassicMiniPlayer(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
+    val isLoading = playbackState == androidx.media3.common.Player.STATE_BUFFERING
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val layoutDirection = LocalLayoutDirection.current
@@ -102,6 +109,21 @@ fun NewClassicMiniPlayer(
     val offsetXAnimatable = remember { Animatable(0f) }
     var dragStartTime by remember { mutableLongStateOf(0L) }
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
+
+    // Rotating cookie play/pause button animation (smooth rotation while playing, pauses in place when paused)
+    val cookieRotation = remember { Animatable(0f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (isActive) {
+                val current = cookieRotation.value % 360f
+                cookieRotation.snapTo(current)
+                cookieRotation.animateTo(
+                    targetValue = current + 360f,
+                    animationSpec = tween(durationMillis = 6000, easing = LinearEasing)
+                )
+            }
+        }
+    }
 
     val animationSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -195,13 +217,22 @@ fun NewClassicMiniPlayer(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(46.dp)
                 ) {
-                    CircularProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
-                        strokeWidth = 2.5.dp
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                            strokeWidth = 2.5.dp
+                        )
+                    }
 
                     AsyncImage(
                         model = mediaMetadata?.thumbnailUrl?.highQualityThumbnail(),
@@ -255,7 +286,7 @@ fun NewClassicMiniPlayer(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.person),
-                        contentDescription = "Artist",
+                        contentDescription = stringResource(R.string.sort_by_artist),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -292,40 +323,59 @@ fun NewClassicMiniPlayer(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                // 5. icebeats Play/Pause Button (Cookie9Sided shape)
+                // 5. Airbeats Play/Pause Button (Cookie9Sided shape with playing rotation)
                 FilledIconButton(
                     onClick = { playerConnection.player.togglePlayPause() },
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .graphicsLayer {
+                            rotationZ = cookieRotation.value
+                        },
                     shape = MaterialShapes.Cookie9Sided.toShape(),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     )
                 ) {
-                    AnimatedContent(
-                        targetState = isPlaying,
-                        transitionSpec = {
-                            (fadeIn(animationSpec = tween(150)) +
-                                    scaleIn(
-                                        initialScale = 0.4f, animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioLowBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
-                                    )
-                                    ).togetherWith(
-                                    fadeOut(animationSpec = tween(100)) +
-                                            scaleOut(targetScale = 1.6f, animationSpec = tween(100))
-                                )
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            rotationZ = -cookieRotation.value
                         },
-                        label = "playPauseIcon",
-                    ) { playing ->
-                        Icon(
-                            painter = painterResource(
-                                if (playing) R.drawable.pause else R.drawable.play
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.5.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        } else {
+                            AnimatedContent(
+                                targetState = isPlaying,
+                                transitionSpec = {
+                                    (fadeIn(animationSpec = tween(150)) +
+                                            scaleIn(
+                                                initialScale = 0.4f, animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                )
+                                            )
+                                            ).togetherWith(
+                                            fadeOut(animationSpec = tween(100)) +
+                                                    scaleOut(targetScale = 1.6f, animationSpec = tween(100))
+                                        )
+                                },
+                                label = "playPauseIcon",
+                            ) { playing ->
+                                Icon(
+                                    painter = painterResource(
+                                        if (playing) R.drawable.pause else R.drawable.play
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

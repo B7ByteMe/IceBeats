@@ -11,7 +11,7 @@ import javax.crypto.spec.GCMParameterSpec
 
 object CryptoManager {
 
-    private const val KEY_ALIAS = "icebeats_datastore_key"
+    private const val KEY_ALIAS = "airbeats_datastore_key"
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
     const val ENC_PREFIX = "ENC_"

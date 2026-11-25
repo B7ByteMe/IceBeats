@@ -12,9 +12,8 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Preserve line number information for debugging stack traces
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
@@ -61,7 +60,7 @@
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 
 ## Rules for NewPipeExtractor
--keep class org.schabi.newpipe.extractor.** { *; }
+-keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 -keep class org.mozilla.javascript.engine.** { *; }
 -dontwarn org.mozilla.javascript.JavaToJSONConverters
@@ -71,24 +70,7 @@
 -keep class jdk.dynalink.** { *; }
 -dontwarn jdk.dynalink.**
 
-## Rules for Local Submodules (Serialization & Parsers)
--keep class com.valora.icebeats.innertube.** { *; }
--keep class com.valora.icebeats.kugou.** { *; }
--keep class com.valora.icebeats.lrclib.** { *; }
--keep class com.valora.icebeats.betterlyrics.** { *; }
--keep class com.valora.icebeats.jossredconnect.** { *; }
--keep class com.valora.icebeats.shazamkit.** { *; }
--keep class com.valora.icebeats.kizzy.** { *; }
-
-## Rules for WebView JavaScript Interface
-## CRITICAL: WebView calls @JavascriptInterface methods by exact name at runtime.
-## If these are obfuscated or removed, PoToken generation fails and music cannot play.
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
--keep class com.valora.icebeats.utils.potoken.** { *; }
-
-## Logging
+## Logging (does not affect Timber)
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
@@ -99,16 +81,6 @@
     #public static int e(...);
 }
 
--assumenosideeffects class timber.log.Timber {
-    public static void v(...);
-    public static void d(...);
-}
-
--assumenosideeffects class timber.log.Timber$Forest {
-    public void v(...);
-    public void d(...);
-}
-
 # Generated automatically by the Android Gradle plugin.
 -dontwarn java.beans.BeanDescriptor
 -dontwarn java.beans.BeanInfo
@@ -116,3 +88,17 @@
 -dontwarn java.beans.Introspector
 -dontwarn java.beans.PropertyDescriptor
 -dontwarn okhttp3.internal.Util
+
+# Keep Android framework org.json classes and prevent R8 renaming
+-keep class org.json.** { *; }
+-dontwarn org.json.**
+
+# Keep models loaded from remote Firebase endpoints
+-keep class com.valora.icebeats.models.** { *; }
+
+# Keep native Shazam JNI bindings
+-keep class com.alexmercerind.audire.native.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+

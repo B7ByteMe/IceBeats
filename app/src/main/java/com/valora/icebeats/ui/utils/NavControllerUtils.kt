@@ -13,11 +13,35 @@ val NavController.canNavigateUp: Boolean
     get() = currentBackStackEntry?.destination?.parent?.route != null
 
 fun NavController.backToMain() {
-    val mainDestination = currentBackStack.value.lastOrNull { entry ->
-        Screens.MainScreens.fastAny { it.route == entry.destination.route }
-    }?.destination?.route ?: graph.startDestinationRoute ?: Screens.Home.route
+    try {
+        val mainRoutes = setOf(
+            Screens.Home.route,
+            Screens.Search.route,
+            Screens.Explore.route,
+            Screens.Library.route,
+            Screens.Stats.route
+        )
+        val mainDestination = currentBackStack.value.lastOrNull { entry ->
+            val route = entry.destination.route
+            route != null && route in mainRoutes
+        }?.destination?.route ?: graph.startDestinationRoute ?: Screens.Home.route
 
-    popBackStack(mainDestination, inclusive = false)
+        val popped = popBackStack(mainDestination, inclusive = false)
+        if (!popped) {
+            navigate(Screens.Home.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    } catch (e: Exception) {
+        timber.log.Timber.e(e, "Error navigating back to main")
+        try {
+            navigate(Screens.Home.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        } catch (_: Exception) {}
+    }
 }
 
 @Composable

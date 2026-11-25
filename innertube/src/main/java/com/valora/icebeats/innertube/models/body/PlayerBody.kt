@@ -1,6 +1,5 @@
-﻿/*
- * OpenTune Project Original (2026)
- * Arturo254 (github.com/Arturo254)
+/*
+ * AirBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -16,6 +15,8 @@ data class PlayerBody(
     val playlistId: String?,
     val playbackContext: PlaybackContext? = null,
     val serviceIntegrityDimensions: ServiceIntegrityDimensions? = null,
+    val contentCheckOk: Boolean = true,
+    val racyCheckOk: Boolean = true,
 ) {
     @Serializable
     data class PlaybackContext(

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -354,7 +354,7 @@
     <string name="backup_create_failed">"Không thể tạo bản sao lưu"</string>
     <string name="restore_failed">"Khôi phục bản sao lưu thất bại"</string>
     <string name="discord_integration">"Tích hợp Discord"</string>
-    <string name="discord_information">"icebeats sử dụng thư viện KizzyRPC để thiết lập trạng thái tài khoản Discord của bạn. Việc này liên quan đến việc sử dụng kết nối Discord Gateway, có thể bị coi là vi phạm Điều khoản Dịch vụ của Discord. Tuy nhiên, chưa có trường hợp nào tài khoản người dùng bị tạm ngưng vì lý do này. Vui lòng tự chịu rủi ro khi sử dụng. OpenTunne sẽ chỉ trích xuất token của bạn, còn lại mọi thứ khác sẽ được lưu trữ cục bộ."</string>
+    <string name="discord_information">"IceBeats sử dụng thư viện KizzyRPC để thiết lập trạng thái tài khoản Discord của bạn. Việc này liên quan đến việc sử dụng kết nối Discord Gateway, có thể bị coi là vi phạm Điều khoản Dịch vụ của Discord. Tuy nhiên, chưa có trường hợp nào tài khoản người dùng bị tạm ngưng vì lý do này. Vui lòng tự chịu rủi ro khi sử dụng. OpenTunne sẽ chỉ trích xuất token của bạn, còn lại mọi thứ khác sẽ được lưu trữ cục bộ."</string>
     <string name="dismiss">"Bỏ qua"</string>
     <string name="options">"Tùy chọn"</string>
     <string name="preview">"Xem trước"</string>

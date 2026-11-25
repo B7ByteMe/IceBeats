@@ -47,7 +47,22 @@ sealed class Screens(
         route = "stats"
     )
 
+    data object Generator : Screens(
+        titleId = R.string.generator,
+        iconIdInactive = R.drawable.auto_awesome,
+        iconIdActive = R.drawable.auto_awesome,
+        route = "generator"
+    )
+
+    data object Charts : Screens(
+        titleId = R.string.charts,
+        iconIdInactive = R.drawable.trending_up,
+        iconIdActive = R.drawable.trending_up,
+        route = "charts"
+    )
+
     companion object {
-        val MainScreens = listOf(Home, Search, Explore, Library, Stats)
+        val MainScreens: List<Screens>
+            get() = listOf(Home, Search, Explore, Library, Stats)
     }
 }

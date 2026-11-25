@@ -38,12 +38,17 @@ constructor(
         job?.cancel()
         job =
             viewModelScope.launch(Dispatchers.IO) {
-                lyricsHelper.getAllLyrics(mediaId, title, artist, duration) { result ->
-                    results.update {
-                        it + result
+                try {
+                    lyricsHelper.getAllLyrics(mediaId, title, artist, duration) { result ->
+                        results.update {
+                            it + result
+                        }
                     }
+                } catch (e: Exception) {
+                    com.valora.icebeats.utils.reportException(e)
+                } finally {
+                    isLoading.value = false
                 }
-                isLoading.value = false
             }
     }
 
@@ -60,7 +65,9 @@ constructor(
             lyricsEntity?.let(::delete)
             val lyrics =
                 runBlocking {
-                    lyricsHelper.getLyrics(mediaMetadata)
+                    runCatching {
+                        lyricsHelper.getLyrics(mediaMetadata)
+                    }.getOrDefault(LyricsEntity.LYRICS_NOT_FOUND)
                 }
             upsert(LyricsEntity(mediaMetadata.id, lyrics))
         }

@@ -1,8 +1,14 @@
 package com.valora.icebeats.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
+import com.valora.icebeats.ui.component.settingsCardContainerColor
+import com.valora.icebeats.ui.component.settingsCardBorder
+import com.valora.icebeats.ui.component.AvatarDisplay
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,8 +41,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -68,7 +74,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.shape.GenericShape
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import com.valora.icebeats.data.repository.NowPlayingTrack
 import com.valora.icebeats.db.entities.Artist
+import com.valora.icebeats.db.entities.EventWithSong
 import com.valora.icebeats.db.entities.Song
 import com.valora.icebeats.db.entities.SongWithStats
 import coil.compose.AsyncImage
@@ -106,8 +120,9 @@ import com.valora.icebeats.utils.GlobalStatsUser
 import com.valora.icebeats.viewmodels.GlobalStatsUiState
 import com.valora.icebeats.viewmodels.StatsViewModel
 import com.valora.icebeats.ui.component.RankBadge
-import com.valora.icebeats.ui.component.icebeatsRank
+import com.valora.icebeats.ui.component.IceBeatsRank
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -118,21 +133,14 @@ fun StatsScreen(
     navController: NavController,
     viewModel: StatsViewModel = hiltViewModel(),
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val context = LocalContext.current
-
-    val supabaseAuthManager = remember { com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context) }
-    val isSupabaseLoggedIn by supabaseAuthManager.isLoggedIn.collectAsState()
-    val (innerTubeCookie) = com.valora.icebeats.utils.rememberPreference(com.valora.icebeats.constants.InnerTubeCookieKey, "")
-    val (accountEmail) = com.valora.icebeats.utils.rememberPreference(com.valora.icebeats.constants.AccountEmailKey, "")
-    val isInnerTubeLoggedIn = remember(innerTubeCookie) {
-        innerTubeCookie.isNotEmpty() && "SAPISID" in com.valora.icebeats.innertube.utils.parseCookieString(innerTubeCookie)
-    }
-    val isUserLoggedIn = isSupabaseLoggedIn || isInnerTubeLoggedIn || accountEmail.isNotBlank()
 
     val indexChips by viewModel.indexChips.collectAsState()
     val mostPlayedSongs by viewModel.mostPlayedSongs.collectAsState()
@@ -146,14 +154,16 @@ fun StatsScreen(
     val lazyListState = rememberLazyListState()
     val selectedOption by viewModel.selectedOption.collectAsState()
     val globalStats by viewModel.globalStats.collectAsState()
+    val nowPlayingTrack by viewModel.nowPlayingTrack.collectAsState()
+    val recentEvents by viewModel.recentEvents.collectAsState()
 
     // BottomSheet para Insight
     var showInsightBottomSheet by remember { mutableStateOf(false) }
     var showWeeklyGlobalStats by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(globalStats.board.updatedAt, globalStats.board.users.size, isUserLoggedIn) {
-        if (isUserLoggedIn && globalStats.board.users.isNotEmpty() && viewModel.shouldShowWeeklyPopup()) {
+    LaunchedEffect(globalStats.board.updatedAt, globalStats.board.users.size) {
+        if (globalStats.board.users.isNotEmpty() && viewModel.shouldShowWeeklyPopup()) {
             showWeeklyGlobalStats = true
         }
     }
@@ -235,35 +245,11 @@ fun StatsScreen(
         }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
         val artworkUrl = mediaMetadata?.thumbnailUrl
-        artworkUrl?.let { imageUrl ->
-            com.valora.icebeats.ui.component.BlurredBackground(
-                model = imageUrl
-            )
-            val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
-            val overlayBrush = if (isDarkTheme) {
-                Brush.verticalGradient(
-                    listOf(
-                        Color.Black.copy(alpha = 0.2f),
-                        Color.Black.copy(alpha = 0.5f),
-                        Color.Black.copy(alpha = 0.85f)
-                    )
-                )
-            } else {
-                Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.2f),
-                        Color.White.copy(alpha = 0.5f),
-                        Color.White.copy(alpha = 0.85f)
-                    )
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(overlayBrush)
-            )
-        }
+        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+            artworkUrl = artworkUrl
+        )
 
         LazyColumn(
             state = lazyListState,
@@ -274,62 +260,8 @@ fun StatsScreen(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
-            if (!isUserLoggedIn) {
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.login),
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = "Masuk untuk Melihat Statistik",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Total waktu mendengarkan, lagu favorit, dan artis teratas hanya direkap setelah Anda login. Masuk ke akun Anda untuk mulai merekap data.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Button(onClick = { navController.navigate("login") }) {
-                                Text("Masuk / Login")
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    GlobalStatsBoardCard(
-                        state = globalStats,
-                        onRefresh = viewModel::refreshGlobalStats,
-                        isUserLoggedIn = false,
-                        onLoginClick = { navController.navigate("login") }
-                    )
-                }
-            } else {
-                item {
-                    ChoiceChipsRow(
+            item {
+                ChoiceChipsRow(
                     chips =
                         when (selectedOption) {
                             OptionStats.WEEKS -> weeklyDates
@@ -391,8 +323,11 @@ fun StatsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(if (isFrosted) 20.dp else 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isFrosted) settingsCardContainerColor(true) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                    ),
+                    border = settingsCardBorder(isFrosted)
                 ) {
                     Row(
                         modifier = Modifier
@@ -401,11 +336,11 @@ fun StatsScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "Total Time", style = MaterialTheme.typography.labelMedium)
+                            Text(text = stringResource(R.string.ui_text_total_time), style = MaterialTheme.typography.labelMedium)
                             Text(text = makeTimeString(totalTime), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "Unique Songs", style = MaterialTheme.typography.labelMedium)
+                            Text(text = stringResource(R.string.ui_text_unique_songs), style = MaterialTheme.typography.labelMedium)
                             Text(text = "$totalSongs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -416,8 +351,22 @@ fun StatsScreen(
                 GlobalStatsBoardCard(
                     state = globalStats,
                     onRefresh = viewModel::refreshGlobalStats,
-                    isUserLoggedIn = true,
-                    onLoginClick = null
+                )
+            }
+
+            item {
+                ScrobblerStatsHubCard(
+                    nowPlaying = nowPlayingTrack,
+                    recentEvents = recentEvents,
+                    isFrosted = isFrosted,
+                    navController = navController,
+                    onSongClick = { songId ->
+                        playerConnection.playQueue(
+                            YouTubeQueue(
+                                endpoint = WatchEndpoint(songId),
+                            ),
+                        )
+                    },
                 )
             }
 
@@ -607,10 +556,9 @@ fun StatsScreen(
                 }
             }
         }
-    }
 
         // FAB to shuffle most played songs
-        if (isUserLoggedIn && mostPlayedSongs.isNotEmpty()) {
+        if (mostPlayedSongs.isNotEmpty()) {
             HideOnScrollFAB(
                 visible = true,
                 lazyListState = lazyListState,
@@ -653,7 +601,7 @@ fun StatsScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.stats),
-                        contentDescription = "icebeats Insights",
+                        contentDescription = stringResource(R.string.ui_a11y_airbeats_insights),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -663,10 +611,15 @@ fun StatsScreen(
 
     // BottomSheet de Insight
     if (showInsightBottomSheet) {
+        val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
         ModalBottomSheet(
             onDismissRequest = { showInsightBottomSheet = false },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (isFrosted) (if (isDark) Color(0xFF141414).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)) else MaterialTheme.colorScheme.surface,
+            shape = sheetShape,
+            modifier = Modifier.then(
+                if (isFrosted) Modifier.border(BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)), sheetShape) else Modifier
+            )
         ) {
             InsightBottomSheetContent(
                 onNavigateToFullInsight = {
@@ -688,14 +641,15 @@ fun StatsScreen(
 
     if (showWeeklyGlobalStats) {
         val weeklyUsers = remember(globalStats.board.users) {
-            val active = globalStats.board.users.filter { it.weeklyListenMs > 0 }
-            val list = if (active.isNotEmpty()) active else globalStats.board.users
-            list.sortedByDescending { if (active.isNotEmpty()) it.weeklyListenMs else it.totalListenMs }
+            globalStats.board.users
+                .filter { it.weeklyListenMs > 0 }
+                .sortedByDescending { it.weeklyListenMs }
                 .mapIndexed { index, user -> user.copy(rank = index + 1) }
         }
         WeeklyGlobalStatsSheet(
             users = weeklyUsers,
             currentUserId = globalStats.currentUserId,
+            currentUserName = globalStats.currentUserName,
             onDismiss = {
                 viewModel.markWeeklyPopupSeen()
                 showWeeklyGlobalStats = false
@@ -708,19 +662,24 @@ fun StatsScreen(
 private fun GlobalStatsBoardCard(
     state: GlobalStatsUiState,
     onRefresh: () -> Unit,
-    isUserLoggedIn: Boolean = true,
-    onLoginClick: (() -> Unit)? = null,
 ) {
     val users = state.board.users
     val topUser = users.firstOrNull()
-    val currentUser = if (isUserLoggedIn) users.firstOrNull { it.id == state.currentUserId } else null
+    val currentUser = users.firstOrNull { it.id == state.currentUserId }
+        ?: if (state.currentUserName.isNotBlank() && !state.currentUserName.equals("IceBeats User", ignoreCase = true)) {
+            users.firstOrNull { it.name.trim().equals(state.currentUserName.trim(), ignoreCase = true) }
+        } else null
 
+    val isFrosted = isFrostedGlassUiEnabled()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(if (isFrosted) 20.dp else 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isFrosted) settingsCardContainerColor(true) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        ),
+        border = settingsCardBorder(isFrosted)
     ) {
         Column(
             modifier = Modifier
@@ -733,13 +692,13 @@ private fun GlobalStatsBoardCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Global Stats",
+                        text = stringResource(R.string.ui_text_global_stats),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = topUser?.let { "Most listened: ${it.name} • Total Users: ${users.size}" } ?: "Waiting for daily cloud stats",
+                        text = topUser?.let { "Most listened: ${it.name} • Top ${users.size}" } ?: "Waiting for daily cloud stats",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -758,82 +717,29 @@ private fun GlobalStatsBoardCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 GlobalStatPill(
-                    label = "Top listener",
+                    label = stringResource(R.string.top_listener),
                     value = topUser?.let { formatListenHours(it.totalListenMs) } ?: "--",
                     modifier = Modifier.weight(1f),
                 )
                 GlobalStatPill(
-                    label = "Your rank",
-                    value = if (isUserLoggedIn) (currentUser?.rank?.let { "#$it" } ?: "--") else "Belum Login",
+                    label = stringResource(R.string.your_rank),
+                    value = currentUser?.rank?.let { "#$it" } ?: "--",
                     modifier = Modifier.weight(1f),
                 )
             }
 
-            if (!isUserLoggedIn) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Login untuk masuk ke Global Stats",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Button(
-                            onClick = { onLoginClick?.invoke() }
-                        ) {
-                            Text("Login")
-                        }
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(14.dp))
 
-            val top20Users = users.take(20)
-            val isCurrentUserInTop20 = isUserLoggedIn && top20Users.any { it.id == state.currentUserId }
-
-            Column(
-                modifier = Modifier.fillMaxWidth()
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
             ) {
-                top20Users.forEach { user ->
+                items(users, key = { it.id }) { user ->
+                    val isCurrent = user.id == state.currentUserId || (currentUser != null && user.id == currentUser.id)
                     GlobalUserRankRow(
                         user = user,
-                        isCurrentUser = isUserLoggedIn && user.id == state.currentUserId,
-                    )
-                }
-
-                if (isUserLoggedIn && !isCurrentUserInTop20 && currentUser != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "• • •",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        )
-                    }
-
-                    GlobalUserRankRow(
-                        user = currentUser,
-                        isCurrentUser = true,
+                        isCurrentUser = isCurrent,
                     )
                 }
             }
@@ -856,10 +762,18 @@ private fun GlobalStatPill(
     value: String,
     modifier: Modifier = Modifier,
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val pillBg = if (isFrosted) (if (isDark) Color.White.copy(alpha = 0.06f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    val pillBorder = if (isDark) Color.White.copy(alpha = 0.10f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+
     Column(
         modifier =
             modifier
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                .background(pillBg, RoundedCornerShape(12.dp))
+                .then(
+                    if (isFrosted) Modifier.border(BorderStroke(1.dp, pillBorder), RoundedCornerShape(12.dp)) else Modifier
+                )
                 .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
@@ -872,15 +786,27 @@ private fun GlobalUserRankRow(
     user: GlobalStatsUser,
     isCurrentUser: Boolean,
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val rowBg = if (isCurrentUser) {
+        if (isFrosted) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+    } else {
+        if (isFrosted) (if (isDark) Color.White.copy(alpha = 0.05f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    }
+    val rowBorder = if (isCurrentUser) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    } else {
+        if (isDark) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    }
+
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
-                .background(
-                    if (isCurrentUser) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) 
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    RoundedCornerShape(12.dp),
+                .background(rowBg, RoundedCornerShape(12.dp))
+                .then(
+                    if (isFrosted) Modifier.border(BorderStroke(1.dp, rowBorder), RoundedCornerShape(12.dp)) else Modifier
                 )
                 .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -892,16 +818,9 @@ private fun GlobalUserRankRow(
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.bodyMedium,
         )
-        val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
-        val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
-        val userBorderStyle = if (isCurrentUser) null else com.valora.icebeats.ui.component.MasterBorderStyle.fromIdOrNull(user.borderStyle)
-        com.valora.icebeats.ui.component.MasterProfileBorder(
-            avatarSize = 34.dp,
-            userRank = userRank,
-            totalListenMs = user.totalListenMs,
-            borderStyle = userBorderStyle,
-            isSelf = isCurrentUser
-        ) {
+        if (isCurrentUser) {
+            AvatarDisplay(size = 34.dp)
+        } else {
             ProfileBubble(user.profileUrl, user.name)
         }
         Spacer(modifier = Modifier.width(10.dp))
@@ -917,13 +836,8 @@ private fun GlobalUserRankRow(
                 fontWeight = if (isCurrentUser) FontWeight.Black else FontWeight.SemiBold,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-                verificationBadge = user.verificationBadge
-            )
-            if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
-                Spacer(modifier = Modifier.width(4.dp))
-                com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 14.dp)
-            }
+            val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
+            val userRank = if (userHours >= 1.0) IceBeatsRank.fromHours(userHours.toInt()) else null
             userRank?.let { rank ->
                 Spacer(modifier = Modifier.width(6.dp))
                 RankBadge(rank = rank, displayedRank = null, size = 18.dp)
@@ -943,11 +857,20 @@ private fun GlobalUserRankRow(
 private fun WeeklyGlobalStatsSheet(
     users: List<GlobalStatsUser>,
     currentUserId: String,
+    currentUserName: String = "",
     onDismiss: () -> Unit,
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = if (isFrosted) (if (isDark) Color(0xFF141414).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)) else MaterialTheme.colorScheme.surface,
+        shape = sheetShape,
+        modifier = Modifier.then(
+            if (isFrosted) Modifier.border(BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)), sheetShape) else Modifier
+        ),
     ) {
         Box(
             modifier =
@@ -966,7 +889,7 @@ private fun WeeklyGlobalStatsSheet(
         ) {
             Column {
                 Text(
-                    text = "Weekly Global Stats",
+                    text = stringResource(R.string.ui_text_weekly_global_stats),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                 )
@@ -981,15 +904,31 @@ private fun WeeklyGlobalStatsSheet(
                         .weight(1f, fill = false)
                 ) {
                     items(users, key = { it.id }) { user ->
+                        val isCurrent = user.id == currentUserId || (currentUserName.isNotBlank() && !currentUserName.equals("IceBeats User", ignoreCase = true) && user.name.trim().equals(currentUserName.trim(), ignoreCase = true))
+                        val rowBg = if (isCurrent) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        } else if (isFrosted) {
+                            if (isDark) Color.White.copy(alpha = 0.06f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+                        }
+                        val rowBorder = if (isCurrent) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        } else {
+                            if (isDark) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                        }
+
                         Row(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 5.dp)
                                     .background(
-                                        if (user.id == currentUserId) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                                        rowBg,
                                         RoundedCornerShape(14.dp),
+                                    )
+                                    .then(
+                                        if (isFrosted) Modifier.border(BorderStroke(1.dp, rowBorder), RoundedCornerShape(14.dp)) else Modifier
                                     )
                                     .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1000,17 +939,9 @@ private fun WeeklyGlobalStatsSheet(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                             )
-                            val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
-                            val userRank = if (userHours >= 1.0) icebeatsRank.fromHours(userHours.toInt()) else null
-                            val isThisCurrentUser = user.id == currentUserId
-                            val userBorderStyle = if (isThisCurrentUser) null else com.valora.icebeats.ui.component.MasterBorderStyle.fromIdOrNull(user.borderStyle)
-                            com.valora.icebeats.ui.component.MasterProfileBorder(
-                                avatarSize = 34.dp,
-                                userRank = userRank,
-                                totalListenMs = user.totalListenMs,
-                                borderStyle = userBorderStyle,
-                                isSelf = isThisCurrentUser
-                            ) {
+                            if (isCurrent) {
+                                AvatarDisplay(size = 34.dp)
+                            } else {
                                 ProfileBubble(user.profileUrl, user.name)
                             }
                             Spacer(modifier = Modifier.width(10.dp))
@@ -1024,13 +955,8 @@ private fun WeeklyGlobalStatsSheet(
                                     overflow = TextOverflow.Ellipsis,
                                     fontWeight = FontWeight.Bold,
                                 )
-                                val verType = com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-                                    verificationBadge = user.verificationBadge
-                                )
-                                if (verType != com.valora.icebeats.ui.component.VerificationType.NONE) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    com.valora.icebeats.ui.component.VerificationBadge(type = verType, size = 14.dp)
-                                }
+                                val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
+                                val userRank = if (userHours >= 1.0) IceBeatsRank.fromHours(userHours.toInt()) else null
                                 userRank?.let { rank ->
                                     Spacer(modifier = Modifier.width(6.dp))
                                     RankBadge(rank = rank, displayedRank = null, size = 18.dp)
@@ -1136,12 +1062,12 @@ fun InsightBottomSheetContent(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "icebeats Insight",
+                    text = stringResource(R.string.ui_text_airbeats_insight),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Discover your musical year",
+                    text = stringResource(R.string.ui_text_discover_your_musical_year),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -1171,7 +1097,7 @@ fun InsightBottomSheetContent(
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Your Musical Year",
+                        text = stringResource(R.string.ui_text_your_musical_year),
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -1185,7 +1111,7 @@ fun InsightBottomSheetContent(
                             color = Color.White
                         )
                         Text(
-                            text = "Tap to view your full statistics",
+                            text = stringResource(R.string.ui_text_tap_to_view_your_full_statistics),
                             fontSize = 14.sp,
                             color = Color.White.copy(alpha = 0.9f)
                         )
@@ -1196,7 +1122,7 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Caracter•sticas
+        // Características
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -1221,14 +1147,14 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Bot•n para ver completo
+        // Botón para ver completo
         Button(
             onClick = onNavigateToFullInsight,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "View Full icebeats Insight",
+                text = stringResource(R.string.ui_text_view_full_airbeats_insight),
                 modifier = Modifier.padding(8.dp),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
@@ -1305,7 +1231,7 @@ fun ArtistPieChart(
 
         Column {
             Text(
-                text = "Total Time Listened",
+                text = stringResource(R.string.ui_text_total_time_listened),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -1365,7 +1291,7 @@ fun StatsHighlightsSection(
     ) {
         if (topArtist != null) {
             StatsHighlightCard(
-                title = "Your Favourite Artist",
+                title = stringResource(R.string.ui_heading_your_favourite_artist),
                 mainText = topArtist.artist.name,
                 subText = "${topArtist.songCount} songs played • ${makeTimeString(topArtist.timeListened?.toLong())}",
                 imageUrl = topArtist.artist.thumbnailUrl,
@@ -1375,7 +1301,7 @@ fun StatsHighlightsSection(
 
         if (topSong != null && topSongEntity != null) {
             StatsHighlightCard(
-                title = "Your Favourite Song",
+                title = stringResource(R.string.ui_heading_your_favourite_song),
                 mainText = topSong.title,
                 subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
                 imageUrl = topSong.thumbnailUrl,
@@ -1393,14 +1319,16 @@ fun StatsHighlightCard(
     imageUrl: String?,
     onClick: () -> Unit
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(if (isFrosted) 20.dp else 16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+            containerColor = if (isFrosted) settingsCardContainerColor(true) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        border = settingsCardBorder(isFrosted)
     ) {
         Row(
             modifier = Modifier
@@ -1440,3 +1368,449 @@ fun StatsHighlightCard(
         }
     }
 }
+
+private fun cleanPackageName(pkg: String?): String = when {
+    pkg == null -> "External App"
+    pkg.contains("spotify", ignoreCase = true) -> "Spotify"
+    pkg.contains("youtube", ignoreCase = true) -> "YT Music"
+    pkg.contains("apple", ignoreCase = true) -> "Apple Music"
+    pkg.contains("amazon", ignoreCase = true) -> "Amazon Music"
+    pkg.contains("deezer", ignoreCase = true) -> "Deezer"
+    pkg.contains("tidal", ignoreCase = true) -> "Tidal"
+    pkg.contains("jiosaavn", ignoreCase = true) -> "JioSaavn"
+    pkg.contains("wynk", ignoreCase = true) -> "Wynk"
+    pkg.contains("gaana", ignoreCase = true) -> "Gaana"
+    pkg.contains("soundcloud", ignoreCase = true) -> "SoundCloud"
+    pkg.contains("bandcamp", ignoreCase = true) -> "Bandcamp"
+    else -> pkg.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+}
+
+private fun formatRelativeTime(dateTime: LocalDateTime): String {
+    val duration = Duration.between(dateTime, LocalDateTime.now())
+    return when {
+        duration.toMinutes() < 1 -> "Just now"
+        duration.toMinutes() < 60 -> "${duration.toMinutes()}m ago"
+        duration.toHours() < 24 -> "${duration.toHours()}h ago"
+        duration.toDays() == 1L -> "Yesterday"
+        duration.toDays() < 7 -> "${duration.toDays()}d ago"
+        else -> dateTime.format(DateTimeFormatter.ofPattern("dd MMM"))
+    }
+}
+
+@Composable
+fun LiveEqualizerBars(
+    modifier: Modifier = Modifier,
+    barColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    val transition = rememberInfiniteTransition(label = "live_eq_bars")
+    val bar1 by transition.animateFloat(
+        initialValue = 3f,
+        targetValue = 13f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 380, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eq_bar1"
+    )
+    val bar2 by transition.animateFloat(
+        initialValue = 13f,
+        targetValue = 5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 310, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eq_bar2"
+    )
+    val bar3 by transition.animateFloat(
+        initialValue = 5f,
+        targetValue = 15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 440, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "eq_bar3"
+    )
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(bar1.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(barColor)
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(bar2.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(barColor)
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(bar3.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(barColor)
+        )
+    }
+}
+
+@Composable
+fun ScrobblerStatsHubCard(
+    nowPlaying: NowPlayingTrack?,
+    recentEvents: List<EventWithSong>,
+    isFrosted: Boolean,
+    navController: NavController,
+    onSongClick: (String) -> Unit = {},
+) {
+    val context = LocalContext.current
+    val scrobblerPrefs = remember { com.valora.icebeats.data.local.ScrobblerPreferences(context) }
+    val settings by scrobblerPrefs.settings.collectAsState(initial = com.valora.icebeats.data.local.ScrobblerSettings())
+    val selectedCount = settings.selectedPackages.size
+    val isEnabled = settings.enabled
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(if (isFrosted) 20.dp else 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isFrosted) settingsCardContainerColor(true) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        ),
+        border = settingsCardBorder(isFrosted)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isEnabled) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.graphic_eq),
+                        contentDescription = null,
+                        tint = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.ui_text_music_scrobbler),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isEnabled) Color(0xFF2E7D32).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = if (isEnabled) "Active" else "Inactive",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isEnabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (isEnabled) {
+                            if (nowPlaying != null) "Listening on ${cleanPackageName(nowPlaying.packageName)}"
+                            else if (selectedCount > 0) "$selectedCount app(s) monitored (Spotify, YT Music, etc.)"
+                            else "No apps selected — tap Select Apps"
+                        } else {
+                            "Track plays from Spotify, YT Music & other apps"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (nowPlaying != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // LIVE NOW PLAYING CARD
+            if (nowPlaying != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable {
+                            nowPlaying.songId?.let { onSongClick(it) }
+                        },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Album Art / Fallback with Equalizer animation overlay
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            if (!nowPlaying.thumbnailUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = nowPlaying.thumbnailUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.music_note),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+
+                            // Equalizer badge on bottom right of cover art
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(3.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.Black.copy(alpha = 0.7f))
+                                    .padding(horizontal = 3.dp, vertical = 2.dp)
+                            ) {
+                                LiveEqualizerBars(
+                                    modifier = Modifier.height(11.dp),
+                                    barColor = Color(0xFFFF4081)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = nowPlaying.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = nowPlaying.artist,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!nowPlaying.packageName.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "via ${cleanPackageName(nowPlaying.packageName)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Pulse Dot + Now Playing Badge (as in screenshot 1)
+                        val pulseTransition = rememberInfiniteTransition(label = "pulse_badge")
+                        val dotAlpha by pulseTransition.animateFloat(
+                            initialValue = 0.35f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 650, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "dot_pulse"
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFE91E63).copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, Color(0xFFE91E63).copy(alpha = 0.35f))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFE91E63).copy(alpha = dotAlpha))
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = stringResource(R.string.now_playing),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFF4081)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Quick actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { navController.navigate("settings/scrobbler") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.tune),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.settings))
+                }
+            }
+
+            // RECENT SCROBBLES / PLAYS PREVIEW (Matching Screenshot 1)
+            val scrobbleHistory = remember(recentEvents) {
+                recentEvents.filter { it.song.song.id.startsWith("scrobble_") || it.event.playTime > 0 }.take(5)
+            }
+            if (scrobbleHistory.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.ui_text_recent_plays),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${recentEvents.size} total",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    scrobbleHistory.forEach { item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onSongClick(item.song.id) }
+                                .padding(vertical = 4.dp, horizontal = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                if (!item.song.thumbnailUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = item.song.thumbnailUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.music_note),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.song.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = item.song.artists.joinToString { it.name }.ifEmpty { "Unknown Artist" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                            ) {
+                                Text(
+                                    text = formatRelativeTime(item.event.timestamp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

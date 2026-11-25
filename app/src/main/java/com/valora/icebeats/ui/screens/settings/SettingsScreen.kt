@@ -42,7 +42,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
@@ -56,7 +58,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.Image
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -67,13 +68,24 @@ import coil.request.ImageRequest
 import com.valora.icebeats.innertube.utils.parseCookieString
 import com.valora.icebeats.BuildConfig
 import com.valora.icebeats.LocalPlayerAwareWindowInsets
+import com.valora.icebeats.LocalPlayerConnection
 import com.valora.icebeats.R
 import com.valora.icebeats.constants.AccountNameKey
+import com.valora.icebeats.constants.AppModeKey
+import com.valora.icebeats.constants.APP_MODE_LITE
+import com.valora.icebeats.constants.APP_MODE_NORMAL
 import com.valora.icebeats.constants.InnerTubeCookieKey
+import com.valora.icebeats.ui.component.AppleSegmentedSwitch
 import com.valora.icebeats.ui.component.AvatarPreferenceManager
 import com.valora.icebeats.ui.component.AvatarSelection
 import com.valora.icebeats.ui.component.ChangelogScreen
-import com.valora.icebeats.ui.component.VipSubscriptionDialog
+import com.valora.icebeats.ui.component.UpdateAvailableDialog
+import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
+import com.valora.icebeats.ui.component.settingsCardContainerColor
+import com.valora.icebeats.ui.component.settingsCardBorder
+import com.valora.icebeats.utils.RemoteConfigManager
+import com.valora.icebeats.utils.UpdateInfo
+import com.valora.icebeats.utils.Updater
 import com.valora.icebeats.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -85,7 +97,7 @@ import java.net.URL
 @Composable
 fun SettingsDivider(
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF99FF00).copy(alpha = 0.08f),
+    color: Color = Color.White.copy(alpha = 0.1f),
     thickness: Dp = 0.5.dp
 ) {
     Box(
@@ -112,34 +124,28 @@ fun SettingsCategory(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        // Clean elegant category label
         Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+            text = title,
+            modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp
             ),
-            color = Color(0xFFCCFF00).copy(alpha = 0.85f),
-            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
         )
 
-        // Premium elegant card container
+        val isFrosted = isFrostedGlassUiEnabled()
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.06f),
-                    shape = RoundedCornerShape(16.dp)
-                ),
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF161616)
+                containerColor = settingsCardContainerColor(isFrosted)
             ),
+            border = settingsCardBorder(isFrosted),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 8.dp)
             ) {
                 items.forEachIndexed { index, item ->
                     SettingsCategoryItemContent(
@@ -162,9 +168,18 @@ fun SettingsCategoryItemContent(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(if (isPressed) 0.98f else 1f)
+            .clip(RoundedCornerShape(16.dp))
             .then(
                 if (isPressed) {
-                    Modifier.background(Color.White.copy(alpha = 0.04f))
+                    Modifier.background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.1f),
+                                Color.White.copy(alpha = 0.05f)
+                            )
+                        )
+                    )
                 } else Modifier
             )
             .clickable(
@@ -175,61 +190,59 @@ fun SettingsCategoryItemContent(
                 item.onClick()
                 isPressed = false
             }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Elegant green icon container
+            // Icon container
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(Color(0xFF1F251A), shape = RoundedCornerShape(10.dp))
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    )
                     .border(
                         width = 1.dp,
-                        color = Color(0xFFCCFF00).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(10.dp)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = item.icon,
                     contentDescription = null,
-                    tint = Color(0xFFCCFF00),
-                    modifier = Modifier.size(18.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             // Title
             Box(modifier = Modifier.weight(1f)) {
                 item.title()
             }
 
-            // Trailing content or clean chevron
+            // Trailing content
             if (item.trailingContent != null) {
                 item.trailingContent()
             } else {
                 Icon(
                     painter = painterResource(R.drawable.arrow_forward),
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.25f),
-                    modifier = Modifier.size(16.dp)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
     }
 
     if (!isLast) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(0.5.dp)
-                .padding(start = 68.dp, end = 16.dp)
-                .background(Color.White.copy(alpha = 0.06f))
+        SettingsDivider(
+            modifier = Modifier.padding(start = 72.dp, end = 16.dp)
         )
     }
 }
@@ -241,17 +254,14 @@ fun GlassCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
     Card(
-        modifier = modifier
-            .border(
-                width = 0.5.dp,
-                color = Color.White.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(28.dp)
-            ),
+        modifier = modifier,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF161616)
+            containerColor = settingsCardContainerColor(isFrosted)
         ),
+        border = settingsCardBorder(isFrosted),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         content()
@@ -266,10 +276,10 @@ fun WaterDropButton(
     modifier: Modifier = Modifier,
     icon: @Composable (() -> Unit)? = null,
     text: String? = null,
-    textColor: Color = Color.White,
     colors: List<Color> = listOf(
-        Color(0xFF99FF00),
-        Color(0xFF66CC00)
+        Color(0xFF6C5CE7),
+        Color(0xFFA463F5),
+        Color(0xFFC45AF0)
     )
 ) {
     var isPressed by remember { mutableStateOf(false) }
@@ -329,7 +339,7 @@ fun WaterDropButton(
             if (text != null) {
                 Text(
                     text = text,
-                    color = textColor,
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp
                 )
@@ -381,8 +391,6 @@ fun WaterDropIconButton(
 
 // ==================== ORIGINAL FUNCTIONS ====================
 
-@SuppressLint("ObsoleteSdkInt")
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 fun getAppVersion(context: Context): String {
     return try {
         val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -403,9 +411,8 @@ fun getAppVersion(context: Context): String {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-fun VersionCard(uriHandler: UriHandler) {
+fun VersionCard(uriHandler: UriHandler, navController: NavController? = null) {
     val context = LocalContext.current
     val appVersion = remember { getAppVersion(context) }
 
@@ -465,7 +472,13 @@ fun VersionCard(uriHandler: UriHandler) {
                                 )
                             }
                         },
-                        onClick = { uriHandler.openUri("https://icebeats.pages.dev/") }
+                        onClick = {
+                            if (navController != null) {
+                                navController.navigate("settings/app_info")
+                            } else {
+                                uriHandler.openUri(com.valora.icebeats.utils.RemoteConfigManager.getLatestReleasePageUrl())
+                            }
+                        }
                     ),
                     isLast = false
                 )
@@ -478,7 +491,7 @@ fun VersionCard(uriHandler: UriHandler) {
                         icon = painterResource(R.drawable.resource_public),
                         title = {
                             Text(
-                                text = "Official Website",
+                                text = stringResource(R.string.ui_text_official_website),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -501,7 +514,11 @@ fun VersionCard(uriHandler: UriHandler) {
                                 )
                             }
                         },
-                        onClick = { uriHandler.openUri("https://icebeats.pages.dev/") }
+                        onClick = {
+                            val url = com.valora.icebeats.utils.RemoteConfigManager.websiteUrl
+                            val safeUrl = if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) url else "https://$url"
+                            runCatching { uriHandler.openUri(safeUrl) }
+                        }
                     ),
                     isLast = true
                 )
@@ -515,18 +532,33 @@ fun UpdateCard(latestVersion: String = "") {
     val context = LocalContext.current
     var showUpdateCard by remember { mutableStateOf(false) }
     var currentLatestVersion by remember { mutableStateOf(latestVersion) }
+    var updateInfoState by remember { mutableStateOf<UpdateInfo?>(null) }
     var showDownloadDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        val newVersion = checkForUpdates()
-        if (newVersion != null && isNewerVersion(newVersion, BuildConfig.VERSION_NAME)) {
-            showUpdateCard = true
-            currentLatestVersion = newVersion
+        Updater.getLatestUpdateInfo().onSuccess { info ->
+            if (info.versionName.isNotBlank() && isNewerVersion(info.versionName, BuildConfig.VERSION_NAME)) {
+                showUpdateCard = true
+                currentLatestVersion = info.versionName
+                updateInfoState = info
+            }
+        }.onFailure {
+            val newVersion = checkForUpdates()
+            if (newVersion != null && isNewerVersion(newVersion, BuildConfig.VERSION_NAME)) {
+                showUpdateCard = true
+                currentLatestVersion = newVersion
+                updateInfoState = UpdateInfo(versionName = newVersion)
+            }
         }
     }
 
     if (showDownloadDialog) {
-        UpdateDownloadDialog(
+        updateInfoState?.let { info ->
+            UpdateAvailableDialog(
+                updateInfo = info,
+                onDismiss = { showDownloadDialog = false }
+            )
+        } ?: UpdateDownloadDialog(
             latestVersion = currentLatestVersion,
             onDismiss = { showDownloadDialog = false }
         )
@@ -668,13 +700,21 @@ fun UpdateDownloadDialog(
                             WaterDropButton(
                                 onClick = {
                                     downloadStatus = DownloadStatus.REDIRECTING
-                                    uriHandler.openUri("https://icebeats.pages.dev/")
+                                    val downloadUrl = com.valora.icebeats.utils.RemoteConfigManager.getApkDownloadUrl(
+                                        latestVersion,
+                                        com.valora.icebeats.BuildConfig.IS_NIGHTLY
+                                    )
+                                    uriHandler.openUri(downloadUrl)
                                     downloadStatus = DownloadStatus.COMPLETED
                                     onDismiss()
                                 },
                                 modifier = Modifier.weight(1f),
                                 text = stringResource(R.string.download),
-                                textColor = Color.Black
+                                colors = listOf(
+                                    Color(0xFF6C5CE7),
+                                    Color(0xFFA463F5),
+                                    Color(0xFFC45AF0)
+                                )
                             )
                         }
                     }
@@ -701,7 +741,6 @@ fun UpdateDownloadDialog(
                         WaterDropButton(
                             onClick = onDismiss,
                             text = stringResource(R.string.close),
-                            textColor = Color.Black,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -715,7 +754,6 @@ fun UpdateDownloadDialog(
                         WaterDropButton(
                             onClick = onDismiss,
                             text = stringResource(R.string.close),
-                            textColor = Color.White,
                             modifier = Modifier.fillMaxWidth(),
                             colors = listOf(
                                 Color(0xFFCF6679),
@@ -739,12 +777,29 @@ enum class DownloadStatus {
 
 suspend fun checkForUpdates(): String? = withContext(Dispatchers.IO) {
     try {
-        val url = URL("https://api.github.com/repos/B7ByteMe/IceBeats/releases/latest")
-        val connection = url.openConnection()
-        connection.connect()
-        val json = connection.getInputStream().bufferedReader().use { it.readText() }
-        val jsonObject = JSONObject(json)
-        return@withContext jsonObject.getString("tag_name")
+        if (com.valora.icebeats.BuildConfig.IS_NIGHTLY) {
+            val url = java.net.URL(com.valora.icebeats.utils.RemoteConfigManager.getLatestReleaseApiUrl(isNightly = true))
+            val connection = url.openConnection()
+            connection.connect()
+            val json = connection.getInputStream().bufferedReader().use { it.readText() }
+            val jsonArray = org.json.JSONArray(json)
+            for (i in 0 until jsonArray.length()) {
+                val release = jsonArray.getJSONObject(i)
+                if (release.getBoolean("prerelease")) {
+                    val tagName = release.getString("tag_name")
+                    return@withContext tagName.removePrefix("v").removeSuffix("-nightly").trim()
+                }
+            }
+            return@withContext null
+        } else {
+            val url = java.net.URL(com.valora.icebeats.utils.RemoteConfigManager.getLatestReleaseApiUrl(isNightly = false))
+            val connection = url.openConnection()
+            connection.connect()
+            val json = connection.getInputStream().bufferedReader().use { it.readText() }
+            val jsonObject = org.json.JSONObject(json)
+            val tagName = jsonObject.getString("tag_name")
+            return@withContext tagName.removePrefix("v").trim()
+        }
     } catch (e: Exception) {
         e.printStackTrace()
         return@withContext null
@@ -772,259 +827,7 @@ fun isNewerVersion(remoteVersion: String, currentVersion: String): Boolean {
     return false
 }
 
-// ==================== PROFILE SECTION ====================
-
-@Composable
-fun ProfileSection(
-    isLoggedIn: Boolean,
-    accountName: String,
-    currentSelection: AvatarSelection,
-    verificationType: com.valora.icebeats.ui.component.VerificationType = com.valora.icebeats.ui.component.VerificationType.NONE
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 0.dp, bottom = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (isLoggedIn) {
-            var imageLoadError by remember { mutableStateOf(false) }
-            var isImageLoading by remember { mutableStateOf(false) }
-
-            // Avatar container
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainer
-                    )
-                    .border(
-                        width = 2.dp,
-                        color = Color(0xFFCCFF00),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                    when {
-                        currentSelection is AvatarSelection.Custom && !imageLoadError -> {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data((currentSelection as AvatarSelection.Custom).uri.toUri())
-                                    .crossfade(true)
-                                    .listener(
-                                        onStart = { isImageLoading = true },
-                                        onSuccess = { _, _ ->
-                                            isImageLoading = false
-                                            imageLoadError = false
-                                        },
-                                        onError = { _, _ ->
-                                            isImageLoading = false
-                                            imageLoadError = true
-                                        }
-                                    )
-                                    .build(),
-                                contentDescription = "Avatar de $accountName",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                            if (isImageLoading) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                        currentSelection is AvatarSelection.DiceBear && !imageLoadError -> {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data((currentSelection as AvatarSelection.DiceBear).url)
-                                    .crossfade(true)
-                                    .listener(
-                                        onStart = { isImageLoading = true },
-                                        onSuccess = { _, _ ->
-                                            isImageLoading = false
-                                            imageLoadError = false
-                                        },
-                                        onError = { _, _ ->
-                                            isImageLoading = false
-                                            imageLoadError = true
-                                        }
-                                    )
-                                    .build(),
-                                contentDescription = "Avatar DiceBear de $accountName",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                            if (isImageLoading) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                        else -> {
-                            val initials = remember(accountName) {
-                                val cleanName = accountName.replace("@", "").trim()
-                                when {
-                                    cleanName.isEmpty() -> "?"
-                                    cleanName.contains(" ") -> {
-                                        val parts = cleanName.split(" ")
-                                        "${parts.first().firstOrNull()?.uppercase() ?: ""}${
-                                            parts.last().firstOrNull()?.uppercase() ?: ""
-                                        }"
-                                    }
-                                    else -> cleanName.take(2).uppercase()
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary,
-                                                MaterialTheme.colorScheme.tertiary
-                                            ),
-                                            start = Offset(0f, 0f),
-                                            end = Offset(100f, 100f)
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = initials,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                } // end outer avatar Box
-
-            // Clean online indicator — small dot
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .offset(x = 38.dp, y = (-14).dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF4CAF50))
-                    .border(
-                        width = 1.5.dp,
-                        color = Color(0xFF0F0F0F),
-                        shape = CircleShape
-                    )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            AnimatedContent(
-                targetState = accountName.replace("@", "").takeIf { it.isNotBlank() } ?: "",
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "username"
-            ) { name ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    if (verificationType != com.valora.icebeats.ui.component.VerificationType.NONE) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        com.valora.icebeats.ui.component.VerificationBadge(type = verificationType, size = 18.dp)
-                    }
-                }
-            }
-        } else {
-            // Not logged in state
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier.size(96.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.icebeats_logo),
-                        contentDescription = "Logo IceBeats",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(style = SpanStyle(color = Color.White)) { append("Ice") }
-                            withStyle(
-                                style = SpanStyle(color = Color(0xFFCCFF00))
-                            ) {
-                                append("Beats")
-                            }
-                        },
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Box(
-                        modifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = Color.White.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "DEV BY VALORA, ZYXONE",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 // ==================== MAIN SETTINGS SCREEN ====================
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -1032,55 +835,82 @@ fun SettingsScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    val currentTheme = MaterialTheme.colorScheme
-    val neonGreenColorScheme = remember(currentTheme) {
-        currentTheme.copy(
-            primary = Color(0xFF99FF00),
-            tertiary = Color(0xFF99FF00),
-            secondary = Color(0xFF99FF00),
-            onPrimary = Color.Black
+    val uriHandler = LocalUriHandler.current
+    var showTranslateDialog by remember { mutableStateOf(false) }
+    var showChangelogSheet by remember { mutableStateOf(false) }
+
+    // Get player connection for album artwork
+    val playerConnection = LocalPlayerConnection.current
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
+        ?: remember { mutableStateOf(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
+        val artworkUrl = mediaMetadata?.thumbnailUrl
+        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+            artworkUrl = artworkUrl
         )
-    }
 
-    MaterialTheme(colorScheme = neonGreenColorScheme) {
-        val uriHandler = LocalUriHandler.current
-        var showTranslateDialog by remember { mutableStateOf(false) }
-        var showChangelogSheet by remember { mutableStateOf(false) }
-        var showVipDialog by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F0F0F))
-    ) {
-        // Main content Scaffold with transparent TopAppBar
+        // Main Scaffold with TopAppBar that scrolls
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             topBar = {
+                // U-Shaped TopAppBar that scrolls with content
                 TopAppBar(
                     title = {
-                        Text(
-                            text = stringResource(R.string.settings),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                painter = painterResource(R.drawable.arrow_back),
-                                contentDescription = "Back",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
+                    navigationIcon = {
+                        Spacer(modifier = Modifier.width(48.dp))
+                    },
+                    actions = {
+                        Spacer(modifier = Modifier.width(48.dp))
+                    },
+                    modifier = Modifier
+                        .clip(
+                            RoundedCornerShape(
+                                bottomStart = 30.dp,
+                                bottomEnd = 30.dp
+                            )
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 0.6.dp,
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.3f),
+                                    Color.White.copy(alpha = 0.1f),
+                                    Color.White.copy(alpha = 0.3f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(
+                                bottomStart = 30.dp,
+                                bottomEnd = 30.dp
+                            )
+                        ),
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF0F0F0F),
-                        scrolledContainerColor = Color(0xFF0F0F0F)
-                    )
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    scrollBehavior = scrollBehavior
                 )
             }
         ) { innerPadding ->
@@ -1088,24 +918,19 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(innerPadding) // VERY IMPORTANT
                     .verticalScroll(rememberScrollState())
                     .windowInsetsPadding(
                         LocalPlayerAwareWindowInsets.current.only(
                             WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                         )
                     )
-            ) {
-                Spacer(Modifier.height(16.dp))
+            )
 
-                // ─── Main content body ──────────────────────────
+            {
+                // Add a small top padding to separate from header
 
                 val context = LocalContext.current
-                val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-                val isVip by vipManager.isVip.collectAsState(initial = false)
-                val vipExpiresAt by vipManager.vipExpiresAt.collectAsState(initial = 0L)
-                val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "")
-
                 val avatarManager = remember { AvatarPreferenceManager(context) }
                 val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
                 val accountName by rememberPreference(AccountNameKey, "")
@@ -1114,22 +939,18 @@ fun SettingsScreen(
                     "SAPISID" in parseCookieString(innerTubeCookie)
                 }
 
-                val myVerificationType = remember(isVip, currentVipPlan) {
-                    com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-                        planName = currentVipPlan,
-                        isVip = isVip
-                    )
-                }
-
                 // Profile Section
                 ProfileSection(
                     isLoggedIn = isLoggedIn,
                     accountName = accountName,
-                    currentSelection = currentSelection,
-                    verificationType = myVerificationType
+                    currentSelection = currentSelection
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+
+                val (appMode, onAppModeChange) = rememberPreference(AppModeKey, defaultValue = APP_MODE_LITE)
+                val isLiteMode = appMode == APP_MODE_LITE
+                val isFrosted = isFrostedGlassUiEnabled()
 
                 // Settings Categories
                 Column(
@@ -1137,116 +958,168 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // General Settings
+                    val generalSettingsItems = listOfNotNull(
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.palette),
+                            title = {
+                                Text(
+                                    stringResource(R.string.appearance),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/appearance") }
+                        ),
+                        if (!isLiteMode) SettingsCategoryItem(
+                            icon = painterResource(R.drawable.schedule),
+                            title = {
+                                Text(
+                                    stringResource(R.string.always_on_display),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/always_on_display") }
+                        ) else null,
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.person),
+                            title = {
+                                Text(
+                                    stringResource(R.string.account),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/account") }
+                        ),
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.language),
+                            title = {
+                                Text(
+                                    stringResource(R.string.content),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/content") }
+                        ),
+                        if (!isLiteMode) SettingsCategoryItem(
+                            icon = painterResource(R.drawable.lyrics),
+                            title = { Text(stringResource(R.string.lyrics), color = MaterialTheme.colorScheme.onSurface) },
+                            onClick = { navController.navigate("settings/lyrics") }
+                        ) else null,
+                        if (!isLiteMode) SettingsCategoryItem(
+                            icon = painterResource(R.drawable.ic_gen_ai),
+                            title = { Text(stringResource(R.string.ai_integration), color = MaterialTheme.colorScheme.onSurface) },
+                            onClick = { navController.navigate("settings/ai") }
+                        ) else null,
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.play),
+                            title = {
+                                Text(
+                                    stringResource(R.string.player_and_audio),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/player") }
+                        ),
+                        if (!isLiteMode) SettingsCategoryItem(
+                            icon = painterResource(R.drawable.swipe),
+                            title = {
+                                Text(
+                                    stringResource(R.string.ui_text_gestures),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/gestures") }
+                        ) else null,
+                        if (!isLiteMode) SettingsCategoryItem(
+                            icon = painterResource(R.drawable.graphic_eq),
+                            title = {
+                                Text(
+                                    stringResource(R.string.ui_text_scrobbler),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/scrobbler") }
+                        ) else null,
+                        if (!isLiteMode) SettingsCategoryItem(
+                            icon = painterResource(R.drawable.play),
+                            title = {
+                                Text(
+                                    stringResource(R.string.android_auto),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/android_auto") }
+                        ) else null,
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.group),
+                            title = {
+                                Text(
+                                    stringResource(R.string.listen_together),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("listen_together") }
+                        ),
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.storage),
+                            title = {
+                                Text(
+                                    stringResource(R.string.storage),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/storage") }
+                        ),
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.security),
+                            title = {
+                                Text(
+                                    stringResource(R.string.privacy),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/privacy") }
+                        ),
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.restore),
+                            title = {
+                                Text(
+                                    stringResource(R.string.backup_restore),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/backup_restore") }
+                        ),
+                        SettingsCategoryItem(
+                            icon = painterResource(R.drawable.bug_report),
+                            title = {
+                                Text(
+                                    stringResource(R.string.ui_text_experimental_settings),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = { navController.navigate("settings/experimental") }
+                        )
+                    )
+
                     SettingsCategory(
                         title = stringResource(R.string.general_settings),
-                        items = listOf(
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.palette),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.appearance),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/appearance") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.schedule),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.always_on_display),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/always_on_display") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.person),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.account),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/account") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.language),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.content),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/content") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.play),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.player_and_audio),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/player") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.group),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.listen_together),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("listen_together") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.storage),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.storage),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/storage") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.security),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.privacy),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/privacy") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.restore),
-                                title = {
-                                    Text(
-                                        stringResource(R.string.backup_restore),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/backup_restore") }
-                            ),
-                            SettingsCategoryItem(
-                                icon = painterResource(R.drawable.bug_report),
-                                title = {
-                                    Text(
-                                        "Experimental Settings",
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = { navController.navigate("settings/experimental") }
-                            )
-                        )
+                        items = generalSettingsItems
                     )
 
                     // About & Community
                     SettingsCategory(
                         title = stringResource(R.string.community),
                         items = listOf(
+                            SettingsCategoryItem(
+                                icon = painterResource(R.drawable.newspaper),
+                                title = {
+                                    Text(
+                                        stringResource(R.string.ui_text_news_from_developers_2),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = { navController.navigate("settings/developer_news") }
+                            ),
                             SettingsCategoryItem(
                                 icon = painterResource(R.drawable.info),
                                 title = {
@@ -1258,14 +1131,14 @@ fun SettingsScreen(
                                 onClick = { navController.navigate("settings/about") }
                             ),
                             SettingsCategoryItem(
-                                icon = painterResource(R.drawable.feedback),
+                                icon = painterResource(R.drawable.translate), // Assuming R.drawable.translate exists. If not, I can use R.drawable.language
                                 title = {
                                     Text(
-                                        "Hubungi Developer",
+                                        stringResource(R.string.ui_text_help_translate),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 },
-                                onClick = { uriHandler.openUri("mailto:valoraofficial@gmail.com?subject=IceBeats Feedback") }
+                                onClick = { uriHandler.openUri("https://crowdin.com/project/airbeats") }
                             ),
                             SettingsCategoryItem(
                                 icon = painterResource(R.drawable.schedule),
@@ -1278,14 +1151,17 @@ fun SettingsScreen(
                                 onClick = { showChangelogSheet = true }
                             ),
                             SettingsCategoryItem(
-                                icon = painterResource(R.drawable.group),
+                                icon = painterResource(R.drawable.telegram),
                                 title = {
                                     Text(
-                                        "Saluran WhatsApp",
+                                        stringResource(R.string.ui_text_telegram),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 },
-                                onClick = { uriHandler.openUri("https://whatsapp.com/channel/0029Vb8V2qh8V0tpL0VDky0M") }
+                                onClick = {
+                                    val telegramUrl = RemoteConfigManager.telegramUrl.ifBlank { RemoteConfigManager.DEFAULT_TELEGRAM_URL }
+                                    uriHandler.openUri(telegramUrl)
+                                }
                             )
                         )
                     )
@@ -1295,7 +1171,7 @@ fun SettingsScreen(
                 UpdateCard()
 
                 // Version Card
-                VersionCard(uriHandler)
+                VersionCard(uriHandler, navController)
 
                 Spacer(Modifier.height(32.dp))
             }
@@ -1351,7 +1227,11 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 text = "OK",
-                                textColor = Color.Black
+                                colors = listOf(
+                                    Color(0xFF6C5CE7),
+                                    Color(0xFFA463F5),
+                                    Color(0xFFC45AF0)
+                                )
                             )
                         }
                     }
@@ -1405,13 +1285,342 @@ fun SettingsScreen(
                             onClick = { showChangelogSheet = false },
                             modifier = Modifier.fillMaxWidth(),
                             text = stringResource(R.string.close),
-                            textColor = Color.Black
+                            colors = listOf(
+                                Color(0xFF6C5CE7),
+                                Color(0xFFA463F5),
+                                Color(0xFFC45AF0)
+                            )
                         )
                     }
                 }
             }
+        }
     }
-    }
-}
 }
 
+@Composable
+fun ProfileSection(
+    isLoggedIn: Boolean,
+    accountName: String,
+    currentSelection: AvatarSelection
+) {
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 0.dp, bottom = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (isLoggedIn) {
+            var imageLoadError by remember { mutableStateOf(false) }
+            var isImageLoading by remember { mutableStateOf(false) }
+
+            // Avatar with glow effect
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                // Outer glow
+                if (!isLiteMode) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                            .blur(20.dp)
+                    )
+                }
+
+                // Avatar container
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainer
+                        )
+                        .border(
+                            width = 3.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+                                )
+                            ),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        currentSelection is AvatarSelection.Custom && !imageLoadError -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data((currentSelection as AvatarSelection.Custom).uri.toUri())
+                                    .crossfade(true)
+                                    .listener(
+                                        onStart = { isImageLoading = true },
+                                        onSuccess = { _, _ ->
+                                            isImageLoading = false
+                                            imageLoadError = false
+                                        },
+                                        onError = { _, _ ->
+                                            isImageLoading = false
+                                            imageLoadError = true
+                                        }
+                                    )
+                                    .build(),
+                                contentDescription = stringResource(R.string.ui_a11y_avatar_de_accountname, accountName),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+
+                            if (isImageLoading) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+
+                        currentSelection is AvatarSelection.DiceBear && !imageLoadError -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data((currentSelection as AvatarSelection.DiceBear).url)
+                                    .crossfade(true)
+                                    .listener(
+                                        onStart = { isImageLoading = true },
+                                        onSuccess = { _, _ ->
+                                            isImageLoading = false
+                                            imageLoadError = false
+                                        },
+                                        onError = { _, _ ->
+                                            isImageLoading = false
+                                            imageLoadError = true
+                                        }
+                                    )
+                                    .build(),
+                                contentDescription = stringResource(R.string.ui_a11y_avatar_dicebear_de_accountname, accountName),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+
+                            if (isImageLoading) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+
+                        else -> {
+                            val initials = remember(accountName) {
+                                val cleanName = accountName.replace("@", "").trim()
+                                when {
+                                    cleanName.isEmpty() -> "?"
+                                    cleanName.contains(" ") -> {
+                                        val parts = cleanName.split(" ")
+                                        "${parts.first().firstOrNull()?.uppercase() ?: ""}${
+                                            parts.last().firstOrNull()?.uppercase() ?: ""
+                                        }"
+                                    }
+                                    else -> cleanName.take(2).uppercase()
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.tertiary
+                                            ),
+                                            start = Offset(0f, 0f),
+                                            end = Offset(100f, 100f)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = initials,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Online indicator with pulse animation
+                val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                val pulseAlpha by infiniteTransition.animateFloat(
+                    initialValue = 0.5f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1000, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "alpha"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .offset(x = 32.dp, y = 32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF00FF00).copy(alpha = pulseAlpha),
+                                    Color(0xFF00FF00).copy(alpha = 0.3f)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 2.dp,
+                            color = Color.White,
+                            shape = CircleShape
+                        )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Username with animation
+            AnimatedContent(
+                targetState = accountName.replace("@", "").takeIf { it.isNotBlank() } ?: "",
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "username"
+            ) { name ->
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+        } else {
+            // Not logged in state
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Logo with glow effect
+                if (!isLiteMode) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                            .blur(20.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainer
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.airbeats_monochrome),
+                        contentDescription = stringResource(R.string.ui_a11y_logo_de_airbeats),
+                        modifier = Modifier.fillMaxSize(),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(
+                                style = SpanStyle(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                append("Air")
+                            }
+
+                            withStyle(
+                                style = SpanStyle(
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            ) {
+                                append("Beats")
+                            }
+                        },
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Dev By DxV STUDIO 亗",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
+}

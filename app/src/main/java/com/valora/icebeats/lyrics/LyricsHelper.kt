@@ -53,17 +53,17 @@ constructor(
 
     private fun setPreferredProvider(preferredProvider: PreferredLyricsProvider) {
         val primary = when (preferredProvider) {
-            PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
-            PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
-            PreferredLyricsProvider.SIMP_MUSIC -> IceBeatsSimpLyricsProvider
-            PreferredLyricsProvider.YOUTUBE_SUBTITLES -> YouTubeSubtitleLyricsProvider
-            PreferredLyricsProvider.PAXSENIX -> IceBeatsPaxsenixLyricsProvider
-            PreferredLyricsProvider.UNISON -> IceBeatsUnisonLyricsProvider
-            PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
-            PreferredLyricsProvider.PORTATO -> IceBeatsPortatoLyricsProvider
-            PreferredLyricsProvider.YOULY -> IceBeatsYouLyLyricsProvider
-            PreferredLyricsProvider.MEGALOBIZ -> IceBeatsMegalobizLyricsProvider
-            PreferredLyricsProvider.YOUTUBE_MUSIC -> YouTubeLyricsProvider
+                    PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
+                    PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
+                    PreferredLyricsProvider.SIMP_MUSIC -> IceBeatsSimpLyricsProvider
+                    PreferredLyricsProvider.YOUTUBE_SUBTITLES -> YouTubeSubtitleLyricsProvider
+                    PreferredLyricsProvider.PAXSENIX -> IceBeatsPaxsenixLyricsProvider
+                    PreferredLyricsProvider.UNISON -> IceBeatsUnisonLyricsProvider
+                    PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
+                    PreferredLyricsProvider.PORTATO -> IceBeatsPortatoLyricsProvider
+                    PreferredLyricsProvider.YOULY -> IceBeatsYouLyLyricsProvider
+                    PreferredLyricsProvider.MEGALOBIZ -> IceBeatsMegalobizLyricsProvider
+                    PreferredLyricsProvider.YOUTUBE_MUSIC -> YouTubeLyricsProvider
         }
         lyricsProviders = listOf(primary) + allLyricsProviders.filter { it !== primary }
     }
@@ -118,10 +118,14 @@ constructor(
         val allResult = mutableListOf<LyricsResult>()
         lyricsProviders.forEach { provider ->
             if (provider.isEnabled(context)) {
-                provider.getAllLyrics(mediaId, songTitle, songArtists, duration) { lyrics ->
-                    val result = LyricsResult(provider.name, lyrics)
-                    allResult += result
-                    callback(result)
+                runCatching {
+                    provider.getAllLyrics(mediaId, songTitle, songArtists, duration) { lyrics ->
+                        val result = LyricsResult(provider.name, lyrics)
+                        allResult += result
+                        callback(result)
+                    }
+                }.onFailure {
+                    reportException(it)
                 }
             }
         }

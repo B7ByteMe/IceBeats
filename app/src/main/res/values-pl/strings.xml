@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -387,7 +387,7 @@
     <string name="backup_create_failed">"Nie udało się stworzyć kopii zapasowej"</string>
     <string name="restore_failed">"Nie udało się przywrócić kopii"</string>
     <string name="discord_integration">"Integracja dla Discorda"</string>
-    <string name="discord_information">"icebeats używa biblioteki KizzyRPC do ustawienia statusu Twojego konta Discord. Wiąże się to z użyciem połączenia Discord Gateway, co może być uznane za naruszenie TOS Discorda. Nie ma jednak znanych przypadków zawieszania kont użytkowników z tego powodu. Używaj na własne ryzyko. icebeats wyodrębni tylko Twój token, a wszystko inne jest przechowywane lokalnie."</string>
+    <string name="discord_information">"IceBeats używa biblioteki KizzyRPC do ustawienia statusu Twojego konta Discord. Wiąże się to z użyciem połączenia Discord Gateway, co może być uznane za naruszenie TOS Discorda. Nie ma jednak znanych przypadków zawieszania kont użytkowników z tego powodu. Używaj na własne ryzyko. IceBeats wyodrębni tylko Twój token, a wszystko inne jest przechowywane lokalnie."</string>
     <string name="dismiss">"Usuń"</string>
     <string name="options">"Opcje"</string>
     <string name="preview">"Podgląd"</string>
@@ -523,7 +523,7 @@
 Aplikacja zrestartuje się automatycznie."</string>
     <string name="visitor_data_reset_confirm">"Resetuj"</string>
     <string name="visitor_data_reset_cancel">"Anuluj"</string>
-    <string name="widget_title">"Odtwarzacz icebeats"</string>
+    <string name="widget_title">"Odtwarzacz IceBeats"</string>
     <string name="error_saving_image">"Błąd zapisywania obrazu"</string>
     <string name="processing">"przetwarzanie"</string>
     <string name="subscribed">"subskrybujesz"</string>
@@ -575,7 +575,7 @@ Aplikacja zrestartuje się automatycznie."</string>
     <string name="playing_from">"Odtwarzane z"</string>
     <string name="SmallButtonsShape">"Kształt małych przycisków"</string>
     <string name="cloud_upload_title">"Automatyczne przesyłanie do chmury"</string>
-    <string name="cloud_upload_enabled_description">"Kopie zapasowe będą zapisywane na database.icebeats.app"</string>
+    <string name="cloud_upload_enabled_description">"Kopie zapasowe będą zapisywane na database.IceBeats.app"</string>
     <string name="cloud_upload_disabled_description">"Kopie zapasowe będą zapisywane lokalnie"</string>
     <string name="backup_with_cloud">"Stwórz kopię zapasową i prześlij ją do chmury"</string>
     <string name="uploading_backup">"Przesyłanie kopii zapasowej..."</string>

@@ -131,7 +131,7 @@ fun ArtistMenu(
                         type = "text/plain"
                         putExtra(
                             Intent.EXTRA_TEXT,
-                            "https://icebeats.pages.dev/artist?id=${artist.id}"
+                            com.valora.icebeats.utils.RemoteConfigManager.getArtistShareUrl(artist.id)
                         )
                     }
                 context.startActivity(Intent.createChooser(intent, null))

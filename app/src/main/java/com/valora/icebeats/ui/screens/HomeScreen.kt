@@ -2,6 +2,15 @@ package com.valora.icebeats.ui.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material3.ripple
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -17,22 +26,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Spacer
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Surface
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
 import com.valora.icebeats.BuildConfig
 import com.valora.icebeats.checkForUpdates
 import com.valora.icebeats.isNewerVersion
-import com.valora.icebeats.ui.component.icebeatsRank
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
@@ -60,21 +64,35 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import com.valora.icebeats.ui.component.ChipsRow
+import com.valora.icebeats.ui.component.TopFadeBlur
+import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
+import com.valora.icebeats.ui.component.HomeTasteStrip
+import com.valora.icebeats.ui.component.UniversalHomeHeroBanner
+import com.valora.icebeats.ui.component.UniversalArtistSpotlightCard
+import com.valora.icebeats.ui.component.UniversalTopArtistsRow
+import com.valora.icebeats.ui.component.HomeThemeStyle
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -164,10 +182,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
+    onSearchClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 )
 {
@@ -175,6 +194,7 @@ fun HomeScreen(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -182,6 +202,7 @@ fun HomeScreen(
     val quickPicks by viewModel.quickPicks.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
+    val aiRecommendedPlaylist by viewModel.aiRecommendedPlaylist.collectAsState()
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
@@ -205,10 +226,10 @@ fun HomeScreen(
     }
     val url = if (isLoggedIn) accountImageUrl else null
 
+    // Returning from YouTube login used to leave the already-created Home
+    // ViewModel showing the anonymous feed until the user manually refreshed.
     LaunchedEffect(innerTubeCookie) {
-        if (innerTubeCookie.isNotEmpty()) {
-            viewModel.onAccountChanged(innerTubeCookie)
-        }
+        viewModel.onAccountChanged(innerTubeCookie)
     }
 
     val scope = rememberCoroutineScope()
@@ -222,6 +243,32 @@ fun HomeScreen(
             lazylistState.animateScrollToItem(0)
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
+    }
+
+    val isBlurDisabled = com.valora.icebeats.utils.isBlurDisabled()
+    val hazeState = remember { HazeState() }
+    val isAtTop by remember {
+        derivedStateOf {
+            lazylistState.firstVisibleItemIndex == 0 && lazylistState.firstVisibleItemScrollOffset == 0
+        }
+    }
+    val blurAlpha by animateFloatAsState(
+        targetValue = if (isBlurDisabled || isAtTop) 0f else 1f,
+        animationSpec = tween(300),
+        label = "HomeScreenBlurAlpha"
+    )
+
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    val hiddenSections by rememberPreference(com.valora.icebeats.constants.HiddenHomeSectionsKey, defaultValue = com.valora.icebeats.constants.DefaultHiddenHomeSections)
+    fun isSectionVisible(section: com.valora.icebeats.constants.MaterialHomeSection): Boolean {
+        if (isLiteMode) {
+            if (section == com.valora.icebeats.constants.MaterialHomeSection.FRESH_FINDS ||
+                section == com.valora.icebeats.constants.MaterialHomeSection.SPOTLIGHT ||
+                section == com.valora.icebeats.constants.MaterialHomeSection.TOP_ARTISTS) {
+                return false
+            }
+        }
+        return section.id !in hiddenSections
     }
 
     val localGridItem: @Composable (LocalItem) -> Unit = {
@@ -365,52 +412,21 @@ fun HomeScreen(
         )
     }
 
-    LaunchedEffect(quickPicks) {
-        quickPicksLazyGridState.scrollToItem(0)
-    }
-
-    LaunchedEffect(forgottenFavorites) {
-        forgottenFavoritesLazyGridState.scrollToItem(0)
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            quickPicksLazyGridState.scrollToItem(0)
+            forgottenFavoritesLazyGridState.scrollToItem(0)
+        }
     }
 
     // Main container Box that holds everything (same pattern as ExploreScreen)
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // Blur background
+        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
         val artworkUrl = mediaMetadata?.thumbnailUrl
-
-        artworkUrl?.let { imageUrl ->
-            com.valora.icebeats.ui.component.BlurredBackground(
-                model = imageUrl.highQualityThumbnail()
-            )
-
-            val isDarkTheme =
-                MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-            val overlayBrush = if (isDarkTheme) {
-                Brush.verticalGradient(
-                    listOf(
-                        Color.Black.copy(alpha = 0.2f),
-                        Color.Black.copy(alpha = 0.5f),
-                        Color.Black.copy(alpha = 0.85f)
-                    )
-                )
-            } else {
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.25f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
-                    )
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(overlayBrush)
-            )
-        }
+        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+            artworkUrl = artworkUrl
+        )
 
         // Content
         BoxWithConstraints(
@@ -441,61 +457,125 @@ fun HomeScreen(
                     }
                 )
             }
+            val freshTracks = remember(aiRecommendedPlaylist, quickPicks) {
+                val aiSongs = aiRecommendedPlaylist?.second.orEmpty()
+                if (aiSongs.isNotEmpty()) aiSongs else quickPicks?.drop(6).orEmpty()
+            }
+            val artistTriples = remember(quickPicks) {
+                quickPicks?.mapNotNull { pick ->
+                    pick.artists.firstOrNull()?.let { artist ->
+                        Triple(artist, artist.thumbnailUrl, pick.song.thumbnailUrl)
+                    }
+                }?.distinctBy { it.first.id }?.take(10).orEmpty()
+            }
 
-            // FIXED: Added proper windowInsetsPadding to move content down
             LazyColumn(
                 state = lazylistState,
                 contentPadding = LocalPlayerAwareWindowInsets.current
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                     .asPaddingValues(),
                 modifier = Modifier
-                    .windowInsetsPadding(
-                        WindowInsets.systemBars.only(WindowInsetsSides.Top)
-                    )
-            )
-            {
+                    .fillMaxSize()
+                    .then(if (!isBlurDisabled) Modifier.haze(state = hazeState) else Modifier)
+            ) {
                 // ModernHomeTopBarInline is now inside the LazyColumn
-                item {
+                item(key = "home_top_bar") {
                     ModernHomeTopBarInline(
-                        navController = navController
+                        navController = navController,
+                        onSearchClick = onSearchClick
                     )
                 }
 
-                item {
-                    Row(
-                        modifier = Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .fillMaxWidth()
-                            .animateItem()
-                    ) {
-                        ChipsRow(
-                            chips = listOfNotNull(
-                                Pair("history", stringResource(R.string.history)),
-                                Pair("stats", stringResource(R.string.stats)),
-                                Pair("liked", stringResource(R.string.liked)),
-                                Pair("downloads", stringResource(R.string.offline)),
-                                if (isLoggedIn) Pair(
-                                    "account",
-                                    stringResource(R.string.account)
-                                ) else null
-                            ),
-                            currentValue = "",
-                            onValueUpdate = { value ->
-                                when (value) {
-                                    "history" -> navController.navigate("history")
-                                    "stats" -> navController.navigate("stats")
-                                    "liked" -> navController.navigate("auto_playlist/liked")
-                                    "downloads" -> navController.navigate("auto_playlist/downloaded")
-                                    "account" -> if (isLoggedIn) navController.navigate("account")
-                                }
+                if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.HERO)) {
+                    item(key = "classic_hero") {
+                        UniversalHomeHeroBanner(
+                            title = stringResource(R.string.ui_heading_welcome_back_accountname, accountName),
+                            subtitle = stringResource(R.string.ui_heading_continuous_radio_tuned_to_your_favorites),
+                            onPlayRadio = {
+                                com.valora.icebeats.ui.component.InfiniteRadioHelper.playShuffledRadio(
+                                    playerConnection = playerConnection,
+                                    currentSongId = mediaMetadata?.id,
+                                    quickPicks = quickPicks,
+                                    forgottenFavorites = forgottenFavorites,
+                                    keepListening = keepListening,
+                                    homeSongs = homePage?.sections?.flatMap { it.items }?.filterIsInstance<com.valora.icebeats.innertube.models.SongItem>()
+                                )
                             },
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            style = HomeThemeStyle.CLASSIC,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .animateItem()
                         )
                     }
                 }
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                    item {
+                if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.QUICK_TILES)) {
+                    item(key = "home_chips") {
+                        val isFrosted = isFrostedGlassUiEnabled()
+                        if (isFrosted) {
+                            GlassHomeTagsRow(
+                                navController = navController,
+                                isLoggedIn = isLoggedIn,
+                                modifier = Modifier
+                                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                                    .animateItem()
+                            )
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                                    .fillMaxWidth()
+                                    .animateItem()
+                            ) {
+                                ChipsRow(
+                                    chips = listOfNotNull(
+                                        Pair("history", stringResource(R.string.history)),
+                                        Pair("stats", stringResource(R.string.stats)),
+                                        Pair("liked", stringResource(R.string.liked)),
+                                        Pair("downloads", stringResource(R.string.offline)),
+                                        if (isLoggedIn) Pair(
+                                            "account",
+                                            stringResource(R.string.account)
+                                        ) else null
+                                    ),
+                                    currentValue = "",
+                                    onValueUpdate = { value ->
+                                        when (value) {
+                                            "history" -> navController.navigate("history")
+                                            "stats" -> navController.navigate("stats")
+                                            "liked" -> navController.navigate("auto_playlist/liked")
+                                            "downloads" -> navController.navigate("auto_playlist/downloaded")
+                                            "account" -> if (isLoggedIn) navController.navigate("account")
+                                        }
+                                    },
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.TASTE_STRIP)) {
+                    item(key = "classic_taste_strip") {
+                        HomeTasteStrip(
+                            onTagClick = { tag ->
+                                navController.navigate("search/${java.net.URLEncoder.encode(tag, "UTF-8")}")
+                            },
+                            style = HomeThemeStyle.CLASSIC,
+                            modifier = Modifier.padding(vertical = 4.dp).animateItem()
+                        )
+                    }
+                }
+
+                if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.QUICK_PICKS)) {
+                    quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
+                    item(key = "quick_picks_title") {
+                        NavigationTitle(
+                            title = stringResource(R.string.quick_picks),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                    item(key = "quick_picks_carousel") {
                         val distinctPicks = remember(picks) { picks.distinctBy { it.id } }
                         HorizontalCenteredHeroCarousel(
                             state = rememberCarouselState { distinctPicks.size },
@@ -508,9 +588,20 @@ fun HomeScreen(
                                 .padding(top = 10.dp, bottom = 14.dp)
                                 .animateItem()
                         ) { index ->
-                            val originalSong = distinctPicks[index]
-                            val song by database.song(originalSong.id).collectAsState(initial = originalSong)
-                            val isActive = song!!.id == mediaMetadata?.id
+                            val currentSong = distinctPicks[index]
+                            val isActive = currentSong.id == mediaMetadata?.id
+
+                            val thumbnailUrl = remember(currentSong.thumbnailUrl) {
+                                currentSong.thumbnailUrl?.highQualityThumbnail()
+                            }
+                            val thumbnailRequest = remember(thumbnailUrl, context) {
+                                ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .crossfade(true)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .diskCacheKey(thumbnailUrl)
+                                    .build()
+                            }
 
                             Box(
                                 modifier = Modifier
@@ -525,14 +616,14 @@ fun HomeScreen(
                                             if (isActive) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
-                                                playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                                playerConnection.playQueue(YouTubeQueue.radio(currentSong.toMediaMetadata()))
                                             }
                                         },
                                         onLongClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             menuState.show {
                                                 SongMenu(
-                                                    originalSong = song!!,
+                                                    originalSong = currentSong,
                                                     navController = navController,
                                                     onDismiss = menuState::dismiss
                                                 )
@@ -541,12 +632,7 @@ fun HomeScreen(
                                     )
                             ) {
                                 AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(song!!.thumbnailUrl?.highQualityThumbnail())
-                                        .crossfade(true)
-                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                        .diskCacheKey(song!!.thumbnailUrl?.highQualityThumbnail())
-                                        .build(),
+                                    model = thumbnailRequest,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -593,14 +679,14 @@ fun HomeScreen(
                                         .padding(16.dp)
                                 ) {
                                     Text(
-                                        text = song!!.title,
+                                        text = currentSong.title,
                                         style = MaterialTheme.typography.titleMedium,
                                         color = Color.White,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = song!!.artists.joinToString { it.name },
+                                        text = currentSong.artists.joinToString { it.name },
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color.White.copy(alpha = 0.7f),
                                         maxLines = 1,
@@ -611,7 +697,44 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
 
+            if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.FRESH_FINDS)) {
+                if (freshTracks.isNotEmpty()) {
+                    val isAi = aiRecommendedPlaylist?.second?.isNotEmpty() == true
+                    item(key = "fresh_finds_title") {
+                        NavigationTitle(
+                            title = if (isAi) stringResource(R.string.recommended_by_ai) else "Fresh Finds",
+                            label = if (isAi) aiRecommendedPlaylist?.first?.playlist?.lastUpdateTime?.let {
+                                "Updated: " + it.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, h:mm a"))
+                            } else "Discover new gems",
+                            onClick = if (isAi) {
+                                { navController.navigate("local_playlist/${aiRecommendedPlaylist?.first?.id}") }
+                            } else null,
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item(key = "fresh_finds_list") {
+                        val distinctSongs = remember(freshTracks) { freshTracks.distinctBy { it.id } }
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .animateItem()
+                        ) {
+                            items(distinctSongs, key = { it.id }) { song ->
+                                Box(modifier = Modifier.width(140.dp)) {
+                                    localGridItem(song)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.JUMP_BACK_IN)) {
                 keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
                     item {
                         NavigationTitle(
@@ -639,7 +762,9 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
 
+            if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.MIXES)) {
                 accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
                     item {
                         NavigationTitle(
@@ -694,16 +819,65 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
 
-                similarRecommendations?.forEach {
-                    item {
+            if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.SPOTLIGHT)) {
+                quickPicks?.firstOrNull()?.let { pick ->
+                    val artist = pick.artists.firstOrNull()
+                    if (artist != null) {
+                        item(key = "classic_spotlight") {
+                            UniversalArtistSpotlightCard(
+                                artistName = artist.name,
+                                artistId = artist.id,
+                                thumbnailUrl = artist.thumbnailUrl,
+                                fallbackThumbnail = pick.song.thumbnailUrl,
+                                onOpenArtist = {
+                                    artist.id.takeIf { it.isNotBlank() }?.let { navController.navigate("artist/$it") }
+                                },
+                                onPlayRadio = {
+                                    playerConnection.playQueue(YouTubeQueue.radio(pick.toMediaMetadata()))
+                                },
+                                style = HomeThemeStyle.CLASSIC,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .animateItem()
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.TOP_ARTISTS)) {
+                if (artistTriples.isNotEmpty()) {
+                    item(key = "classic_top_artists_title") {
+                        NavigationTitle(
+                            title = stringResource(R.string.artists_for_you),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                    item(key = "classic_top_artists_row") {
+                        UniversalTopArtistsRow(
+                            artists = artistTriples,
+                            onArtistClick = { artistId ->
+                                artistId.takeIf { it.isNotBlank() }?.let { navController.navigate("artist/$it") }
+                            },
+                            style = HomeThemeStyle.CLASSIC,
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                }
+            }
+
+            if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.BECAUSE_YOU_LISTEN_TO)) {
+                similarRecommendations?.forEach { recommendation ->
+                    item(key = "similar_title_${recommendation.title.id}") {
                         NavigationTitle(
                             label = stringResource(R.string.similar_to),
-                            title = it.title.title,
-                            thumbnail = it.title.thumbnailUrl?.let { thumbnailUrl ->
+                            title = recommendation.title.title,
+                            thumbnail = recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.title is Artist) CircleShape else RoundedCornerShape(
+                                        if (recommendation.title is Artist) CircleShape else RoundedCornerShape(
                                             ThumbnailCornerRadius
                                         )
                                     AsyncImage(
@@ -716,10 +890,10 @@ fun HomeScreen(
                                 }
                             },
                             onClick = {
-                                when (it.title) {
-                                    is Song -> navController.navigate("album/${it.title.album!!.id}")
-                                    is Album -> navController.navigate("album/${it.title.id}")
-                                    is Artist -> navController.navigate("artist/${it.title.id}")
+                                when (recommendation.title) {
+                                    is Song -> navController.navigate("album/${recommendation.title.album!!.id}")
+                                    is Album -> navController.navigate("album/${recommendation.title.id}")
+                                    is Artist -> navController.navigate("artist/${recommendation.title.id}")
                                     is Playlist -> {}
                                 }
                             },
@@ -727,187 +901,198 @@ fun HomeScreen(
                         )
                     }
 
-                    item {
+                    item(key = "similar_row_${recommendation.title.id}") {
                         LazyRow(
                             contentPadding = WindowInsets.systemBars
                                 .only(WindowInsetsSides.Horizontal)
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(it.items) { item ->
+                            items(recommendation.items, key = { item -> item.id }) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
+            }
 
-                homePage?.sections?.forEach {
-                    item {
-                        NavigationTitle(
-                            title = it.title,
-                            label = it.label,
-                            thumbnail = it.thumbnail?.let { thumbnailUrl ->
-                                {
-                                    val shape =
-                                        if (it.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(
-                                            ThumbnailCornerRadius
+                homePage?.sections?.forEach { section ->
+                    val isNewRelease = section.title.contains("New", ignoreCase = true) || section.title.contains("Release", ignoreCase = true)
+                    val isChart = section.title.contains("Chart", ignoreCase = true) || section.title.contains("Top", ignoreCase = true)
+                    val isAlbum = section.title.contains("Album", ignoreCase = true)
+
+                    val shouldRender = when {
+                        isNewRelease -> isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.NEW_RELEASES)
+                        isChart -> isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.CHARTS)
+                        isAlbum -> isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.ALBUMS)
+                        else -> true
+                    }
+
+                    if (shouldRender) {
+                        item(key = "yt_home_title_${section.title}_${section.endpoint}") {
+                            NavigationTitle(
+                                title = section.title,
+                                label = section.label,
+                                thumbnail = section.thumbnail?.let { thumbnailUrl ->
+                                    {
+                                        val shape =
+                                            if (section.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(
+                                                ThumbnailCornerRadius
+                                            )
+                                        AsyncImage(
+                                            model = thumbnailUrl.highQualityThumbnail(),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(ListThumbnailSize)
+                                                .clip(shape)
                                         )
-                                    AsyncImage(
-                                        model = thumbnailUrl.highQualityThumbnail(),
-                                        contentDescription = null,
+                                    }
+                                },
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+
+                        item(key = "yt_home_row_${section.title}_${section.endpoint}") {
+                            LazyRow(
+                                contentPadding = WindowInsets.systemBars
+                                    .only(WindowInsetsSides.Horizontal)
+                                    .asPaddingValues(),
+                                modifier = Modifier.animateItem()
+                            ) {
+                                items(section.items, key = { item -> item.id }) { item ->
+                                    ytGridItem(item)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.NEW_RELEASES)) {
+                    explorePage?.newReleaseAlbums?.let { newReleaseAlbums ->
+                        item {
+                            NavigationTitle(
+                                title = stringResource(R.string.new_release_albums),
+                                onClick = {
+                                    navController.navigate("new_release")
+                                },
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+
+                        item {
+                            LazyRow(
+                                contentPadding = WindowInsets.systemBars
+                                    .only(WindowInsetsSides.Horizontal)
+                                    .asPaddingValues(),
+                                modifier = Modifier.animateItem()
+                            ) {
+                                items(
+                                    items = newReleaseAlbums,
+                                    key = { it.id }
+                                ) { album ->
+                                    YouTubeGridItem(
+                                        item = album,
+                                        isActive = mediaMetadata?.album?.id == album.id,
+                                        isPlaying = isPlaying,
+                                        coroutineScope = scope,
                                         modifier = Modifier
-                                            .size(ListThumbnailSize)
-                                            .clip(shape)
+                                            .combinedClickable(
+                                                onClick = {
+                                                    navController.navigate("album/${album.id}")
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        YouTubeAlbumMenu(
+                                                            albumItem = album,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                            .animateItem()
                                     )
                                 }
-                            },
-                            modifier = Modifier.animateItem()
-                        )
-                    }
-
-                    item {
-                        LazyRow(
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
-                            modifier = Modifier.animateItem()
-                        ) {
-                            items(it.items) { item ->
-                                ytGridItem(item)
-                            }
-                        }
-                    }
-                }
-
-                explorePage?.newReleaseAlbums?.let { newReleaseAlbums ->
-                    item {
-                        NavigationTitle(
-                            title = stringResource(R.string.new_release_albums),
-                            onClick = {
-                                navController.navigate("new_release")
-                            },
-                            modifier = Modifier.animateItem()
-                        )
-                    }
-
-                    item {
-                        LazyRow(
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
-                            modifier = Modifier.animateItem()
-                        ) {
-                            items(
-                                items = newReleaseAlbums,
-                                key = { it.id }
-                            ) { album ->
-                                YouTubeGridItem(
-                                    item = album,
-                                    isActive = mediaMetadata?.album?.id == album.id,
-                                    isPlaying = isPlaying,
-                                    coroutineScope = scope,
-                                    modifier = Modifier
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("album/${album.id}")
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    YouTubeAlbumMenu(
-                                                        albumItem = album,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        .animateItem()
-                                )
                             }
                         }
                     }
                 }
 
                 if (isLoading) {
-                    item {
-                        ShimmerHost(
-                            modifier = Modifier.animateItem()
+                    item(key = "home_loading_indicator") {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp)
+                                .animateItem(),
                         ) {
-                            TextPlaceholder(
-                                height = 36.dp,
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .width(250.dp),
-                            )
-                            LazyRow {
-                                items(4) {
-                                    GridItemPlaceHolder()
-                                }
-                            }
+                            LoadingIndicator()
                         }
                     }
                 }
 
-                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
-                    item {
-                        NavigationTitle(
-                            title = stringResource(R.string.forgotten_favorites),
-                            modifier = Modifier.animateItem()
-                        )
-                    }
+                if (isSectionVisible(com.valora.icebeats.constants.MaterialHomeSection.HEAVY_ROTATION)) {
+                    forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
+                        item {
+                            NavigationTitle(
+                                title = stringResource(R.string.forgotten_favorites),
+                                modifier = Modifier.animateItem()
+                            )
+                        }
 
-                    item {
-                        // take min in case list size is less than 4
-                        val rows = min(4, forgottenFavorites.size)
-                        LazyHorizontalGrid(
-                            state = forgottenFavoritesLazyGridState,
-                            rows = GridCells.Fixed(rows),
-                            flingBehavior = rememberSnapFlingBehavior(
-                                forgottenFavoritesSnapLayoutInfoProvider
-                            ),
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(ListItemHeight * rows)
-                                .animateItem()
-                        ) {
-                            items(
-                                items = forgottenFavorites,
-                                key = { it.id }
-                            ) { originalSong ->
-                                val song by database.song(originalSong.id)
-                                    .collectAsState(initial = originalSong)
+                        item {
+                            // take min in case list size is less than 4
+                            val rows = min(4, forgottenFavorites.size)
+                            LazyHorizontalGrid(
+                                state = forgottenFavoritesLazyGridState,
+                                rows = GridCells.Fixed(rows),
+                                flingBehavior = rememberSnapFlingBehavior(
+                                    forgottenFavoritesSnapLayoutInfoProvider
+                                ),
+                                contentPadding = WindowInsets.systemBars
+                                    .only(WindowInsetsSides.Horizontal)
+                                    .asPaddingValues(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(ListItemHeight * rows)
+                                    .animateItem()
+                            ) {
+                                items(
+                                    items = forgottenFavorites,
+                                    key = { it.id }
+                                ) { originalSong ->
+                                    val currentSong = originalSong
 
-                                SongListItem(
-                                    song = song!!,
-                                    showInLibraryIcon = true,
-                                    isActive = song!!.id == mediaMetadata?.id,
-                                    isPlaying = isPlaying,
-                                    modifier = Modifier
-                                        .width(horizontalLazyGridItemWidth)
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (song!!.id == mediaMetadata?.id) {
-                                                    playerConnection.player.togglePlayPause()
-                                                } else {
-                                                    playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                    SongListItem(
+                                        song = currentSong,
+                                        showInLibraryIcon = true,
+                                        isActive = currentSong.id == mediaMetadata?.id,
+                                        isPlaying = isPlaying,
+                                        modifier = Modifier
+                                            .width(horizontalLazyGridItemWidth)
+                                            .combinedClickable(
+                                                onClick = {
+                                                    if (currentSong.id == mediaMetadata?.id) {
+                                                        playerConnection.player.togglePlayPause()
+                                                    } else {
+                                                        playerConnection.playQueue(YouTubeQueue.radio(currentSong.toMediaMetadata()))
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        SongMenu(
+                                                            originalSong = currentSong,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
                                                 }
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = song!!,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        )
-                                )
+                                            )
+                                    )
+                                }
                             }
                         }
                     }
@@ -941,18 +1126,23 @@ fun HomeScreen(
                         },
                         onClick = {
                             fabMenuExpanded = false
-                            val local = when {
-                                allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
-                                allLocalItems.isNotEmpty() -> true
-                                else -> false
-                            }
                             scope.launch(Dispatchers.Main) {
-                                if (local) {
-                                    when (val luckyItem = allLocalItems.random()) {
+                                val localCandidates = allLocalItems
+                                val ytCandidates = allYtItems
+
+                                val chooseLocal = when {
+                                    localCandidates.isNotEmpty() && ytCandidates.isNotEmpty() -> Random.nextFloat() < 0.5
+                                    localCandidates.isNotEmpty() -> true
+                                    ytCandidates.isNotEmpty() -> false
+                                    else -> null
+                                }
+
+                                if (chooseLocal == true) {
+                                    when (val luckyItem = localCandidates.randomOrNull()) {
                                         is Song -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
                                         is Album -> {
                                             val albumWithSongs = withContext(Dispatchers.IO) {
-                                                database.albumWithSongs(luckyItem.id).first()
+                                                runCatching { database.albumWithSongs(luckyItem.id).first() }.getOrNull()
                                             }
                                             albumWithSongs?.let {
                                                 playerConnection.playQueue(LocalAlbumRadio(it))
@@ -961,18 +1151,29 @@ fun HomeScreen(
 
                                         is Artist -> {}
                                         is Playlist -> {}
+                                        null -> {}
                                     }
-                                } else {
-                                    when (val luckyItem = allYtItems.random()) {
+                                } else if (chooseLocal == false) {
+                                    when (val luckyItem = ytCandidates.randomOrNull()) {
                                         is SongItem -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
                                         is AlbumItem -> playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.playlistId))
                                         is ArtistItem -> luckyItem.radioEndpoint?.let {
                                             playerConnection.playQueue(YouTubeQueue(it))
                                         }
 
-                                        is PlaylistItem -> luckyItem.playEndpoint?.let {
+                                        is PlaylistItem -> (luckyItem.playEndpoint ?: luckyItem.radioEndpoint)?.let {
                                             playerConnection.playQueue(YouTubeQueue(it))
                                         }
+                                        null -> {}
+                                    }
+                                } else {
+                                    // Both local and remote collections are empty (initial launch / offline)
+                                    // Gracefully attempt to play a recent song or quick pick from the database without crashing
+                                    val fallbackSong = withContext(Dispatchers.IO) {
+                                        runCatching { database.recentSongs(1).first().firstOrNull() }.getOrNull()
+                                    }
+                                    if (fallbackSong != null) {
+                                        playerConnection.playQueue(YouTubeQueue.radio(fallbackSong.toMediaMetadata()))
                                     }
                                 }
                             }
@@ -992,12 +1193,37 @@ fun HomeScreen(
                             navController.navigate(com.valora.icebeats.ui.screens.musicrecognition.MusicRecognitionRoute)
                         }
                     )
+
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { androidx.compose.material3.Text(stringResource(R.string.airbeats_charts)) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.trending_up),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        onClick = {
+                            fabMenuExpanded = false
+                            navController.navigate("charts")
+                        }
+                    )
                 }
             }
 
-            Indicator(
+            com.valora.icebeats.ui.component.TopFadeBlur(
+                hazeState = hazeState,
+                pageColor = Color.Transparent,
+                scrimColor = Color.Transparent,
+                alpha = blurAlpha,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
+            PullToRefreshDefaults.LoadingIndicator(
                 isRefreshing = isRefreshing,
                 state = pullRefreshState,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
@@ -1007,8 +1233,26 @@ fun HomeScreen(
 }
 @Composable
 fun ModernHomeTopBarInline(
-    navController: NavController
+    navController: NavController,
+    onSearchClick: () -> Unit
 ) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    var isSettingsOpen by rememberSaveable { mutableStateOf(false) }
+    val currentRoute = backStackEntry?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == Screens.Home.route || currentRoute == "home") {
+            isSettingsOpen = false
+        }
+    }
+    val gearRotation by animateFloatAsState(
+        targetValue = if (isSettingsOpen) 360f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "classicSettingsGearRotation"
+    )
+
     val context = LocalContext.current
     val avatarManager = remember { AvatarPreferenceManager(context) }
     val currentSelection by avatarManager
@@ -1019,32 +1263,20 @@ fun ModernHomeTopBarInline(
     val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
 
     val userName = LocalUserName.current
-    val displayName = if (userName.isNotEmpty()) userName else "Hai, selamat datang di IceBeats"
+    val displayName = if (userName.isNotEmpty()) userName else "Friend"
 
     val currentVersion = BuildConfig.VERSION_NAME
     var showUpdateIcon by remember { mutableStateOf(false) }
-    var showUpdateDialog by remember { mutableStateOf(false) }
-    var latestVersionTag by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         try {
             val latestVersion = withContext(Dispatchers.IO) { checkForUpdates() }
-            if (latestVersion != null && isNewerVersion(latestVersion, currentVersion)) {
-                showUpdateIcon = true
-                latestVersionTag = latestVersion
-                showUpdateDialog = true
-            } else {
-                showUpdateIcon = false
-            }
+            showUpdateIcon =
+                latestVersion?.let { isNewerVersion(it, currentVersion) } ?: false
         } catch (_: Exception) {
             showUpdateIcon = false
         }
     }
-
-    var showMyProfileSheet by remember { mutableStateOf(false) }
-    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
-    var showVipDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1063,11 +1295,8 @@ fun ModernHomeTopBarInline(
         ) {
 
             // Avatar and animated ring
-            val rankPreferenceManager = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
-            val currentRank by rankPreferenceManager.displayedRank.collectAsState(initial = null)
-
             Box(
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(72.dp),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -1089,12 +1318,11 @@ fun ModernHomeTopBarInline(
 
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(60.dp)
                         .clip(CircleShape)
-                        .combinedClickable(
-                            onClick = { showMyProfileSheet = true },
-                            onLongClick = { navController.navigate("settings/account") }
-                        ),
+                        .combinedClickable {
+                            navController.navigate("settings/account")
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     when (currentSelection) {
@@ -1135,7 +1363,7 @@ fun ModernHomeTopBarInline(
                                     painter = painterResource(R.drawable.person),
                                     contentDescription = null,
                                     tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
@@ -1156,8 +1384,10 @@ fun ModernHomeTopBarInline(
                 )
 
                 CircleIconButton(
-                    icon = R.drawable.search,
-                    onClick = { navController.navigate("search/") }
+                    icon = R.drawable.newspaper,
+                    onClick = {
+                        navController.navigate("settings/developer_news")
+                    }
                 )
 
                 CircleIconButton(
@@ -1166,12 +1396,10 @@ fun ModernHomeTopBarInline(
                     else
                         R.drawable.settings,
                     onClick = {
-                        if (showUpdateIcon) {
-                            showUpdateDialog = true
-                        } else {
-                            navController.navigate("settings")
-                        }
-                    }
+                        isSettingsOpen = true
+                        navController.navigate("settings")
+                    },
+                    iconModifier = Modifier.graphicsLayer { rotationZ = gearRotation }
                 )
             }
         }
@@ -1185,15 +1413,8 @@ fun ModernHomeTopBarInline(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            val isDefaultGreeting = displayName.isBlank() ||
-                displayName.startsWith("Hai,", ignoreCase = true) ||
-                displayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true) ||
-                displayName.equals("Friend", ignoreCase = true) ||
-                displayName.equals("Guest", ignoreCase = true)
-            val greetingText = if (isDefaultGreeting) "Hai, selamat datang di IceBeats" else "Hi, $displayName"
-
             Text(
-                text = greetingText,
+                text = stringResource(R.string.ui_dynamic_greeting_short, displayName),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -1203,39 +1424,15 @@ fun ModernHomeTopBarInline(
                 )
             )
 
-            if (!isDefaultGreeting) {
-                val homeVipPlan by vipManager.vipPlan.collectAsState(initial = "")
-                val homeVerType = remember(isVip, homeVipPlan) {
-                    com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-                        planName = homeVipPlan,
-                        isVip = isVip
-                    )
-                }
-                if (homeVerType != com.valora.icebeats.ui.component.VerificationType.NONE) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    com.valora.icebeats.ui.component.VerificationBadge(type = homeVerType, size = 18.dp)
-                }
-            }
-
             val context = LocalContext.current
             val rankPrefMgr = remember { RankPreferenceManager(context) }
             val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
-            val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
             val viewModel = com.valora.icebeats.ui.utils.safeHiltViewModel<StatsViewModel>()
             val currentRank by (viewModel?.currentRank ?: kotlinx.coroutines.flow.flowOf(null)).collectAsState(initial = null)
             val totalHours by (viewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
             val coroutineScope = rememberCoroutineScope()
 
-            val actualEarnedRank = remember(totalHours, highestEarnedRank, currentRank) {
-                listOfNotNull(
-                    if (totalHours >= 1.0) icebeatsRank.fromHours(totalHours.toInt()) else null,
-                    highestEarnedRank,
-                    currentRank
-                ).maxByOrNull { it.ordinal }
-            }
-
-            val effectiveRank = displayedRank ?: actualEarnedRank ?: currentRank
-            effectiveRank?.let { rank ->
+            currentRank?.let { rank ->
                 Spacer(modifier = Modifier.width(12.dp))
                 var showBadgeSelector by remember { mutableStateOf(false) }
                 RankBadge(
@@ -1245,7 +1442,7 @@ fun ModernHomeTopBarInline(
                     modifier = Modifier.clickable { showBadgeSelector = true }
                 )
                 if (showBadgeSelector) {
-                    val unlocked = unlockedRanksFromHours(totalHours, actualEarnedRank)
+                    val unlocked = unlockedRanksFromHours(totalHours)
                     BadgeSelector(
                         unlockedRanks = unlocked,
                         currentDisplayed = displayedRank,
@@ -1260,132 +1457,6 @@ fun ModernHomeTopBarInline(
                 }
             }
         }
-    }
-
-    if (showMyProfileSheet) {
-        val namePreferenceManager = remember { com.valora.icebeats.ui.component.NamePreferenceManager(context) }
-        val myName by namePreferenceManager.userName.collectAsState(initial = "")
-        val myEmail by namePreferenceManager.accountEmail.collectAsState(initial = "")
-        val currentUserId = remember { com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager) }
-        val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
-        val myListenMs = remember(currentUserId, myName, myEmail) {
-            statsPrefs.getLong("saved_max_total_listen_ms_$currentUserId", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
-        }
-
-        val myChatUser = remember(currentUserId, myName, myEmail, myListenMs) {
-            com.valora.icebeats.supabase.ChatUser(
-                id = currentUserId,
-                name = myName.ifBlank { myEmail.substringBefore("@").ifBlank { "Saya" } },
-                profileUrl = null,
-                totalListenMs = myListenMs,
-                rank = com.valora.icebeats.ui.component.icebeatsRank.fromHours((myListenMs / 3600000L).toInt()),
-                borderStyle = null,
-                verificationBadge = null
-            )
-        }
-
-        com.valora.icebeats.ui.screens.chat.UserProfileSheet(
-            targetUser = myChatUser,
-            currentUserId = currentUserId,
-            isSelf = true,
-            onDismiss = { showMyProfileSheet = false },
-            onOpenAccountSettings = {
-                showMyProfileSheet = false
-                navController.navigate("settings/account")
-            }
-        )
-    }
-
-    if (showUpdateDialog) {
-        AlertDialog(
-            onDismissRequest = { showUpdateDialog = false },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.update),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(36.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "Pembaruan Tersedia!",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Sudah ada versi terbaru, segera update IceBeats untuk menikmati fitur dan peningkatan terbaru.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Versi Anda",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = "v$currentVersion",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Icon(
-                                painter = painterResource(R.drawable.arrow_forward),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "Versi Terbaru",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = if (latestVersionTag.startsWith("v")) latestVersionTag else "v$latestVersionTag",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showUpdateDialog = false
-                        val updateUrl = "https://icebeats.pages.dev"
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
-                        context.startActivity(intent)
-                    }
-                ) {
-                    Text("Update")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showUpdateDialog = false }
-                ) {
-                    Text("Nanti Dulu")
-                }
-            }
-        )
     }
 }
 
@@ -1449,3 +1520,94 @@ fun AnimatedBeatsRing(
         }
     }
 }
+
+@Composable
+private fun GlassHomeTagsRow(
+    navController: NavController,
+    isLoggedIn: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val glassBg = if (isDark) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    val glassBorder = if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val contentColor = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val haptic = LocalHapticFeedback.current
+
+    val tags = remember(isLoggedIn) {
+        listOfNotNull(
+            Triple("history", R.string.history, R.drawable.history),
+            Triple("stats", R.string.stats, R.drawable.trending_up),
+            Triple("liked", R.string.liked, R.drawable.favorite),
+            Triple("downloads", R.string.offline, R.drawable.download),
+            if (isLoggedIn) Triple("account", R.string.account, R.drawable.person) else null
+        )
+    }
+
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp)
+    ) {
+        items(tags, key = { it.first }) { (id, stringRes, iconRes) ->
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val pressScale by animateFloatAsState(
+                targetValue = if (isPressed) 0.93f else 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "glassTagScale"
+            )
+
+            Box(
+                modifier = Modifier
+                    .scale(pressScale)
+                    .clip(CircleShape)
+                    .background(glassBg)
+                    .border(BorderStroke(1.dp, glassBorder), CircleShape)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(bounded = true),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            when (id) {
+                                "history" -> navController.navigate("history")
+                                "stats" -> navController.navigate("stats")
+                                "liked" -> navController.navigate("auto_playlist/liked")
+                                "downloads" -> navController.navigate("auto_playlist/downloaded")
+                                "account" -> if (isLoggedIn) navController.navigate("account")
+                            }
+                        }
+                    )
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = contentColor.copy(alpha = 0.90f)
+                    )
+                    Text(
+                        text = stringResource(stringRes),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.5.sp,
+                            letterSpacing = 0.2.sp
+                        ),
+                        color = contentColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+

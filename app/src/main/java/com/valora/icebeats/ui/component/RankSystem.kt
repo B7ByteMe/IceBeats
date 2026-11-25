@@ -1,6 +1,7 @@
 package com.valora.icebeats.ui.component
 
-import android.content.Context
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -50,37 +51,37 @@ import com.valora.icebeats.viewmodels.StatsViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Exquisite custom-drawn Compose RankBadge.
+ * Exquisite custom‑drawn Compose RankBadge.
  * Each badge is unique, styled with a harmonious gradient, custom Canvas-drawn emblem, and glowing borders.
  * Requires NO local drawable resource files, preventing compilation errors!
  */
 @Composable
 fun RankBadge(
-    rank: icebeatsRank,
-    displayedRank: icebeatsRank?,
+    rank: IceBeatsRank,
+    displayedRank: IceBeatsRank?,
     size: Dp = 22.dp,
     modifier: Modifier = Modifier,
 ) {
     val badge = displayedRank ?: rank
     val colors = when (badge) {
-        icebeatsRank.Echo -> listOf(Color(0xFF00F2FE), Color(0xFF4FACFE))
-        icebeatsRank.Pulse -> listOf(Color(0xFF00FF87), Color(0xFF60EFFF))
-        icebeatsRank.Bronze -> listOf(Color(0xFFCA7345), Color(0xFFEAA17C))
-        icebeatsRank.Silver -> listOf(Color(0xFFBDC3C7), Color(0xFFE5E9F0))
-        icebeatsRank.Gold -> listOf(Color(0xFFFFD700), Color(0xFFFFA500))
-        icebeatsRank.Platinum -> listOf(Color(0xFFE5E9F0), Color(0xFFB0C4DE))
-        icebeatsRank.Diamond -> listOf(Color(0xFF00F2FE), Color(0xFF9B51E0))
-        icebeatsRank.Elite -> listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
-        icebeatsRank.Master -> listOf(Color(0xFFFF007F), Color(0xFFFF5E62))
-        icebeatsRank.Legend -> listOf(Color(0xFFF12711), Color(0xFFF5AF19))
-        icebeatsRank.Mythic -> listOf(Color(0xFF0575E6), Color(0xFF00F260))
-        icebeatsRank.Immortal -> listOf(Color(0xFF1F1C2C), Color(0xFF928DAB))
-        icebeatsRank.Cosmic -> listOf(Color(0xFF1A1A2E), Color(0xFFE94560))
-        icebeatsRank.Nova -> listOf(Color(0xFFFF416C), Color(0xFFFF4B2B))
-        icebeatsRank.Celestial -> listOf(Color(0xFF7F00FF), Color(0xFFE100FF))
-        icebeatsRank.Godlike -> listOf(Color(0xFFFF007F), Color(0xFFFFD700), Color(0xFF00F2FE))
-        icebeatsRank.Universal -> listOf(Color(0xFF00C6FF), Color(0xFF0072FF))
-        icebeatsRank.Eternal -> listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121))
+        IceBeatsRank.Echo -> listOf(Color(0xFF00F2FE), Color(0xFF4FACFE))
+        IceBeatsRank.Pulse -> listOf(Color(0xFF00FF87), Color(0xFF60EFFF))
+        IceBeatsRank.Bronze -> listOf(Color(0xFFCA7345), Color(0xFFEAA17C))
+        IceBeatsRank.Silver -> listOf(Color(0xFFBDC3C7), Color(0xFFE5E9F0))
+        IceBeatsRank.Gold -> listOf(Color(0xFFFFD700), Color(0xFFFFA500))
+        IceBeatsRank.Platinum -> listOf(Color(0xFFE5E9F0), Color(0xFFB0C4DE))
+        IceBeatsRank.Diamond -> listOf(Color(0xFF00F2FE), Color(0xFF9B51E0))
+        IceBeatsRank.Elite -> listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
+        IceBeatsRank.Master -> listOf(Color(0xFFFF007F), Color(0xFFFF5E62))
+        IceBeatsRank.Legend -> listOf(Color(0xFFF12711), Color(0xFFF5AF19))
+        IceBeatsRank.Mythic -> listOf(Color(0xFF0575E6), Color(0xFF00F260))
+        IceBeatsRank.Immortal -> listOf(Color(0xFF1F1C2C), Color(0xFF928DAB))
+        IceBeatsRank.Cosmic -> listOf(Color(0xFF1A1A2E), Color(0xFFE94560))
+        IceBeatsRank.Nova -> listOf(Color(0xFFFF416C), Color(0xFFFF4B2B))
+        IceBeatsRank.Celestial -> listOf(Color(0xFF7F00FF), Color(0xFFE100FF))
+        IceBeatsRank.Godlike -> listOf(Color(0xFFFF007F), Color(0xFFFFD700), Color(0xFF00F2FE))
+        IceBeatsRank.Universal -> listOf(Color(0xFF00C6FF), Color(0xFF0072FF))
+        IceBeatsRank.Eternal -> listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121))
     }
 
     val gradientBrush = Brush.linearGradient(colors)
@@ -100,10 +101,10 @@ fun RankBadge(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth = if (size > 30.dp) 4f else 2f
             when (badge) {
-                icebeatsRank.Echo -> {
+                IceBeatsRank.Echo -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 4)
                 }
-                icebeatsRank.Pulse -> {
+                IceBeatsRank.Pulse -> {
                     val path = Path().apply {
                         moveTo(0f, this@Canvas.size.height / 2)
                         lineTo(this@Canvas.size.width * 0.3f, this@Canvas.size.height / 2)
@@ -114,7 +115,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush, style = Stroke(strokeWidth))
                 }
-                icebeatsRank.Bronze -> {
+                IceBeatsRank.Bronze -> {
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
                         val cy = this@Canvas.size.height / 2
@@ -129,7 +130,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Silver -> {
+                IceBeatsRank.Silver -> {
                     val path = Path().apply {
                         val w1 = this@Canvas.size.width
                         val h1 = this@Canvas.size.height
@@ -142,7 +143,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Gold -> {
+                IceBeatsRank.Gold -> {
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
                         val cy = this@Canvas.size.height / 2
@@ -159,7 +160,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Platinum -> {
+                IceBeatsRank.Platinum -> {
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
                         val cy = this@Canvas.size.height / 2
@@ -174,7 +175,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Diamond -> {
+                IceBeatsRank.Diamond -> {
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
                         val cy = this@Canvas.size.height / 2
@@ -188,7 +189,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Elite -> {
+                IceBeatsRank.Elite -> {
                     val path = Path().apply {
                         val w1 = this@Canvas.size.width
                         val h1 = this@Canvas.size.height
@@ -203,11 +204,11 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Master -> {
+                IceBeatsRank.Master -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 2.5f, style = Stroke(strokeWidth))
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 4.8f)
                 }
-                icebeatsRank.Legend -> {
+                IceBeatsRank.Legend -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 3f)
                     val starPath = Path().apply {
                         val cx = this@Canvas.size.width / 2
@@ -225,7 +226,7 @@ fun RankBadge(
                     }
                     drawPath(starPath, brush = Brush.linearGradient(listOf(Color.White, Color.Transparent)))
                 }
-                icebeatsRank.Mythic -> {
+                IceBeatsRank.Mythic -> {
                     val path = Path().apply {
                         val w1 = this@Canvas.size.width
                         val h1 = this@Canvas.size.height
@@ -237,7 +238,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush, style = Stroke(strokeWidth * 1.5f))
                 }
-                icebeatsRank.Immortal -> {
+                IceBeatsRank.Immortal -> {
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
                         val cy = this@Canvas.size.height / 2
@@ -251,11 +252,11 @@ fun RankBadge(
                     drawPath(path, brush = gradientBrush)
                     drawLine(color = Color.White.copy(alpha = 0.6f), start = Offset(this.size.width / 2, this.size.height * 0.2f), end = Offset(this.size.width / 2, this.size.height * 0.8f), strokeWidth = strokeWidth)
                 }
-                icebeatsRank.Cosmic -> {
+                IceBeatsRank.Cosmic -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 3f)
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 1.8f, style = Stroke(strokeWidth / 1.5f))
                 }
-                icebeatsRank.Nova -> {
+                IceBeatsRank.Nova -> {
                     for (i in 0 until 8) {
                         val angle = (i * Math.PI / 4).toFloat()
                         val dx = (Math.cos(angle.toDouble()) * this@Canvas.size.width / 2.2).toFloat()
@@ -264,7 +265,7 @@ fun RankBadge(
                     }
                     drawCircle(color = Color.White, radius = this.size.minDimension / 5f)
                 }
-                icebeatsRank.Celestial -> {
+                IceBeatsRank.Celestial -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 2.6f, style = Stroke(strokeWidth))
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
@@ -279,7 +280,7 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Godlike -> {
+                IceBeatsRank.Godlike -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 2.4f, style = Stroke(strokeWidth * 1.5f))
                     val path = Path().apply {
                         val cx = this@Canvas.size.width / 2
@@ -295,12 +296,12 @@ fun RankBadge(
                     }
                     drawPath(path, brush = gradientBrush)
                 }
-                icebeatsRank.Universal -> {
+                IceBeatsRank.Universal -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 2.2f, style = Stroke(strokeWidth))
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 3.2f, style = Stroke(strokeWidth * 0.8f))
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 5.2f)
                 }
-                icebeatsRank.Eternal -> {
+                IceBeatsRank.Eternal -> {
                     drawCircle(brush = gradientBrush, radius = this.size.minDimension / 2.1f, style = Stroke(strokeWidth * 1.6f))
                     val path = Path().apply {
                         val w1 = this@Canvas.size.width
@@ -319,11 +320,11 @@ fun RankBadge(
 }
 
 /**
- * Animated popup that celebrates a rank-up with state-of-the-art entrance springs, rotating celestial borders, and glowing backgrounds.
+ * Animated popup that celebrates a rank‑up with state‑of‑the‑art entrance springs, rotating celestial borders, and glowing backgrounds.
  */
 @Composable
 fun RankUpPopup(
-    newRank: icebeatsRank,
+    newRank: IceBeatsRank,
     onDismiss: () -> Unit,
 ) {
     var visible by remember { mutableStateOf(true) }
@@ -422,7 +423,7 @@ fun RankUpPopup(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "NEW TIER UNLOCKED!",
+                            text = stringResource(R.string.ui_sweep_new_tier_unlocked),
                             color = Color(0xFFFFD700),
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Black,
@@ -481,7 +482,7 @@ fun RankUpPopup(
                                 .height(48.dp)
                         ) {
                             Text(
-                                text = "AWESOME!",
+                                text = stringResource(R.string.ui_sweep_awesome),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp
@@ -509,65 +510,21 @@ fun RankBadgeSelector(
 
     val rankPrefMgr = remember { RankPreferenceManager(context) }
     val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
-    val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
 
-    val nameManager = remember { NamePreferenceManager(context) }
-    val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE) }
-    val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
-    var savedListenMs by remember(currentAccountEmail) {
-        val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-        mutableLongStateOf(
-            if (!uid.startsWith("device-")) statsPrefs.getLong("saved_max_total_listen_ms_$uid", 0L)
-            else statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
-        )
-    }
-    DisposableEffect(statsPrefs, currentAccountEmail) {
-        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-            if (key != null && (key == "saved_max_total_listen_ms_$uid" || (uid.startsWith("device-") && key == "saved_max_total_listen_ms"))) {
-                savedListenMs = if (!uid.startsWith("device-")) prefs.getLong("saved_max_total_listen_ms_$uid", 0L)
-                else prefs.getLong("saved_max_total_listen_ms_$uid", prefs.getLong("saved_max_total_listen_ms", 0L))
-            }
-        }
-        statsPrefs.registerOnSharedPreferenceChangeListener(listener)
-        onDispose {
-            statsPrefs.unregisterOnSharedPreferenceChangeListener(listener)
-        }
-    }
-    val cloudHours = (savedListenMs / (1000.0 * 3600.0))
-    val effectiveHours = maxOf(totalHours, cloudHours)
-    val earnedRank = if (effectiveHours >= 1.0) icebeatsRank.fromHours(effectiveHours.toInt()) else null
-
-    // Simpan rank tertinggi yang berhasil diraih agar tidak pernah berkurang saat ganti badge kosmetik
-    LaunchedEffect(earnedRank) {
-        earnedRank?.let { rankPrefMgr.saveHighestEarnedRank(it) }
-    }
-
-    // Rank tertinggi akun ini: HANYA berdasarkan jam dengar & pencapaian nyata (BUKAN displayedRank kosmetik!)
-    val highestRank = listOfNotNull(
-        earnedRank,
-        highestEarnedRank,
-        currentRank
-    ).maxByOrNull { it.ordinal }
-
-    val unlockedRanks = remember(highestRank) {
-        if (highestRank != null) {
-            icebeatsRank.values().filter { it.ordinal <= highestRank.ordinal }.toSet()
-        } else {
-            emptySet()
-        }
+    val unlockedRanks = remember(totalHours) {
+        unlockedRanksFromHours(totalHours)
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Rank Badge Customisation",
+            text = stringResource(R.string.ui_text_rank_badge_customisation),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Showcase any of your unlocked badges next to your name. Changing this badge does not affect your actual stats ranking.",
+            text = stringResource(R.string.ui_sweep_showcase_any_of_your_unlocked_badges_next_to_your_name_changing_t),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
@@ -611,13 +568,13 @@ fun RankBadgeSelector(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Auto-Show Highest Rank",
+                    text = stringResource(R.string.ui_sweep_auto_show_highest_rank),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Current: ${highestRank?.name ?: "No rank unlocked (needs 1h)"}",
+                    text = "Current: ${currentRank?.name ?: "No rank unlocked (needs 1h)"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -625,7 +582,7 @@ fun RankBadgeSelector(
             if (displayedRank == null) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.ui_text_selected),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -635,7 +592,7 @@ fun RankBadgeSelector(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "All Ranks",
+            text = stringResource(R.string.ui_text_all_ranks),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -648,9 +605,9 @@ fun RankBadgeSelector(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             maxItemsInEachRow = 3
         ) {
-            icebeatsRank.values().forEach { rank ->
+            IceBeatsRank.values().forEach { rank ->
                 val isUnlocked = unlockedRanks.contains(rank)
-                val isSelected = (displayedRank == rank) || (displayedRank == null && highestRank == rank)
+                val isSelected = displayedRank == rank
 
                 Box(
                     modifier = Modifier
@@ -719,7 +676,7 @@ fun RankBadgeSelector(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Lock,
-                                contentDescription = "Locked",
+                                contentDescription = stringResource(R.string.ui_a11y_locked),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
                                 modifier = Modifier
                                     .padding(6.dp)
@@ -738,14 +695,14 @@ fun RankBadgeSelector(
  */
 @Composable
 fun BadgeSelector(
-    unlockedRanks: List<icebeatsRank>,
-    currentDisplayed: icebeatsRank?,
-    onSelect: (icebeatsRank?) -> Unit,
+    unlockedRanks: List<IceBeatsRank>,
+    currentDisplayed: IceBeatsRank?,
+    onSelect: (IceBeatsRank?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Badge") },
+        title = { Text(stringResource(R.string.ui_text_select_badge)) },
         text = {
             Column {
                 Row(
@@ -755,7 +712,7 @@ fun BadgeSelector(
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Auto (real rank)", fontWeight = if (currentDisplayed == null) FontWeight.Bold else FontWeight.Normal)
+                    Text(stringResource(R.string.auto_real_rank), fontWeight = if (currentDisplayed == null) FontWeight.Bold else FontWeight.Normal)
                 }
                 unlockedRanks.forEach { rank ->
                     Row(
@@ -772,17 +729,10 @@ fun BadgeSelector(
                 }
             }
         },
-        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { Button(onClick = onDismiss) { Text(stringResource(R.string.close)) } }
     )
 }
 
-fun unlockedRanksFromHours(
-    hours: Double,
-    activeRank: icebeatsRank? = null
-): List<icebeatsRank> {
-    val h = hours.toInt()
-    val fromHours = if (h >= 1) icebeatsRank.fromHours(h) else null
-    val highest = listOfNotNull(fromHours, activeRank).maxByOrNull { it.ordinal }
-    if (highest == null) return emptyList()
-    return icebeatsRank.values().filter { it.ordinal <= highest.ordinal }
+fun unlockedRanksFromHours(hours: Double): List<IceBeatsRank> {
+    return IceBeatsRank.values().filter { hours >= it.thresholdHours }
 }

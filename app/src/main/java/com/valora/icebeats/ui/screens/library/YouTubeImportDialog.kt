@@ -17,7 +17,7 @@ import com.valora.icebeats.R
 import com.valora.icebeats.db.entities.PlaylistEntity
 import com.valora.icebeats.db.entities.PlaylistSongMap
 import com.valora.icebeats.innertube.YouTube
-import com.valora.icebeats.innertube.utils.completed
+import com.valora.icebeats.innertube.utils.completedPlaylistPage
 import com.valora.icebeats.models.toMediaMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,7 +46,7 @@ fun YouTubeImportDialog(
         icon = {
             Icon(
                 painter = painterResource(R.drawable.youtube),
-                contentDescription = "YouTube",
+                contentDescription = stringResource(R.string.ui_text_youtube),
                 modifier = Modifier.size(32.dp),
                 tint = Color.Unspecified
             )
@@ -84,14 +84,14 @@ fun YouTubeImportDialog(
                     )
                 } else {
                     Text(
-                        text = "Paste a YouTube or YouTube Music playlist link below to import it to your library:",
+                        text = stringResource(R.string.ui_sweep_paste_a_youtube_or_youtube_music_playlist_link_below_to_import_it),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = url,
                         onValueChange = { url = it },
-                        label = { Text("YouTube Playlist Link") },
+                        label = { Text(stringResource(R.string.ui_text_youtube_playlist_link)) },
                         placeholder = { Text("https://www.youtube.com/playlist?list=...") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth(),
@@ -123,8 +123,8 @@ fun YouTubeImportDialog(
                                 val cleanBrowseId = if (playlistId.startsWith("VL")) playlistId else "VL$playlistId"
                                 val rawId = if (playlistId.startsWith("VL")) playlistId.removePrefix("VL") else playlistId
 
-                                val playlistPage = YouTube.playlist(rawId).completed().getOrNull()
-                                    ?: YouTube.playlist(cleanBrowseId).completed().getOrNull()
+                                val playlistPage = YouTube.playlist(rawId).completedPlaylistPage().getOrNull()
+                                    ?: YouTube.playlist(cleanBrowseId).completedPlaylistPage().getOrNull()
 
                                 if (playlistPage == null) {
                                     withContext(Dispatchers.Main) {
@@ -142,15 +142,12 @@ fun YouTubeImportDialog(
                                     statusText = "Saving $total songs to library..."
                                 }
 
-                                val newPlaylistId = PlaylistEntity.generatePlaylistId()
                                 val playlistEntity = PlaylistEntity(
-                                    id = newPlaylistId,
                                     name = playlistTitle,
-                                    browseId = null,
-                                    isEditable = true,
-                                    bookmarkedAt = java.time.LocalDateTime.now(),
+                                    browseId = cleanBrowseId,
+                                    isEditable = false,
                                     remoteSongCount = songs.size
-                                )
+                                ).toggleLike()
 
                                 database.transaction {
                                     insert(playlistEntity)
@@ -161,7 +158,7 @@ fun YouTubeImportDialog(
                                         .mapIndexed { index, song ->
                                             PlaylistSongMap(
                                                 songId = song.id,
-                                                playlistId = newPlaylistId,
+                                                playlistId = playlistEntity.id,
                                                 position = index
                                             )
                                         }
@@ -184,7 +181,7 @@ fun YouTubeImportDialog(
                     },
                     enabled = url.isNotBlank()
                 ) {
-                    Text("Import Playlist")
+                    Text(stringResource(R.string.ui_text_import_playlist))
                 }
             }
         },

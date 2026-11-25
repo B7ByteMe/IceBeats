@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -148,7 +148,7 @@ fun UnifiedShapeBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Shape Selector",
+                text = stringResource(R.string.ui_text_shape_selector),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
@@ -156,7 +156,7 @@ fun UnifiedShapeBottomSheet(
             )
 
             Text(
-                text = "Customize shapes for all buttons",
+                text = stringResource(R.string.ui_text_customize_shapes_for_all_buttons),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 20.dp)
@@ -235,7 +235,7 @@ private fun SmallButtonShapeItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    // Animaci•n de escala suave
+    // Animación de escala suave
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.05f else 1f,
         animationSpec = spring(
@@ -245,7 +245,7 @@ private fun SmallButtonShapeItem(
         label = "scale"
     )
 
-    // Transici•n de color del contenedor
+    // Transición de color del contenedor
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected)
             MaterialTheme.colorScheme.primaryContainer
@@ -255,7 +255,7 @@ private fun SmallButtonShapeItem(
         label = "backgroundColor"
     )
 
-    // Color del borde con transici•n
+    // Color del borde con transición
     val borderColor by animateColorAsState(
         targetValue = if (isSelected)
             MaterialTheme.colorScheme.primary
@@ -310,7 +310,7 @@ private fun SmallButtonShapeItem(
 }
 
 /**
- * Bot•n selector unificado para todas las formas (UN SOLO BOT•N)
+ * Botón selector unificado para todas las formas (UN SOLO BOTÓN)
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -326,10 +326,10 @@ fun UnifiedShapeSelectorButton(
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    // UN SOLO BOT•N que muestra un resumen
+    // UN SOLO BOTÓN que muestra un resumen
     PreferenceEntry(
-        title = { Text("Shape Selector") },
-        description = "Customize button shapes",
+        title = { Text(stringResource(R.string.ui_text_shape_selector)) },
+        description = stringResource(R.string.ui_extra_customize_button_shapes),
         icon = {
             Icon(
                 painter = painterResource(R.drawable.scatter_plot),

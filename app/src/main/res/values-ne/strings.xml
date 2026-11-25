@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -365,7 +365,7 @@
     <string name="backup_create_failed">"ब्याकअप सिर्जना गर्न सकिएन"</string>
     <string name="restore_failed">"ब्याकअप पुनर्स्थापित गर्न असफल भयो"</string>
     <string name="discord_integration">"डिसकर्ड एकीकरण"</string>
-    <string name="discord_information">"icebeats ले तपाईंको Discord खाताको स्थिति सेट गर्न KizzyRPC पुस्तकालय प्रयोग गर्दछ। यसमा Discord गेटवे जडान प्रयोग गर्नु समावेश छ, जुन Discord को TOS को उल्लङ्घन मान्न सकिन्छ। यद्यपि, यस कारणले गर्दा प्रयोगकर्ता खाताहरू निलम्बित भएको कुनै ज्ञात घटनाहरू छैनन्। आफ्नै जोखिममा प्रयोग गर्नुहोस्। OpenTunne ले तपाईंको टोकन मात्र निकाल्नेछ, र बाँकी सबै कुरा स्थानीय रूपमा भण्डारण गरिनेछ।"</string>
+    <string name="discord_information">"IceBeats ले तपाईंको Discord खाताको स्थिति सेट गर्न KizzyRPC पुस्तकालय प्रयोग गर्दछ। यसमा Discord गेटवे जडान प्रयोग गर्नु समावेश छ, जुन Discord को TOS को उल्लङ्घन मान्न सकिन्छ। यद्यपि, यस कारणले गर्दा प्रयोगकर्ता खाताहरू निलम्बित भएको कुनै ज्ञात घटनाहरू छैनन्। आफ्नै जोखिममा प्रयोग गर्नुहोस्। OpenTunne ले तपाईंको टोकन मात्र निकाल्नेछ, र बाँकी सबै कुरा स्थानीय रूपमा भण्डारण गरिनेछ।"</string>
     <string name="dismiss">"खारेज गर्नुहोस्"</string>
     <string name="options">"विकल्पहरू"</string>
     <string name="preview">"पूर्वावलोकन"</string>

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.shazamkit
+package com.valora.icebeats.shazamkit
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer

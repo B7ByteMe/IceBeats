@@ -2,6 +2,7 @@ package com.valora.icebeats.playback.queues
 
 import androidx.media3.common.MediaItem
 import com.valora.icebeats.innertube.YouTube
+import com.valora.icebeats.innertube.models.SongItem
 import com.valora.icebeats.innertube.models.WatchEndpoint
 import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.models.MediaMetadata
@@ -15,16 +16,105 @@ class YouTubeQueue(
     private var continuation: String? = null
 
     override suspend fun getInitialStatus(): Queue.Status {
+        if (endpoint.videoId?.startsWith("JS:") == true || preloadItem?.id?.startsWith("JS:") == true) {
+            val jioItem = preloadItem?.toMediaItem()
+            val title = preloadItem?.title.orEmpty()
+            val artist = preloadItem?.artists?.firstOrNull()?.name.orEmpty()
+            val query = "$title $artist".trim()
+
+            var ytMatchedEndpoint: WatchEndpoint? = null
+            if (query.isNotEmpty()) {
+                withContext(IO) {
+                    runCatching {
+                        val searchRes = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                        val match = searchRes?.items?.firstOrNull() as? SongItem
+                        if (match != null) {
+                            ytMatchedEndpoint = WatchEndpoint(videoId = match.id)
+                        }
+                    }
+                }
+            }
+
+            if (ytMatchedEndpoint != null) {
+                val nextResult = withContext(IO) {
+                    runCatching { YouTube.next(ytMatchedEndpoint!!).getOrNull() }.getOrNull()
+                }
+                if (nextResult != null) {
+                    endpoint = nextResult.endpoint
+                    continuation = nextResult.continuation
+                    val recItems = nextResult.items.map { it.toMediaItem() }
+                    val allItems = if (jioItem != null) {
+                        listOf(jioItem) + recItems.filter { it.mediaId != jioItem.mediaId }
+                    } else {
+                        recItems
+                    }
+                    return Queue.Status(
+                        title = nextResult.title ?: preloadItem?.title,
+                        items = allItems,
+                        mediaItemIndex = 0,
+                    )
+                }
+            }
+
+            // Fallback: If YouTube radio matching failed, play the JioSaavn item standalone
+            if (jioItem != null) {
+                return Queue.Status(
+                    title = preloadItem?.title,
+                    items = listOf(jioItem),
+                    mediaItemIndex = 0,
+                )
+            }
+        }
+
         val nextResult =
             withContext(IO) {
-                YouTube.next(endpoint, continuation).getOrThrow()
+                runCatching {
+                    YouTube.next(endpoint, continuation).getOrThrow()
+                }.getOrNull()
             }
+
+        if (nextResult == null) {
+            val singleItem = preloadItem?.toMediaItem()
+            val items = if (singleItem != null) listOf(singleItem) else emptyList()
+            return Queue.Status(
+                title = preloadItem?.title,
+                items = items,
+                mediaItemIndex = 0,
+            )
+        }
+
+        val seedVideoId = endpoint.videoId ?: preloadItem?.id
         endpoint = nextResult.endpoint
         continuation = nextResult.continuation
+
+        val rawItems = nextResult.items.map { it.toMediaItem() }
+        val targetId = seedVideoId
+
+        val targetIndex = if (targetId != null) {
+            rawItems.indexOfFirst { it.mediaId == targetId }
+        } else -1
+
+        val (finalItems, finalIndex) = when {
+            preloadItem != null -> {
+                if (targetIndex != -1) {
+                    rawItems to targetIndex
+                } else {
+                    val prepended = listOf(preloadItem.toMediaItem()) + rawItems.filter { it.mediaId != preloadItem.id }
+                    prepended to 0
+                }
+            }
+            targetIndex != -1 -> {
+                rawItems to targetIndex
+            }
+            else -> {
+                rawItems to (nextResult.currentIndex ?: 0).coerceIn(0, (rawItems.size - 1).coerceAtLeast(0))
+            }
+        }
+
         return Queue.Status(
-            title = nextResult.title,
-            items = nextResult.items.map { it.toMediaItem() },
-            mediaItemIndex = nextResult.currentIndex ?: 0,
+            title = nextResult.title ?: preloadItem?.title,
+            items = finalItems,
+            mediaItemIndex = finalIndex,
         )
     }
 
@@ -33,8 +123,10 @@ class YouTubeQueue(
     override suspend fun nextPage(): List<MediaItem> {
         val nextResult =
             withContext(IO) {
-                YouTube.next(endpoint, continuation).getOrThrow()
-            }
+                runCatching {
+                    YouTube.next(endpoint, continuation).getOrThrow()
+                }.getOrNull()
+            } ?: return emptyList()
         endpoint = nextResult.endpoint
         continuation = nextResult.continuation
         return nextResult.items.map { it.toMediaItem() }

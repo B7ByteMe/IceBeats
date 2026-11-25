@@ -65,9 +65,15 @@ import androidx.palette.graphics.Palette
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.compose.runtime.DisposableEffect
 import com.valora.icebeats.LocalDatabase
 import com.valora.icebeats.LocalPlayerConnection
 import com.valora.icebeats.R
+import com.valora.icebeats.constants.AutoTranslateKey
+import com.valora.icebeats.constants.ReplaceOriginalLyricsWithTranslationKey
+import com.valora.icebeats.constants.TranslateLanguageKey
+import com.valora.icebeats.lyrics.LyricsTranslationHelper
+import com.valora.icebeats.utils.rememberPreference
 import com.valora.icebeats.db.entities.LyricsEntity
 import com.valora.icebeats.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.valora.icebeats.extensions.togglePlayPause
@@ -102,6 +108,8 @@ fun SpotifyLyrics(
     val serviceLyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
     var fetchedLyricsEntity by remember { mutableStateOf<LyricsEntity?>(null) }
     val currentLyricsEntity = fetchedLyricsEntity ?: serviceLyricsEntity
+    val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
+    var showAudioPipelineDialog by rememberSaveable { mutableStateOf(false) }
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
@@ -127,6 +135,33 @@ fun SpotifyLyrics(
                 .mapIndexed { index, line -> LyricsEntry(index * 2500L, line) }
         }
     }
+    val replaceOriginalLyrics by rememberPreference(ReplaceOriginalLyricsWithTranslationKey, false)
+    val translationVersion by LyricsTranslationHelper.translationVersion.collectAsState()
+    val autoTranslate by rememberPreference(AutoTranslateKey, false)
+    val targetLanguage by rememberPreference(TranslateLanguageKey, "hi-Latn")
+
+    LaunchedEffect(mediaMetadata?.id) {
+        mediaMetadata?.id?.let { LyricsTranslationHelper.onSongChanged(it) }
+    }
+
+    DisposableEffect(lines) {
+        LyricsTranslationHelper.registerLyrics(lines)
+        onDispose {
+            LyricsTranslationHelper.unregisterLyrics(lines)
+        }
+    }
+
+    LaunchedEffect(lines, mediaMetadata?.id, targetLanguage, translationVersion, autoTranslate) {
+        val songId = mediaMetadata?.id ?: return@LaunchedEffect
+        if (lines.isEmpty()) return@LaunchedEffect
+        LyricsTranslationHelper.loadTranslationsForSong(
+            lyrics = lines,
+            context = context,
+            songId = songId,
+            preferredLanguageCode = targetLanguage
+        )
+    }
+
     val activeLineIndex = remember(lines, position) {
         lines.indexOfLast { it.time <= position }.coerceAtLeast(0)
     }
@@ -196,9 +231,9 @@ fun SpotifyLyrics(
 
     LaunchedEffect(playbackState) {
         while (isActive) {
-            position = playerConnection.player.currentPosition
+            position = sliderPosition ?: playerConnection.player.currentPosition
             duration = playerConnection.player.duration
-            delay(250)
+            delay(16)
         }
     }
 
@@ -208,21 +243,33 @@ fun SpotifyLyrics(
         }
     }
 
+    if (showAudioPipelineDialog) {
+        AudioPipelineDialog(
+            currentFormat = currentFormat,
+            mediaMetadata = mediaMetadata,
+            onDismiss = { showAudioPipelineDialog = false }
+        )
+    }
+
+    val isBlurDisabled = com.valora.icebeats.utils.isBlurDisabled()
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        AsyncImage(
-            model = mediaMetadata?.thumbnailUrl?.highQualityThumbnail(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(120.dp)
-                .alpha(0.34f)
-                .scale(1.16f)
-        )
+        if (!isBlurDisabled) {
+            AsyncImage(
+                model = mediaMetadata?.thumbnailUrl?.highQualityThumbnail(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(120.dp)
+                    .alpha(0.34f)
+                    .scale(1.16f)
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -301,8 +348,11 @@ fun SpotifyLyrics(
                         items(lines.size) { index ->
                             val isCurrent = index == activeLineIndex
                             val isPast = index < activeLineIndex
+                            val item = lines[index]
+                            val translatedText by item.translatedTextFlow.collectAsState()
+                            val displayText = if (replaceOriginalLyrics && !translatedText.isNullOrBlank()) translatedText!! else item.text
                             Text(
-                                text = lines[index].text,
+                                text = displayText,
                                 style = if (isCurrent) {
                                     MaterialTheme.typography.displaySmall.copy(fontFamily = SpotifyLyricsFontFamily, fontSize = 34.sp, fontWeight = FontWeight.Bold)
                                 } else {
@@ -316,8 +366,8 @@ fun SpotifyLyrics(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable(enabled = lines[index].time > 0) {
-                                        playerConnection.player.seekTo(lines[index].time)
+                                    .clickable(enabled = item.time > 0) {
+                                        playerConnection.player.seekTo(item.time)
                                     }
                             )
                         }
@@ -359,13 +409,20 @@ fun SpotifyLyrics(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = makeTimeString(shownPosition.coerceAtLeast(0L)),
                     style = MaterialTheme.typography.labelMedium.copy(fontFamily = SpotifyLyricsFontFamily, fontSize = 13.sp),
                     color = Color.White.copy(alpha = 0.64f),
                 )
-                Spacer(Modifier.weight(1f))
+                AudioQualityTag(
+                    currentFormat = currentFormat,
+                    mediaMetadata = mediaMetadata,
+                    tint = Color.White,
+                    onClick = { showAudioPipelineDialog = true },
+                )
                 Text(
                     text = makeTimeString(safeDuration),
                     style = MaterialTheme.typography.labelMedium.copy(fontFamily = SpotifyLyricsFontFamily, fontSize = 13.sp),

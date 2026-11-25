@@ -1,6 +1,8 @@
 package com.valora.icebeats.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -23,6 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import com.valora.icebeats.constants.LiquidGlassKey
+import com.valora.icebeats.utils.rememberPreference
+import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.remember
 
 val LocalMenuState = compositionLocalOf { MenuState() }
 
@@ -54,15 +61,52 @@ fun BottomSheetMenu(
     background: Color = MaterialTheme.colorScheme.surface,
 ) {
     val focusManager = LocalFocusManager.current
+    val (enableLiquidGlass) = rememberPreference(LiquidGlassKey, false)
+    val isFrosted = isFrostedGlassUiEnabled()
+    val backdrop = LocalBackdrop.current
+    val layer = rememberGraphicsLayer()
+    val luminanceAnimation = remember { Animatable(0.3f) }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     if (state.isVisible) {
+        val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        val containerColor = if (enableLiquidGlass && !isFrosted && backdrop != null) {
+            Color.Transparent
+        } else if (isFrosted) {
+            popupGlassContainerColor(frosted = true)
+        } else {
+            background
+        }
+
+        val sheetModifier = modifier.fillMaxHeight().then(
+            if (enableLiquidGlass && !isFrosted && backdrop != null) {
+                Modifier.drawBackdropCustomShape(
+                    backdrop = backdrop,
+                    layer = layer,
+                    luminanceAnimation = luminanceAnimation.value,
+                    shape = sheetShape
+                )
+            } else if (isFrosted) {
+                Modifier.border(
+                    androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                    ),
+                    sheetShape
+                )
+            } else {
+                Modifier
+            }
+        )
+
         ModalBottomSheet(
             onDismissRequest = {
                 focusManager.clearFocus()
                 state.isVisible = false
             },
-            containerColor = background,
+            containerColor = containerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = sheetShape,
             dragHandle = {
                 Box(
                     modifier = Modifier
@@ -72,7 +116,7 @@ fun BottomSheetMenu(
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                 )
             },
-            modifier = modifier.fillMaxHeight()
+            modifier = sheetModifier
         ) {
             Column(
                 modifier = Modifier
@@ -84,3 +128,7 @@ fun BottomSheetMenu(
         }
     }
 }
+
+
+
+

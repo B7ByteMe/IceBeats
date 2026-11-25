@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -64,8 +64,9 @@ fun ReleaseNotesCard() {
 suspend fun fetchReleaseNotesText(): List<String> {
     return withContext(Dispatchers.IO) {
         try {
-            val document =
-                Jsoup.connect("https://icebeats.pages.dev/releases/latest").get()
+            val releaseUrl = com.valora.icebeats.utils.RemoteConfigManager.getLatestReleasePageUrl()
+            if (releaseUrl.isBlank()) return@withContext emptyList<String>()
+            val document = Jsoup.connect(releaseUrl).get()
             val changelogElement = document.selectFirst(".markdown-body")
             val htmlContent = changelogElement?.html() ?: "No release notes found"
 

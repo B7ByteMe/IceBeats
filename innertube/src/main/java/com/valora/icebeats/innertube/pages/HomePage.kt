@@ -1,6 +1,5 @@
 /*
- * OpenTune Project Original (2026)
- * Arturo254 (github.com/Arturo254)
+ * AirBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -21,7 +20,7 @@ import com.valora.icebeats.innertube.models.oddElements
 import com.valora.icebeats.innertube.models.filterExplicit
 
 data class HomePage(
-    val chips: List<Chip>? = null,
+    val chips: List<Chip>?,
     val sections: List<Section>,
     val continuation: String? = null,
 ) {

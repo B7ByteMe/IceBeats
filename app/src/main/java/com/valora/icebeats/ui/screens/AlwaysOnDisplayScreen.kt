@@ -1,7 +1,7 @@
-﻿@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -15,6 +15,7 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Build
+import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -117,6 +118,7 @@ import com.valora.icebeats.constants.AodFullscreenKey
 import com.valora.icebeats.constants.AodShowArtistKey
 import com.valora.icebeats.constants.AodShowControlsKey
 import com.valora.icebeats.constants.AodShowProgressKey
+import com.valora.icebeats.constants.FullScreenModeKey
 import com.valora.icebeats.constants.AodShowTimeKey
 import com.valora.icebeats.constants.AodShowTitleKey
 import com.valora.icebeats.constants.AodStyle
@@ -142,9 +144,9 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
-// ---------------------------------------------------------------------------
-//  Utilidad: extrae el color dominante de la portada v•a Palette API
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+//  Utilidad: extrae el color dominante de la portada vía Palette API
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun rememberDominantColor(thumbnailUrl: String?): Color {
@@ -160,7 +162,7 @@ private fun rememberDominantColor(thumbnailUrl: String?): Color {
             val req = ImageRequest.Builder(context)
                 .data(thumbnailUrl)
                 .allowHardware(false)   // Palette necesita bitmap de software
-                .size(128, 128)         // Tama•o peque•o es suficiente y m•s r•pido
+                .size(128, 128)         // Tamaño pequeño es suficiente y más rápido
                 .build()
             val result = context.imageLoader.execute(req)
             if (result is SuccessResult) {
@@ -180,9 +182,9 @@ private fun rememberDominantColor(thumbnailUrl: String?): Color {
     return dominantColor
 }
 
-// ---------------------------------------------------------------------------
-//  Estado compartido entre transiciones • clave de sincronizaci•n
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+//  Estado compartido entre transiciones — clave de sincronización
+// ═══════════════════════════════════════════════════════════════════════════
 
 private data class AodMediaState(
     val id: String?,
@@ -191,7 +193,6 @@ private data class AodMediaState(
     val artist: String,
 )
 
-@RequiresApi(Build.VERSION_CODES.R)
 @Composable
 fun AlwaysOnDisplayScreen(navController: NavController) {
     val playerConnection = LocalPlayerConnection.current ?: run {
@@ -206,13 +207,25 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
     val window = dialogWindow ?: activity?.window
 
     val (fullscreenMode) = rememberPreference(AodFullscreenKey, true)
+    val (fullScreenMode) = rememberPreference(FullScreenModeKey, false)
 
-    DisposableEffect(Unit, fullscreenMode) {
+    DisposableEffect(Unit, fullscreenMode, fullScreenMode) {
         view.keepScreenOn = true
 
-        if (fullscreenMode && window != null) {
+        if ((fullscreenMode || fullScreenMode) && window != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.attributes = window.attributes.apply {
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                window.attributes = window.attributes.apply {
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
             WindowCompat.setDecorFitsSystemWindows(window, false)
-            val insetsController = WindowInsetsControllerCompat(window, view)
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             insetsController.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
@@ -220,14 +233,14 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
 
         onDispose {
             view.keepScreenOn = false
-            if (window != null) {
-                val insetsController = WindowInsetsControllerCompat(window, view)
+            if (window != null && !fullScreenMode) {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
                 insetsController.show(WindowInsetsCompat.Type.systemBars())
             }
         }
     }
 
-    // -- Preferencias ----------------------------------------------------
+    // ── Preferencias ────────────────────────────────────────────────────
     val (rawStyle) = rememberPreference(AodStyleKey, AodStyle.CLASSIC.name)
     val (rawShape) = rememberPreference(AodArtShapeKey, AodArtShape.ROUNDED.name)
     val (darkness) = rememberPreference(AodDarknessKey, 0.55f)
@@ -253,7 +266,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
         runCatching { AodControlStyle.valueOf(rawControlStyle) }.getOrDefault(AodControlStyle.ROUNDED)
     }
 
-    // -- Player state -----------------------------------------------------
+    // ── Player state ─────────────────────────────────────────────────────
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
@@ -287,7 +300,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
         mediaMetadata?.artists?.joinToString(", ") { it.name }.orEmpty()
     }
 
-    // -- Estado sincronizado para transiciones ----------------------------
+    // ── Estado sincronizado para transiciones ────────────────────────────
     val mediaState = remember(mediaMetadata?.id) {
         AodMediaState(
             id = mediaMetadata?.id,
@@ -297,7 +310,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
         )
     }
 
-    // -- Color dominante (se comparte entre layouts) -----------------------
+    // ── Color dominante (se comparte entre layouts) ───────────────────────
     val dominantColor = rememberDominantColor(mediaState.thumbnailUrl)
 
     val configuration = LocalConfiguration.current
@@ -323,7 +336,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
         .statusBarsPadding()
         .navigationBarsPadding()
 
-    // -- Reloj del sistema (opcional) -------------------------------------
+    // ── Reloj del sistema (opcional) ─────────────────────────────────────
     var clockText by remember { mutableStateOf("") }
     val clockPattern = if (clockFormat24h) "HH:mm" else "hh:mm a"
     LaunchedEffect(showClock) {
@@ -335,7 +348,7 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
         }
     }
 
-    // -- Par•metros unificados pasados a todos los layouts -----------------
+    // ── Parámetros unificados pasados a todos los layouts ─────────────────
     val commonParams = AodCommonParams(
         mediaState = mediaState,
         dominantColor = dominantColor,
@@ -399,9 +412,9 @@ fun AlwaysOnDisplayScreen(navController: NavController) {
     }
 }
 
-// ---------------------------------------------------------------------------
-//  Datos compartidos • evita param explosion
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+//  Datos compartidos — evita param explosion
+// ═══════════════════════════════════════════════════════════════════════════
 
 private data class AodCommonParams(
     val mediaState: AodMediaState,
@@ -433,9 +446,9 @@ private data class AodCommonParams(
     val contentModifier: Modifier,
 )
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  CLASSIC
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun ClassicAodLayout(
@@ -508,9 +521,9 @@ private fun ClassicAodLayout(
     }
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  BACKGROUND / AMBIENT
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun BackgroundAodLayout(
@@ -553,7 +566,7 @@ private fun BackgroundAodLayout(
                     )
                 )
         )
-        // Vi•etas
+        // Viñetas
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -635,9 +648,9 @@ private fun BackgroundAodLayout(
     }
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  MINIMAL
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -757,9 +770,9 @@ private fun MinimalAodLayout(params: AodCommonParams) {
     }
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  LARGE
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun LargeAodLayout(
@@ -852,9 +865,9 @@ private fun LargeAodLayout(
     }
 }
 
-// ---------------------------------------------------------------------------
-//  SPOTLIGHT ? • halo real con color extra•do de la portada
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+//  SPOTLIGHT ★ — halo real con color extraído de la portada
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun SpotlightAodLayout(
@@ -865,7 +878,7 @@ private fun SpotlightAodLayout(
     spotlightIntensity: Float,
     spotlightPulse: Boolean,
 ) {
-    // Color del halo con animaci•n suave al cambiar de canci•n
+    // Color del halo con animación suave al cambiar de canción
     val animatedHaloColor by animateColorAsState(
         targetValue = params.dominantColor,
         animationSpec = tween(params.transitionDuration + 200),
@@ -904,17 +917,17 @@ private fun SpotlightAodLayout(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // -- Capas de brillo del spotlight -------------------------------
+        // ── Capas de brillo del spotlight ───────────────────────────────
         Canvas(modifier = Modifier.fillMaxSize()) {
             val artApproxRadius = artSizeDp.toPx() / 2f
             val cx = size.width / 2f
             val cy = if (params.isLandscape) size.height / 2f else size.height * 0.38f
             val center = Offset(cx, cy)
 
-            // M•xima intensidad configurada por el usuario
+            // Máxima intensidad configurada por el usuario
             val maxAlpha = spotlightIntensity.coerceIn(0.10f, 1.0f)
 
-            // ? Glow exterior difuso • radio muy amplio, muy transl•cido
+            // ① Glow exterior difuso — radio muy amplio, muy translúcido
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -929,7 +942,7 @@ private fun SpotlightAodLayout(
                 radius = artApproxRadius * 3.6f * pulseScale
             )
 
-            // ? Halo medio • define el "cono" de luz
+            // ② Halo medio — define el "cono" de luz
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -944,7 +957,7 @@ private fun SpotlightAodLayout(
                 radius = artApproxRadius * 1.9f * pulseScale
             )
 
-            // ? Corona interior brillante • justo alrededor de la portada
+            // ③ Corona interior brillante — justo alrededor de la portada
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -960,7 +973,7 @@ private fun SpotlightAodLayout(
                 radius = artApproxRadius * 1.28f * pulseScale
             )
 
-            // ? Anillo de borde • contorno sutil con color dominante
+            // ④ Anillo de borde — contorno sutil con color dominante
             drawCircle(
                 color = animatedHaloColor.copy(alpha = maxAlpha * 0.38f * pulseAlpha),
                 center = center,
@@ -970,7 +983,7 @@ private fun SpotlightAodLayout(
                 )
             )
 
-            // ? Anillo exterior decorativo
+            // ⑤ Anillo exterior decorativo
             drawCircle(
                 color = animatedHaloColor.copy(alpha = maxAlpha * 0.12f * pulseAlpha),
                 center = center,
@@ -980,7 +993,7 @@ private fun SpotlightAodLayout(
                 )
             )
 
-            // ? Oscurecimiento del fondo lejos del centro
+            // ⑥ Oscurecimiento del fondo lejos del centro
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -1047,13 +1060,13 @@ private fun SpotlightAodLayout(
     }
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 //  Shared composables
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Imagen de portada con transici•n sincronizada al [mediaState].
- * Todos los layouts usan este composable ? fade del arte ocurre al mismo tiempo
+ * Imagen de portada con transición sincronizada al [mediaState].
+ * Todos los layouts usan este composable → fade del arte ocurre al mismo tiempo
  */
 @Composable
 private fun SyncedArtImage(
@@ -1064,7 +1077,7 @@ private fun SyncedArtImage(
     modifier: Modifier = Modifier
 ) {
     AnimatedContent(
-        targetState = mediaState,       // ? sincronizado con title + artist
+        targetState = mediaState,       // ← sincronizado con title + artist
         transitionSpec = {
             fadeIn(tween(duration)) togetherWith fadeOut(tween((duration * 0.85f).toInt()))
         },
@@ -1248,9 +1261,9 @@ private fun AodMetaAndControls(
     }
 }
 
-// ---------------------------------------------------------------------------
-//  BOTONES DE CONTROL • soportan AodControlStyle
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+//  BOTONES DE CONTROL — soportan AodControlStyle
+// ═══════════════════════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Bottom navigation -->
     <string name="home">Ana Sayfa</string>
@@ -345,7 +345,7 @@
     <string name="backup_create_failed">Yedekleme oluşturulamadı</string>
     <string name="restore_failed">Yedekleme geri yüklenemedi</string>
     <string name="discord_integration">Discord ile entegre et</string>
-    <string name="discord_information">icebeats, Discord hesabınızın durumunu ayarlamak için KizzyRPC kütüphanesini kullanır. Bu, Discord\'un TOS\'unun ihlali olarak değerlendirilebilecek Discord Gateway bağlantısını kullanmayı içerir. Ancak, bu nedenle kullanıcı hesaplarının askıya alındığı bilinen bir durum yoktur. Kendi riskinizle kullanın. OpenTunne yalnızca jetonunuzu çıkarır ve diğer her şey yerel olarak saklanır.</string>
+    <string name="discord_information">IceBeats, Discord hesabınızın durumunu ayarlamak için KizzyRPC kütüphanesini kullanır. Bu, Discord\'un TOS\'unun ihlali olarak değerlendirilebilecek Discord Gateway bağlantısını kullanmayı içerir. Ancak, bu nedenle kullanıcı hesaplarının askıya alındığı bilinen bir durum yoktur. Kendi riskinizle kullanın. OpenTunne yalnızca jetonunuzu çıkarır ve diğer her şey yerel olarak saklanır.</string>
     <string name="dismiss">Yoksay</string>
     <string name="options">Seçenekler</string>
     <string name="preview">Ön izleme</string>

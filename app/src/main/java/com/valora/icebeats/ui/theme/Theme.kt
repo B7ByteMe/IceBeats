@@ -18,9 +18,18 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
 import com.valora.icebeats.constants.PlayerBackgroundStyle
+import com.valora.icebeats.constants.ThemeColorEffect
 import com.google.material.color.dynamiccolor.DynamicScheme
 import com.google.material.color.hct.Hct
+import com.google.material.color.scheme.SchemeContent
+import com.google.material.color.scheme.SchemeExpressive
+import com.google.material.color.scheme.SchemeFidelity
+import com.google.material.color.scheme.SchemeFruitSalad
+import com.google.material.color.scheme.SchemeMonochrome
+import com.google.material.color.scheme.SchemeNeutral
+import com.google.material.color.scheme.SchemeRainbow
 import com.google.material.color.scheme.SchemeTonalSpot
+import com.google.material.color.scheme.SchemeVibrant
 import com.google.material.color.score.Score
 import androidx.compose.runtime.saveable.Saver
 import com.valora.icebeats.constants.AppFont
@@ -32,14 +41,33 @@ val ColorSaver = Saver<Color, Int>(
     restore = { Color(it) }
 )
 
+fun createDynamicScheme(
+    effect: ThemeColorEffect,
+    hct: Hct,
+    isDark: Boolean,
+    contrastLevel: Double = 0.0,
+): DynamicScheme = when (effect) {
+    ThemeColorEffect.NONE -> SchemeTonalSpot(hct, isDark, contrastLevel)
+    ThemeColorEffect.VIBRANT -> SchemeVibrant(hct, isDark, contrastLevel)
+    ThemeColorEffect.EXPRESSIVE -> SchemeExpressive(hct, isDark, contrastLevel)
+    ThemeColorEffect.FRUIT_SALAD -> SchemeFruitSalad(hct, isDark, contrastLevel)
+    ThemeColorEffect.RAINBOW -> SchemeRainbow(hct, isDark, contrastLevel)
+    ThemeColorEffect.FIDELITY -> SchemeFidelity(hct, isDark, contrastLevel)
+    ThemeColorEffect.CONTENT -> SchemeContent(hct, isDark, contrastLevel)
+    ThemeColorEffect.MONOCHROME -> SchemeMonochrome(hct, isDark, contrastLevel)
+    ThemeColorEffect.NEUTRAL -> SchemeNeutral(hct, isDark, contrastLevel)
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun icebeatsTheme(
+fun IceBeatsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     expressive: Boolean = true,
     appFont: AppFont = AppFont.LINOTTE,
     themeColor: Color = DefaultThemeColor,
+    colorEffect: ThemeColorEffect = ThemeColorEffect.NONE,
+    enableDynamicTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -48,15 +76,15 @@ fun icebeatsTheme(
         buildAppTypography(appFont)
     }
 
-    val colorScheme = remember(darkTheme, pureBlack, themeColor) {
-        if (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val colorScheme = remember(darkTheme, pureBlack, themeColor, colorEffect, enableDynamicTheme) {
+        if (enableDynamicTheme && themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (darkTheme) {
                 dynamicDarkColorScheme(context).pureBlack(pureBlack, darkTheme)
             } else {
                 dynamicLightColorScheme(context).pureBlack(false, darkTheme)
             }
         } else {
-            SchemeTonalSpot(Hct.fromInt(themeColor.toArgb()), darkTheme, 0.0)
+            createDynamicScheme(colorEffect, Hct.fromInt(themeColor.toArgb()), darkTheme, 0.0)
                 .toColorScheme()
                 .pureBlack(pureBlack, darkTheme)
         }

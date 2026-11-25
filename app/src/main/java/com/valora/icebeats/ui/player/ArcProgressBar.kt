@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.player
+package com.valora.icebeats.ui.player
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -20,13 +20,13 @@ import kotlin.math.*
 /**
  * Wide arc progress bar matching the white paper player screenshot.
  * The circle centre is placed BELOW the composable so only the top arc is
- * visible • sweeping from bottom-left up and across to bottom-right.
+ * visible — sweeping from bottom-left up and across to bottom-right.
  *
- *   startAngle = 200•  (Compose: 0•=right, 90•=down ? 200• • lower-left)
- *   sweepAngle = -160• (negative = counter-clockwise)
+ *   startAngle = 200°  (Compose: 0°=right, 90°=down → 200° ≈ lower-left)
+ *   sweepAngle = −160° (negative = counter-clockwise)
  *
- * At progress 0 ? dot sits at the left arm (~200•).
- * At progress 1 ? dot sits at the right arm (~40•).
+ * At progress 0 → dot sits at the left arm (~200°).
+ * At progress 1 → dot sits at the right arm (~40°).
  *
  * Color params default to the white-paper theme (dark ink on white).
  */

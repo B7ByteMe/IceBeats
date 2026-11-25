@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -21,7 +21,8 @@ data class LyricsEntry(
     val text: String,
     val words: List<WordTimestamp>? = null,
     val agent: String? = null,
-    val romanizedTextFlow: MutableStateFlow<String?> = MutableStateFlow(null)
+    val romanizedTextFlow: MutableStateFlow<String?> = MutableStateFlow(null),
+    val translatedTextFlow: MutableStateFlow<String?> = MutableStateFlow(null)
 ) : Comparable<LyricsEntry> {
     override fun compareTo(other: LyricsEntry): Int = (time - other.time).toInt()
 

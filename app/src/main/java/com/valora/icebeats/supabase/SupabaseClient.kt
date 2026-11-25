@@ -1138,7 +1138,7 @@ class SupabaseClient(private val context: Context) {
                         bannerManager.saveBannerForUser(uid, cloudBannerUrl)
 
                         if (cloudBorder != null) {
-                            val style = com.valora.icebeats.ui.component.MasterBorderStyle.fromIdOrNull(cloudBorder)
+                            val style: String? = null // MasterBorderStyle removed
                             if (style != null) {
                                 com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(style)
                             }
@@ -1332,7 +1332,7 @@ class SupabaseClient(private val context: Context) {
                 rankManager.saveDisplayedRank(newRank)
 
                 if (serverBorder != null) {
-                    val style = com.valora.icebeats.ui.component.MasterBorderStyle.fromId(serverBorder)
+                    val style: String? = null // MasterBorderStyle removed
                     borderManager.saveSelectedBorder(style)
                 }
 

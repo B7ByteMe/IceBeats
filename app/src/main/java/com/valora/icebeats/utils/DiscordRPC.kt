@@ -3,13 +3,13 @@ package com.valora.icebeats.utils
 import android.content.Context
 import com.valora.icebeats.R
 import com.valora.icebeats.db.entities.Song
-import com.valora.icebeats.kizzy.rpc.KizzyRPC
-import com.valora.icebeats.kizzy.rpc.RpcImage
+import com.valora.icebeats.discordrpc.rpc.DiscordRpcClient
+import com.valora.icebeats.discordrpc.rpc.RpcImage
 
 class DiscordRPC(
     val context: Context,
     token: String,
-) : KizzyRPC(token) {
+) : DiscordRpcClient(token) {
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, playbackSpeed: Float = 1.0f, useDetails: Boolean = false) = runCatching {
         val currentTime = System.currentTimeMillis()
 
@@ -29,14 +29,14 @@ class DiscordRPC(
             name = context.getString(R.string.app_name).removeSuffix(" Debug"),
             details = songTitleWithRate,
             state = song.artists.joinToString { it.name },
-            detailsUrl = "https://icebeats.pages.dev/song?id=${song.song.id}",
+            detailsUrl = com.valora.icebeats.utils.RemoteConfigManager.getSongShareUrl(song.song.id),
             largeImage = song.song.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
             smallImage = song.artists.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
             largeText = song.album?.title,
             smallText = song.artists.firstOrNull()?.name,
             buttons = listOf(
-                "Listen on YouTube Music" to "https://icebeats.pages.dev/song?id=${song.song.id}",
-                "Visit IceBeats" to "https://icebeats.pages.dev"
+                "Listen on YouTube Music" to com.valora.icebeats.utils.RemoteConfigManager.getSongShareUrl(song.song.id),
+                "Visit IceBeats" to com.valora.icebeats.utils.RemoteConfigManager.websiteUrl
             ),
             type = Type.LISTENING,
             statusDisplayType = if (useDetails) StatusDisplayType.DETAILS else StatusDisplayType.STATE,

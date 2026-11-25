@@ -1,7 +1,7 @@
-﻿@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -411,6 +411,7 @@ fun CodecInfoRow(
     bitrate: String,
     fileSize: String,
     textColor: Color,
+    source: String? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -422,6 +423,10 @@ fun CodecInfoRow(
     ) {
         Text(
             text = buildString {
+                if (!source.isNullOrBlank()) {
+                    append(source)
+                    append(" • ")
+                }
                 append(codec)
                 if (bitrate != "Unknown") {
                     append(" • ")
@@ -503,11 +508,24 @@ fun QueueCollapsedContentV2(
                 listOfNotNull(sampleRateText, fileSizeText.takeIf { it.isNotBlank() })
                     .joinToString(separator = " • ")
 
+            val isJioSaavn = mediaMetadata?.id?.startsWith("JS:") == true ||
+                currentFormat.playbackUrl?.contains("saavn", ignoreCase = true) == true ||
+                currentFormat.playbackUrl?.contains("jio", ignoreCase = true) == true
+            val isLocal = mediaMetadata?.id?.startsWith("local:") == true ||
+                currentFormat.playbackUrl?.startsWith("content://") == true ||
+                currentFormat.playbackUrl?.startsWith("file://") == true
+            val source = when {
+                isLocal -> "Local"
+                isJioSaavn -> "JioSaavn"
+                else -> "YouTube"
+            }
+
             CodecInfoRow(
                 codec = codecLabel,
                 bitrate = bitrate,
                 fileSize = extraText,
                 textColor = textBackgroundColor.copy(alpha = 0.7f),
+                source = source,
             )
         }
 
@@ -694,6 +712,15 @@ fun QueueCollapsedContentV3(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
+            val isJioSaavn = currentFormat.playbackUrl?.contains("saavn", ignoreCase = true) == true ||
+                currentFormat.playbackUrl?.contains("jio", ignoreCase = true) == true
+            val isLocal = currentFormat.playbackUrl?.startsWith("content://") == true ||
+                currentFormat.playbackUrl?.startsWith("file://") == true
+            val source = when {
+                isLocal -> "Local"
+                isJioSaavn -> "JioSaavn"
+                else -> "YouTube"
+            }
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val bitrate = "${currentFormat.bitrate / 1000} kbps"
 
@@ -701,7 +728,8 @@ fun QueueCollapsedContentV3(
                 codec = codec,
                 bitrate = bitrate,
                 fileSize = "",
-                textColor = textBackgroundColor.copy(alpha = 0.5f)
+                textColor = textBackgroundColor.copy(alpha = 0.5f),
+                source = source,
             )
         }
 
@@ -837,6 +865,15 @@ fun QueueCollapsedContentV1(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
+            val isJioSaavn = currentFormat.playbackUrl?.contains("saavn", ignoreCase = true) == true ||
+                currentFormat.playbackUrl?.contains("jio", ignoreCase = true) == true
+            val isLocal = currentFormat.playbackUrl?.startsWith("content://") == true ||
+                currentFormat.playbackUrl?.startsWith("file://") == true
+            val source = when {
+                isLocal -> "Local"
+                isJioSaavn -> "JioSaavn"
+                else -> "YouTube"
+            }
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val bitrate = "${currentFormat.bitrate / 1000} kbps"
             val fileSize = if (currentFormat.contentLength > 0) {
@@ -847,7 +884,8 @@ fun QueueCollapsedContentV1(
                 codec = codec,
                 bitrate = bitrate,
                 fileSize = fileSize,
-                textColor = textBackgroundColor.copy(alpha = 0.7f)
+                textColor = textBackgroundColor.copy(alpha = 0.7f),
+                source = source,
             )
         }
 
@@ -985,6 +1023,17 @@ fun QueueCollapsedContentV4(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
+            val isJioSaavn = mediaMetadata?.id?.startsWith("JS:") == true ||
+                currentFormat.playbackUrl?.contains("saavn", ignoreCase = true) == true ||
+                currentFormat.playbackUrl?.contains("jio", ignoreCase = true) == true
+            val isLocal = mediaMetadata?.id?.startsWith("local:") == true ||
+                currentFormat.playbackUrl?.startsWith("content://") == true ||
+                currentFormat.playbackUrl?.startsWith("file://") == true
+            val source = when {
+                isLocal -> "Local"
+                isJioSaavn -> "JioSaavn"
+                else -> "YouTube"
+            }
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val bitrate = "${currentFormat.bitrate / 1000} kbps"
             val fileSize = if (currentFormat.contentLength > 0) {
@@ -995,7 +1044,8 @@ fun QueueCollapsedContentV4(
                 codec = codec,
                 bitrate = bitrate,
                 fileSize = fileSize,
-                textColor = textBackgroundColor.copy(alpha = 0.6f)
+                textColor = textBackgroundColor.copy(alpha = 0.6f),
+                source = source,
             )
         }
 
@@ -1135,6 +1185,17 @@ fun QueueCollapsedContentV7(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
+            val isJioSaavn = currentFormat.id.startsWith("JS:") ||
+                currentFormat.playbackUrl?.contains("saavn", ignoreCase = true) == true ||
+                currentFormat.playbackUrl?.contains("jio", ignoreCase = true) == true
+            val isLocal = currentFormat.id.startsWith("local:") ||
+                currentFormat.playbackUrl?.startsWith("content://") == true ||
+                currentFormat.playbackUrl?.startsWith("file://") == true
+            val source = when {
+                isLocal -> "Local"
+                isJioSaavn -> "JioSaavn"
+                else -> "YouTube"
+            }
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val bitrate = "${currentFormat.bitrate / 1000} kbps"
             val fileSize = if (currentFormat.contentLength > 0) {
@@ -1145,7 +1206,8 @@ fun QueueCollapsedContentV7(
                 codec = codec,
                 bitrate = bitrate,
                 fileSize = fileSize,
-                textColor = textBackgroundColor.copy(alpha = 0.6f)
+                textColor = textBackgroundColor.copy(alpha = 0.6f),
+                source = source,
             )
         }
 

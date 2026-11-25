@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.playback
+package com.valora.icebeats.playback
 
 import android.animation.ValueAnimator
 import android.app.Service
@@ -49,7 +49,7 @@ object AppForegroundTracker {
             field = value
             notifyListeners()
         }
-    private val listeners = mutableListOf<(Boolean, Boolean) -> Unit>()
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<(Boolean, Boolean) -> Unit>()
     fun addListener(listener: (Boolean, Boolean) -> Unit) {
         listeners.add(listener)
     }
@@ -625,12 +625,11 @@ private class DynamicIslandView(
             drawArtwork(canvas, art, corner = artSize / 2f, rotate = true)
             drawSpotifyWaveform(canvas, localWidth - 22f.dp, localHeight / 2f, compact = true)
         } else {
-            // Standard Full Pill Mode (Rotating circular artwork on left, live dot in center, waveform on right)
+            // Standard Full Pill Mode (Rotating circular artwork on left, waveform on right - center dot removed)
             val artSize = (localHeight - 8f.dp).coerceAtLeast(14f.dp)
             val art = RectF(5f.dp, 4f.dp, 5f.dp + artSize, 4f.dp + artSize)
             drawArtwork(canvas, art, corner = artSize / 2f, rotate = true)
-            drawLiveDot(canvas, localWidth / 2f, localHeight / 2f)
-            drawSpotifyWaveform(canvas, localWidth - 34f.dp, localHeight / 2f, compact = true)
+            drawSpotifyWaveform(canvas, localWidth - 22f.dp, localHeight / 2f, compact = true)
         }
     }
 

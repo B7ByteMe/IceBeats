@@ -49,7 +49,7 @@ import coil.compose.AsyncImage
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.innertube.models.PlaylistItem
 import com.valora.icebeats.innertube.models.SongItem
-import com.valora.icebeats.innertube.utils.completed
+import com.valora.icebeats.innertube.utils.completedPlaylistPage
 import com.valora.icebeats.LocalDatabase
 import com.valora.icebeats.LocalDownloadUtil
 import com.valora.icebeats.LocalPlayerConnection
@@ -57,6 +57,7 @@ import com.valora.icebeats.R
 import com.valora.icebeats.constants.ListThumbnailSize
 import com.valora.icebeats.constants.ThumbnailCornerRadius
 import com.valora.icebeats.db.entities.PlaylistEntity
+import com.valora.icebeats.db.entities.PlaylistSong
 import com.valora.icebeats.db.entities.PlaylistSongMap
 import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.models.MediaMetadata
@@ -74,6 +75,7 @@ import com.valora.icebeats.utils.joinByBullet
 import com.valora.icebeats.utils.makeTimeString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -108,12 +110,62 @@ fun YouTubePlaylistMenu(
         mutableStateOf(mutableListOf<MediaMetadata>())
     }
 
+    val exportPlaylistLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain")
+        ) { uri ->
+            onDismiss()
+            if (uri != null) {
+                val playlistTitle = playlist.title
+                val safeSongs = songs
+                val playlistId = playlist.id
+                val currentDbPlaylist = dbPlaylist
+                com.valora.icebeats.utils.SaveToStorageUtil.applicationScope.launch(Dispatchers.IO) {
+                    val songsToExport: List<MediaMetadata> = if (safeSongs.isNotEmpty()) {
+                        safeSongs.map { it.toMediaMetadata() }
+                    } else if (currentDbPlaylist != null) {
+                        val localSongs = database.playlistSongs(currentDbPlaylist.id).first().map(PlaylistSong::song)
+                        if (localSongs.isNotEmpty()) {
+                            localSongs.map { song ->
+                                MediaMetadata(
+                                    id = song.id,
+                                    title = song.title,
+                                    artists = song.artists.map { MediaMetadata.Artist(id = it.id, name = it.name) },
+                                    duration = song.duration,
+                                    thumbnailUrl = song.thumbnailUrl,
+                                    album = song.album?.let { MediaMetadata.Album(id = it.id, title = it.title) }
+                                )
+                            }
+                        } else {
+                            YouTube.playlist(playlistId).completedPlaylistPage().getOrNull()?.songs.orEmpty().map { it.toMediaMetadata() }
+                        }
+                    } else {
+                        YouTube.playlist(playlistId).completedPlaylistPage().getOrNull()?.songs.orEmpty().map { it.toMediaMetadata() }
+                    }
+
+                    val result = com.valora.icebeats.utils.PlaylistFileHelper.exportPlaylistToUri(
+                        context = context,
+                        uri = uri,
+                        playlistName = playlistTitle,
+                        mediaList = songsToExport
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (result.isSuccess) {
+                            android.widget.Toast.makeText(context, R.string.playlist_exported, android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            android.widget.Toast.makeText(context, result.exceptionOrNull()?.message ?: "Export failed", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
         onGetSong = { targetPlaylist ->
             val allSongs = songs
                 .ifEmpty {
-                    YouTube.playlist(targetPlaylist.id).completed().getOrNull()?.songs.orEmpty()
+                    YouTube.playlist(targetPlaylist.id).completedPlaylistPage().getOrNull()?.songs.orEmpty()
                 }.map {
                     it.toMediaMetadata()
                 }
@@ -154,7 +206,7 @@ fun YouTubePlaylistMenu(
                                 insert(playlistEntity)
                                 coroutineScope.launch(Dispatchers.IO) {
                                     songs.ifEmpty {
-                                        YouTube.playlist(playlist.id).completed()
+                                        YouTube.playlist(playlist.id).completedPlaylistPage()
                                             .getOrNull()?.songs.orEmpty()
                                     }.map { it.toMediaMetadata() }
                                         .onEach(::insert)
@@ -289,7 +341,7 @@ fun YouTubePlaylistMenu(
         onGetSong = {
             val allSongs = songs
                 .ifEmpty {
-                    YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
+                    YouTube.playlist(playlist.id).completedPlaylistPage().getOrNull()?.songs.orEmpty()
                 }.map {
                     it.toMediaMetadata()
                 }
@@ -403,7 +455,7 @@ fun YouTubePlaylistMenu(
                         withContext(Dispatchers.IO) {
                             YouTube
                                 .playlist(playlist.id)
-                                .completed()
+                                .completedPlaylistPage()
                                 .getOrNull()
                                 ?.songs
                                 .orEmpty()
@@ -424,7 +476,7 @@ fun YouTubePlaylistMenu(
                         withContext(Dispatchers.IO) {
                             YouTube
                                 .playlist(playlist.id)
-                                .completed()
+                                .completedPlaylistPage()
                                 .getOrNull()
                                 ?.songs
                                 .orEmpty()
@@ -446,6 +498,59 @@ fun YouTubePlaylistMenu(
             title = R.string.add_to_playlist,
         ) {
             showChoosePlaylistDialog = true
+        }
+
+        val inLibrary = dbPlaylist?.playlist?.bookmarkedAt != null
+        GridMenuItem(
+            icon = if (inLibrary) R.drawable.favorite else R.drawable.favorite_border,
+            title = if (inLibrary) R.string.remove_from_library else R.string.add_to_library,
+        ) {
+            if (dbPlaylist == null) {
+                val playlistEntity = PlaylistEntity(
+                    id = playlist.id,
+                    name = playlist.title,
+                    browseId = playlist.id,
+                    playEndpointParams = playlist.playEndpoint?.params,
+                    shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                    radioEndpointParams = playlist.radioEndpoint?.params
+                ).toggleLike()
+                database.transaction {
+                    insert(playlistEntity)
+                }
+                coroutineScope.launch(Dispatchers.IO) {
+                    val songsToInsert = songs.ifEmpty {
+                        YouTube.playlist(playlist.id).completedPlaylistPage()
+                            .getOrNull()?.songs.orEmpty()
+                    }.map { it.toMediaMetadata() }
+
+                    database.transaction {
+                        songsToInsert.forEach(::insert)
+                        songsToInsert.mapIndexed { index, song ->
+                            PlaylistSongMap(
+                                songId = song.id,
+                                playlistId = playlistEntity.id,
+                                position = index
+                            )
+                        }.forEach(::insert)
+                    }
+                }
+                android.widget.Toast.makeText(context, R.string.add_to_library, android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                database.transaction {
+                    update(dbPlaylist!!.playlist.toggleLike())
+                }
+                val msg = if (inLibrary) R.string.remove_from_library else R.string.add_to_library
+                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            onDismiss()
+        }
+
+        GridMenuItem(
+            icon = R.drawable.export,
+            title = R.string.export_playlist,
+        ) {
+            val safeName = playlist.title.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().ifEmpty { "playlist" }
+            exportPlaylistLauncher.launch("$safeName.txt")
         }
 
         if (playlist.isEditable) {
@@ -478,6 +583,32 @@ fun YouTubePlaylistMenu(
                     showRemoveDownloadDialog = true
                 }
             )
+
+            GridMenuItem(
+                icon = R.drawable.save_to_storage,
+                title = R.string.save_playlist_to_storage,
+            ) {
+                val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    true
+                } else {
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+
+                if (hasPermission) {
+                    val savingToastMsg = context.getString(R.string.saving_playlist_to_storage, playlist.title)
+                    val playlistTitle = playlist.title
+                    android.widget.Toast.makeText(context, savingToastMsg, android.widget.Toast.LENGTH_SHORT).show()
+                    com.valora.icebeats.utils.SaveToStorageUtil.savePlaylistToMusicFolderAsync(
+                        context = context,
+                        playlistName = playlistTitle,
+                        mediaList = songs.map { it.toMediaMetadata() }
+                    )
+                    onDismiss()
+                }
+            }
         }
 
         GridMenuItem(

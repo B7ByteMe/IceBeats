@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -354,7 +354,7 @@
     <string name="backup_create_failed">"创建备份失败"</string>
     <string name="restore_failed">"恢复备份失败"</string>
     <string name="discord_integration">"Discord 集成"</string>
-    <string name="discord_information">"icebeats 使用 KizzyRPC 库来设置您的 Discord 帐户状态。这涉及使用 Discord 网关连接，这可能被视为违反 Discord 的服务条款 (TOS)。但是，目前尚无已知用户帐户因此被暂停的案例。使用风险自负。OpenTunne 只会提取您的令牌，其他所有内容都存储在本地。"</string>
+    <string name="discord_information">"IceBeats 使用 KizzyRPC 库来设置您的 Discord 帐户状态。这涉及使用 Discord 网关连接，这可能被视为违反 Discord 的服务条款 (TOS)。但是，目前尚无已知用户帐户因此被暂停的案例。使用风险自负。OpenTunne 只会提取您的令牌，其他所有内容都存储在本地。"</string>
     <string name="dismiss">"Descartar"</string>
     <string name="options">"选项"</string>
     <string name="preview">"预览"</string>

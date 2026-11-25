@@ -9,7 +9,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import org.apache.commons.lang3.RandomStringUtils
 import java.time.LocalDateTime
 
 @Immutable
@@ -34,22 +33,33 @@ data class ArtistEntity(
     val isLocalArtist: Boolean
         get() = id.startsWith("LA")
 
+    val isScrobbleArtist: Boolean
+        get() = id.startsWith("artist_")
+
     fun localToggleLike() = copy(
         bookmarkedAt = if (bookmarkedAt != null) null else LocalDateTime.now(),
     )
 
-    fun toggleLike() = localToggleLike().also {
+    fun toggleLike() = localToggleLike().also { updated ->
+        val isSubscribed = updated.bookmarkedAt != null
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
-                if (channelId == null)
-                    YouTube.subscribeChannel(YouTube.getChannelId(id), bookmarkedAt == null)
-                else
-                    YouTube.subscribeChannel(channelId, bookmarkedAt == null)
+                val targetChannelId = channelId ?: YouTube.getChannelId(id)
+                if (!targetChannelId.isNullOrBlank()) {
+                    com.valora.icebeats.data.artist.ArtistInnertubeClient.setSubscribed(targetChannelId, isSubscribed)
+                }
+            }.onFailure {
+                runCatching {
+                    val targetChannelId = channelId ?: YouTube.getChannelId(id)
+                    if (!targetChannelId.isNullOrBlank()) {
+                        YouTube.subscribeChannel(targetChannelId, isSubscribed)
+                    }
+                }
             }
         }
     }
 
     companion object {
-        fun generateArtistId() = "LA" + RandomStringUtils.random(8, true, false)
+        fun generateArtistId() = "LA" + (1..8).map { (('a'..'z') + ('A'..'Z')).random() }.joinToString("")
     }
 }

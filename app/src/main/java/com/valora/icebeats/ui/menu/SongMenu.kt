@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import com.valora.icebeats.LocalRingtoneViewModel
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -82,12 +83,14 @@ import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.playback.queues.YouTubeQueue
+import com.valora.icebeats.ui.component.DownloadQualityDialog
 import com.valora.icebeats.ui.component.ListDialog
 import com.valora.icebeats.ui.component.LocalBottomSheetPageState
 import com.valora.icebeats.ui.component.SongListItem
 import com.valora.icebeats.ui.component.TextFieldDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SongMenu(
@@ -104,6 +107,7 @@ fun SongMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val songState = database.song(originalSong.id).collectAsState(initial = originalSong)
     val song = songState.value ?: originalSong
+    val isExcluded by database.isRecommendationExcluded(originalSong.id).collectAsState(initial = false)
     val download by LocalDownloadUtil.current.getDownload(originalSong.id)
         .collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
@@ -121,20 +125,10 @@ fun SongMenu(
     ) { isGranted: Boolean ->
         if (isGranted) {
             Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
-            coroutineScope.launch(Dispatchers.IO) {
-                com.valora.icebeats.utils.SaveToStorageUtil
-                    .saveToMusicFolder(context, song.toMediaMetadata())
-                    .onSuccess {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, savedToastMsg, Toast.LENGTH_LONG).show()
-                        }
-                    }
-                    .onFailure { e ->
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, "$failedToastMsg: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                    }
-            }
+            com.valora.icebeats.utils.SaveToStorageUtil.saveToMusicFolderAsync(
+                context = context,
+                mediaMetadata = song.toMediaMetadata(),
+            )
             onDismiss()
         } else {
             Toast.makeText(context, permReqMsg, Toast.LENGTH_LONG).show()
@@ -150,6 +144,12 @@ fun SongMenu(
     var showEditDialog by rememberSaveable {
         mutableStateOf(false)
     }
+
+    var showSnippetStudioDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    val ringtoneViewModel = LocalRingtoneViewModel.current
 
     if (showEditDialog) {
         TextFieldDialog(
@@ -296,111 +296,6 @@ fun SongMenu(
 
     val bottomSheetPageState = LocalBottomSheetPageState.current
 
-    // Row for "Play next", "Add to playlist", and "Share" buttons with grid-like background
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-    ) {
-        // Play next button
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .clip(RoundedCornerShape(8.dp))
-                .clickable {
-                    onDismiss()
-                    playerConnection.playNext(song.toMediaItem())
-                }
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.playlist_play),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-            Text(
-                text = stringResource(R.string.play_next),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier
-                    .basicMarquee()
-                    .padding(top = 4.dp),
-            )
-        }
-
-        // Add to playlist button
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .clip(RoundedCornerShape(8.dp))
-                .clickable {
-                    showChoosePlaylistDialog = true
-                }
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.playlist_add),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-            Text(
-                text = stringResource(R.string.add_to_playlist),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier
-                    .basicMarquee()
-                    .padding(top = 4.dp),
-            )
-        }
-
-        // Share button
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .clip(RoundedCornerShape(8.dp))
-                .clickable {
-                    onDismiss()
-                    val intent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "https://icebeats.pages.dev/song?id=${song.id}")
-                    }
-                    context.startActivity(Intent.createChooser(intent, null))
-                }
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.share),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-            Text(
-                text = stringResource(R.string.share),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier
-                    .basicMarquee()
-                    .padding(top = 4.dp),
-            )
-        }
-    }
-
     LazyColumn(
         contentPadding = PaddingValues(
             start = 8.dp,
@@ -409,6 +304,55 @@ fun SongMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
+        item {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.play_next)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.playlist_play),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    onDismiss()
+                    playerConnection.playNext(song.toMediaItem())
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.add_to_playlist)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.playlist_add),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    showChoosePlaylistDialog = true
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.share)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.share),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    onDismiss()
+                    val intent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, com.valora.icebeats.utils.RemoteConfigManager.getSongShareUrl(song.id))
+                    }
+                    context.startActivity(Intent.createChooser(intent, null))
+                }
+            )
+        }
         item {
             ListItem(
                 headlineContent = { Text(text = stringResource(R.string.start_radio)) },
@@ -581,6 +525,7 @@ fun SongMenu(
                 }
 
                 else -> {
+                    var showQualityDialog by remember { mutableStateOf(false) }
                     ListItem(
                         headlineContent = { Text(text = stringResource(R.string.download)) },
                         leadingContent = {
@@ -589,21 +534,28 @@ fun SongMenu(
                                 contentDescription = null,
                             )
                         },
-                        modifier = Modifier.clickable {
-                            val downloadRequest =
-                                DownloadRequest
-                                    .Builder(song.id, song.id.toUri())
-                                    .setCustomCacheKey(song.id)
-                                    .setData(song.song.title.toByteArray())
-                                    .build()
-                            DownloadService.sendAddDownload(
-                                context,
-                                ExoDownloadService::class.java,
-                                downloadRequest,
-                                false,
-                            )
-                        }
+                        modifier = Modifier.clickable { showQualityDialog = true }
                     )
+                    if (showQualityDialog) {
+                        DownloadQualityDialog(
+                            onDismiss = { showQualityDialog = false },
+                            onQualitySelected = {
+                                showQualityDialog = false
+                                val downloadRequest =
+                                    DownloadRequest
+                                        .Builder(song.id, song.id.toUri())
+                                        .setCustomCacheKey(song.id)
+                                        .setData(song.song.title.toByteArray())
+                                        .build()
+                                DownloadService.sendAddDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    downloadRequest,
+                                    false,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -628,24 +580,54 @@ fun SongMenu(
 
                     if (hasPermission) {
                         Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
-                        coroutineScope.launch(Dispatchers.IO) {
-                            com.valora.icebeats.utils.SaveToStorageUtil
-                                .saveToMusicFolder(context, song.toMediaMetadata())
-                                .onSuccess {
-                                    launch(Dispatchers.Main) {
-                                        Toast.makeText(context, savedToastMsg, Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                                .onFailure { e ->
-                                    launch(Dispatchers.Main) {
-                                        Toast.makeText(context, "$failedToastMsg: ${e.message}", Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                        }
+                        com.valora.icebeats.utils.SaveToStorageUtil.saveToMusicFolderAsync(
+                            context = context,
+                            mediaMetadata = song.toMediaMetadata(),
+                        )
                         onDismiss()
                     } else {
                         permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     }
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.set_as_ringtone)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.notification),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                modifier = Modifier.clickable {
+                    if (ringtoneViewModel.hasSettingsPermission(context)) {
+                        ringtoneViewModel.showTrimmer(
+                            song.song.id,
+                            song.song.title,
+                            song.artists.joinToString { it.name },
+                            song.song.duration.toLong()
+                        )
+                    } else {
+                        ringtoneViewModel.requestSettingsPermission(context)
+                    }
+                    onDismiss()
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.ringtone_studio)) },
+                supportingContent = { Text(text = stringResource(R.string.ringtone_studio_desc)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.content_cut),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    showSnippetStudioDialog = true
                 }
             )
         }
@@ -727,5 +709,60 @@ fun SongMenu(
                 }
             )
         }
+        item {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = stringResource(
+                            if (isExcluded) R.string.allow_recommendations
+                            else R.string.dont_recommend_again
+                        )
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.block),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    val wasExcluded = isExcluded
+                    coroutineScope.launch(Dispatchers.IO) {
+                        if (wasExcluded) {
+                            database.removeRecommendationExclusion(song.id)
+                        } else {
+                            database.insert(
+                                com.valora.icebeats.db.entities.RecommendationExclusionEntity(
+                                    songId = song.id,
+                                    title = song.song.title,
+                                    artist = song.artists.joinToString { it.name },
+                                    thumbnailUrl = song.song.thumbnailUrl
+                                )
+                            )
+                            withContext(Dispatchers.Main) {
+                                playerConnection.removeSongFromQueue(song.id)
+                            }
+                        }
+                    }
+                    if (!wasExcluded) {
+                        onDismiss()
+                    }
+                    Toast.makeText(
+                        context,
+                        if (wasExcluded) R.string.recommendation_restored else R.string.dont_recommend_applied,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            )
+        }
+    }
+
+    if (showSnippetStudioDialog) {
+        com.valora.icebeats.ui.component.SongSnippetStudioDialog(
+            mediaMetadata = song.toMediaMetadata(),
+            onDismiss = {
+                showSnippetStudioDialog = false
+            }
+        )
     }
 }

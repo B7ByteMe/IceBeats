@@ -14,12 +14,12 @@ import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.constants.AudioQuality
-import com.valora.icebeats.constants.AudioQualityKey
+import com.valora.icebeats.constants.DownloadQualityKey
 import com.valora.icebeats.db.MusicDatabase
 import com.valora.icebeats.db.entities.FormatEntity
 import com.valora.icebeats.di.DownloadCache
 import com.valora.icebeats.di.PlayerCache
-import com.valora.icebeats.utils.StreamClientUtils
+import com.valora.icebeats.extensions.tryOrNull
 import com.valora.icebeats.utils.YTPlayerUtils
 import com.valora.icebeats.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,7 +46,7 @@ constructor(
     @PlayerCache val playerCache: SimpleCache,
 ) {
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
-    private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
+    private val downloadQuality by enumPreference(context, DownloadQualityKey, AudioQuality.HIGH)
     private val songUrlCache = HashMap<String, Pair<String, Long>>()
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
@@ -58,30 +58,6 @@ constructor(
                         OkHttpClient
                             .Builder()
                             .proxy(YouTube.proxy)
-                            .followRedirects(true)
-                            .followSslRedirects(true)
-                            .addInterceptor { chain ->
-                                val request = chain.request()
-                                val host = request.url.host
-                                val isYouTubeMediaHost =
-                                    host.endsWith("googlevideo.com") ||
-                                        host.endsWith("googleusercontent.com") ||
-                                        host.endsWith("youtube.com") ||
-                                        host.endsWith("youtube-nocookie.com") ||
-                                        host.endsWith("ytimg.com")
-
-                                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
-
-                                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
-                                val userAgent = StreamClientUtils.resolveUserAgent(clientParam)
-                                val originReferer = StreamClientUtils.resolveOriginReferer(clientParam)
-
-                                val builder = request.newBuilder().header("User-Agent", userAgent)
-                                originReferer.origin?.let { builder.header("Origin", it) }
-                                originReferer.referer?.let { builder.header("Referer", it) }
-
-                                chain.proceed(builder.build())
-                            }
                             .build(),
                     ),
                 ),
@@ -97,11 +73,21 @@ constructor(
                 return@Factory dataSpec.withUri(it.first.toUri())
             }
 
+            if (mediaId.startsWith("JS:")) {
+                val streamUrl = runBlocking(Dispatchers.IO) {
+                    com.valora.icebeats.jiosaavn.JioSaavnApi.getStreamUrl(mediaId)
+                }
+                if (streamUrl != null) {
+                    songUrlCache[mediaId] = Pair(streamUrl, System.currentTimeMillis() + 3600000L)
+                    return@Factory dataSpec.withUri(streamUrl.toUri())
+                }
+            }
+
             val playedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
             val playbackData = runBlocking(Dispatchers.IO) {
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
-                    audioQuality = audioQuality,
+                    audioQuality = downloadQuality,
                     connectivityManager = connectivityManager,
                 )
             }.getOrThrow()
@@ -116,7 +102,7 @@ constructor(
                         codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
                         bitrate = format.bitrate,
                         sampleRate = format.audioSampleRate,
-                        contentLength = format.contentLength ?: 0L,
+                        contentLength = format.contentLength!!,
                         loudnessDb = playbackData.audioConfig?.loudnessDb,
                         playbackUrl = playbackData.streamUrl
                     ),
