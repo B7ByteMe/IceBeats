@@ -1,11 +1,18 @@
 package com.valora.icebeats.ui.screens.onboarding
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +25,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.valora.icebeats.utils.AutoBackupManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -447,6 +460,13 @@ fun OnboardingScreen(
         }
     }
 
+    val openedFromSettings = remember { navController.previousBackStackEntry != null }
+    var onboardingStep by rememberSaveable { mutableIntStateOf(if (openedFromSettings) 2 else 0) }
+
+    BackHandler(enabled = onboardingStep > 0 && !openedFromSettings && authMode == AuthMode.LOGIN && syncState == SyncState.IDLE) {
+        onboardingStep--
+    }
+
     val dark = isBitChordDarkTheme()
     val bgColor = bitChordSettingsBackground()
     val cardColor = bitChordSettingsCardColor()
@@ -456,7 +476,30 @@ fun OnboardingScreen(
     val silverAccent = secondaryColor
     val groupShape = RoundedCornerShape(14.dp)
 
-    Box(
+    Crossfade(targetState = onboardingStep, label = "onboarding_step_crossfade") { step ->
+        when (step) {
+            0 -> WelcomeStep(
+                bgColor = bgColor,
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark,
+                onNext = { onboardingStep = 1 }
+            )
+
+            1 -> PermissionsStep(
+                bgColor = bgColor,
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark,
+                onBack = { onboardingStep = 0 },
+                onNext = { onboardingStep = 2 }
+            )
+
+            else -> Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bgColor)
@@ -1032,6 +1075,8 @@ fun OnboardingScreen(
             )
         }
     }
+        }
+    }
 }
 
 /**
@@ -1278,5 +1323,666 @@ private fun CancelSignupLiquidGlassDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OnboardingStepHeader(
+    currentStep: Int,
+    totalSteps: Int,
+    showBackButton: Boolean,
+    cardColor: Color,
+    outlineColor: Color,
+    primaryTextColor: Color,
+    secondaryColor: Color,
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .height(40.dp)
+    ) {
+        if (showBackButton) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(cardColor)
+                    .border(1.dp, outlineColor, CircleShape)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = primaryTextColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(totalSteps) { index ->
+                val isActive = index == currentStep
+                val isCompleted = index < currentStep
+                val pillWidth by animateDpAsState(
+                    targetValue = if (isActive) 26.dp else 8.dp,
+                    animationSpec = tween(durationMillis = 250),
+                    label = "onboarding_pill_width"
+                )
+                val pillColor by animateColorAsState(
+                    targetValue = when {
+                        isActive -> primaryTextColor
+                        isCompleted -> primaryTextColor.copy(alpha = 0.45f)
+                        else -> outlineColor
+                    },
+                    animationSpec = tween(durationMillis = 250),
+                    label = "onboarding_pill_color"
+                )
+                Box(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .width(pillWidth)
+                        .clip(CircleShape)
+                        .background(pillColor)
+                )
+            }
+        }
+
+        Text(
+            text = "${currentStep + 1}/$totalSteps",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = secondaryColor,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
+    }
+}
+
+@Composable
+private fun WelcomeStep(
+    bgColor: Color,
+    cardColor: Color,
+    outlineColor: Color,
+    primaryTextColor: Color,
+    secondaryColor: Color,
+    dark: Boolean,
+    onNext: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+            .navigationBarsPadding()
+    ) {
+        OnboardingStepHeader(
+            currentStep = 0,
+            totalSteps = 3,
+            showBackButton = false,
+            cardColor = cardColor,
+            outlineColor = outlineColor,
+            primaryTextColor = primaryTextColor,
+            secondaryColor = secondaryColor,
+            onBack = {}
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(cardColor)
+                    .border(1.dp, outlineColor, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.headphones),
+                    contentDescription = null,
+                    tint = primaryTextColor,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            Text(
+                text = "Welcome to IceBeats",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+                color = primaryTextColor,
+                letterSpacing = (-0.5).sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(R.string.ui_sweep_your_private_sanctuary_for_pure_high_fidelity_music_streaming_and),
+                fontSize = 14.sp,
+                color = secondaryColor,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(26.dp))
+
+            WelcomeFeatureCard(
+                iconRes = R.drawable.headphones,
+                title = stringResource(R.string.ui_heading_lossless_audio_streaming),
+                subtitle = stringResource(R.string.ui_heading_enjoy_pristine_audio_quality_with_dynamic_str),
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            WelcomeFeatureCard(
+                iconRes = R.drawable.mic,
+                title = stringResource(R.string.music_recognition),
+                subtitle = stringResource(R.string.ui_heading_instantly_identify_songs_playing_around_you_w),
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            WelcomeFeatureCard(
+                iconRes = R.drawable.backup,
+                title = stringResource(R.string.ui_heading_safe_local_backups),
+                subtitle = stringResource(R.string.ui_heading_keep_your_playlists_history_and_stats_securel),
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            OnboardingActionButton(
+                text = stringResource(R.string.ui_text_get_started),
+                primaryTextColor = primaryTextColor,
+                dark = dark,
+                onClick = onNext
+            )
+        }
+    }
+}
+
+@Composable
+private fun WelcomeFeatureCard(
+    iconRes: Int,
+    title: String,
+    subtitle: String,
+    cardColor: Color,
+    outlineColor: Color,
+    primaryTextColor: Color,
+    secondaryColor: Color,
+    dark: Boolean
+) {
+    val iconBg = if (dark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = cardColor,
+        border = BorderStroke(1.dp, outlineColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = primaryTextColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryTextColor
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.sp,
+                    color = secondaryColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionsStep(
+    bgColor: Color,
+    cardColor: Color,
+    outlineColor: Color,
+    primaryTextColor: Color,
+    secondaryColor: Color,
+    dark: Boolean,
+    onBack: () -> Unit,
+    onNext: () -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scrollState = rememberScrollState()
+
+    var hasNotificationPermission by remember { mutableStateOf(isNotificationPermissionGranted(context)) }
+    var hasStoragePermission by remember { mutableStateOf(AutoBackupManager.hasStoragePermission(context)) }
+    var hasMicPermission by remember { mutableStateOf(isMicPermissionGranted(context)) }
+    var hasBluetoothPermission by remember { mutableStateOf(isBluetoothPermissionGranted(context)) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasNotificationPermission = isNotificationPermissionGranted(context)
+                hasStoragePermission = AutoBackupManager.hasStoragePermission(context)
+                hasMicPermission = isMicPermissionGranted(context)
+                hasBluetoothPermission = isBluetoothPermissionGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasNotificationPermission = granted || isNotificationPermissionGranted(context)
+    }
+
+    val legacyStorageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasStoragePermission = granted || AutoBackupManager.hasStoragePermission(context)
+    }
+
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasMicPermission = granted || isMicPermissionGranted(context)
+    }
+
+    val bluetoothLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasBluetoothPermission = granted || isBluetoothPermissionGranted(context)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+            .navigationBarsPadding()
+    ) {
+        OnboardingStepHeader(
+            currentStep = 1,
+            totalSteps = 3,
+            showBackButton = true,
+            cardColor = cardColor,
+            outlineColor = outlineColor,
+            primaryTextColor = primaryTextColor,
+            secondaryColor = secondaryColor,
+            onBack = onBack
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = stringResource(R.string.ui_text_app_permissions),
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+                color = primaryTextColor,
+                letterSpacing = (-0.5).sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "IceBeats requests a few permissions to power music playback and recognition. All permissions are optional.",
+                fontSize = 13.5.sp,
+                color = secondaryColor,
+                textAlign = TextAlign.Center,
+                lineHeight = 19.sp
+            )
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            OnboardingPermissionCard(
+                iconRes = R.drawable.notification,
+                title = stringResource(R.string.ui_heading_notifications_controls),
+                subtitle = stringResource(R.string.ui_extra_shows_media_controls_in_notification_center_and_lock_screen),
+                isGranted = hasNotificationPermission,
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark,
+                onRequest = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        hasNotificationPermission = true
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OnboardingPermissionCard(
+                iconRes = R.drawable.folder,
+                title = stringResource(R.string.ui_heading_full_storage_backup_access),
+                subtitle = stringResource(R.string.ui_extra_grants_direct_storage_access_to_discover_offline_music_and_automatic),
+                isGranted = hasStoragePermission,
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark,
+                onRequest = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        AutoBackupManager.requestStoragePermission(context)
+                    } else {
+                        legacyStorageLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OnboardingPermissionCard(
+                iconRes = R.drawable.mic,
+                title = stringResource(R.string.ui_heading_audio_recognition),
+                subtitle = stringResource(R.string.ui_extra_used_only_when_you_tap_the_mic_to_identify_music_playing_nearby),
+                isGranted = hasMicPermission,
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark,
+                onRequest = {
+                    micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OnboardingPermissionCard(
+                iconRes = R.drawable.ic_bluetooth,
+                title = stringResource(R.string.ui_heading_bluetooth_devices),
+                subtitle = stringResource(R.string.ui_extra_displays_connected_wireless_headphone_names_and_battery_status),
+                isGranted = hasBluetoothPermission,
+                cardColor = cardColor,
+                outlineColor = outlineColor,
+                primaryTextColor = primaryTextColor,
+                secondaryColor = secondaryColor,
+                dark = dark,
+                onRequest = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        bluetoothLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                    } else {
+                        hasBluetoothPermission = true
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.ui_sweep_you_can_grant_or_change_these_anytime_in_android_app_settings),
+                fontSize = 12.sp,
+                color = secondaryColor,
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            OnboardingActionButton(
+                text = stringResource(R.string.continue_button),
+                primaryTextColor = primaryTextColor,
+                dark = dark,
+                onClick = onNext
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnboardingPermissionCard(
+    iconRes: Int,
+    title: String,
+    subtitle: String,
+    isGranted: Boolean,
+    cardColor: Color,
+    outlineColor: Color,
+    primaryTextColor: Color,
+    secondaryColor: Color,
+    dark: Boolean,
+    onRequest: () -> Unit
+) {
+    val iconBg = if (dark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val grantedBg = if (dark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = cardColor,
+        border = BorderStroke(1.dp, outlineColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = primaryTextColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryTextColor
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = secondaryColor
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            if (isGranted) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = grantedBg,
+                    border = BorderStroke(1.dp, outlineColor)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.check),
+                            contentDescription = null,
+                            tint = primaryTextColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "Granted",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = primaryTextColor
+                        )
+                    }
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = primaryTextColor,
+                    modifier = Modifier.clickable(onClick = onRequest)
+                ) {
+                    Text(
+                        text = "Allow",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (dark) Color.Black else Color.White,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingActionButton(
+    text: String,
+    primaryTextColor: Color,
+    dark: Boolean,
+    onClick: () -> Unit
+) {
+    val contentColor = if (dark) Color.Black else Color.White
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = primaryTextColor,
+            contentColor = contentColor
+        )
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text,
+                fontSize = 15.5.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                painter = painterResource(R.drawable.arrow_forward),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+private fun isNotificationPermissionGranted(context: android.content.Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+    } else {
+        true
+    }
+}
+
+private fun isMicPermissionGranted(context: android.content.Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
+}
+
+private fun isBluetoothPermissionGranted(context: android.content.Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.BLUETOOTH_CONNECT
+        ) == PackageManager.PERMISSION_GRANTED
+    } else {
+        true
     }
 }
