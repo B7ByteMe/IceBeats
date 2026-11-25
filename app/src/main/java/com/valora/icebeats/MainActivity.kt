@@ -668,7 +668,7 @@ class MainActivity : FragmentActivity() {
                     com.valora.icebeats.constants.ThemeColorEffect.NONE
                 }
             }
-            val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+            val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.ON)
             val rawLiquidGlass by rememberPreference(LiquidGlassKey, defaultValue = false)
             val enableLiquidGlass = if (isLiteMode) false else rawLiquidGlass
 
@@ -1851,14 +1851,14 @@ class MainActivity : FragmentActivity() {
                                     val justRestored = remember { AutoBackupManager.consumeJustRestoredFlag(this@MainActivity) }
                                     NavHost(
                                         navController = navController,
-                                        startDestination = if (!hasCompletedSetup && isNameSet != true && !isSupabaseLoggedIn && !justRestored) {
-                                            "onboarding"
-                                        } else {
+                                        startDestination = if (isSupabaseLoggedIn || (hasCompletedSetup && isNameSet == true) || justRestored) {
                                             when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                                 NavigationTab.HOME -> Screens.Home
                                                 NavigationTab.EXPLORE -> Screens.Explore
                                                 NavigationTab.LIBRARY -> Screens.Library
                                             }.route
+                                        } else {
+                                            "onboarding"
                                         },
 
                                         enterTransition = {

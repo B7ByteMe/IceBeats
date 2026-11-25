@@ -119,7 +119,7 @@ import com.valora.icebeats.utils.rememberEnumPreference
 @Composable
 fun isAppInDarkTheme(): Boolean {
     val isSystemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
-    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.ON)
     return androidx.compose.runtime.remember(darkTheme, isSystemInDarkTheme) {
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }

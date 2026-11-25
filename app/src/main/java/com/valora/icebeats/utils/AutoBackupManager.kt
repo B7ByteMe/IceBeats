@@ -80,6 +80,20 @@ object AutoBackupManager {
         }
     }
 
+    fun clearSetupCompleted(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_HAS_COMPLETED_SETUP, false)
+            .commit()
+        runCatching {
+            CoroutineScope(Dispatchers.IO).launch {
+                context.dataStore.edit { prefs ->
+                    prefs[HasCompletedSetupKey] = false
+                }
+            }
+        }
+    }
+
     fun setJustRestored(context: Context, value: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()

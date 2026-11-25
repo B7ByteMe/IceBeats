@@ -138,7 +138,7 @@ fun MiniPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.ON)
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val enableLiquidGlass by rememberPreference(LiquidGlassKey, defaultValue = false)
     val backdrop = LocalBackdrop.current
@@ -614,7 +614,7 @@ fun ModernMiniPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.ON)
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val enableLiquidGlass by rememberPreference(LiquidGlassKey, defaultValue = false)
     val backdrop = LocalBackdrop.current

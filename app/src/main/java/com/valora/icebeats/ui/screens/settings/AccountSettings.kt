@@ -313,8 +313,9 @@ fun AccountSettings(
                                                 com.valora.icebeats.supabase.SupabaseClient(context).signOut()
                                                 nameManager.clearUser()
                                                 com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearCachedUserId(context)
+                                                com.valora.icebeats.utils.AutoBackupManager.clearSetupCompleted(context)
                                                 navController.navigate("onboarding") {
-                                                    popUpTo(0) { inclusive = true }
+                                                    popUpTo(navController.graph.id) { inclusive = true }
                                                     launchSingleTop = true
                                                 }
                                             }

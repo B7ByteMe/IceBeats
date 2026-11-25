@@ -173,6 +173,7 @@ fun GuestProfileSetupScreen(navController: NavController) {
                     if (isContinueEnabled) {
                         coroutineScope.launch {
                             namePrefManager.saveUserName(name.trim())
+                            com.valora.icebeats.utils.AutoBackupManager.markSetupCompleted(context)
                             navController.navigate("home") {
                                 popUpTo("onboarding") { inclusive = true }
                             }
