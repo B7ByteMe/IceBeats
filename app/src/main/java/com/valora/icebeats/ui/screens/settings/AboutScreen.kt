@@ -436,7 +436,7 @@ fun AboutScreen(
                 TopAppBar(
                     title = {},
                     navigationIcon = {
-                        IconButton(onClick = { navController.navigateUp() }) {
+                        androidx.compose.material3.IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
                                 painter = painterResource(R.drawable.arrow_back),
                                 contentDescription = stringResource(R.string.back)
