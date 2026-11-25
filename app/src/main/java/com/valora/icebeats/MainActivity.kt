@@ -604,8 +604,13 @@ class MainActivity : FragmentActivity() {
 
             LaunchedEffect(Unit) {
                 AutoBackupManager.resetRestartAttempts(this@MainActivity)
-                delay(1000)
-                showSplash = false
+            }
+
+            LaunchedEffect(isNameSet) {
+                if (isNameSet != null) {
+                    delay(1800)
+                    showSplash = false
+                }
             }
 
             // Fail-safe watchdog: ensure splash screen never hangs permanently
@@ -1832,18 +1837,17 @@ class MainActivity : FragmentActivity() {
                                         onBack = { navController.popBackStack() },
                                         modifier = Modifier.fillMaxSize()
                                     ) {
-                                    val hasCompletedSetup = remember { AutoBackupManager.hasCompletedSetup(this@MainActivity) }
                                     val justRestored = remember { AutoBackupManager.consumeJustRestoredFlag(this@MainActivity) }
                                     NavHost(
                                         navController = navController,
-                                        startDestination = if (isNameSet == true || hasCompletedSetup || justRestored) {
+                                        startDestination = if (isNameSet != true && !justRestored) {
+                                            "onboarding"
+                                        } else {
                                             when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                                 NavigationTab.HOME -> Screens.Home
                                                 NavigationTab.EXPLORE -> Screens.Explore
                                                 NavigationTab.LIBRARY -> Screens.Library
                                             }.route
-                                        } else {
-                                            "onboarding"
                                         },
 
                                         enterTransition = {
@@ -2601,43 +2605,18 @@ fun ModernHomeTopBar(
 
 @Composable
 fun HeadphoneSplashScreen(statusText: String? = null) {
-
-    val infiniteTransition = rememberInfiniteTransition(label = "bg_anim")
-
-    val shift by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing)
-        ),
-        label = "shift"
-    )
-
-    val colors = MaterialTheme.colorScheme
-
-    val animatedBackground = Brush.radialGradient(
-        colors = listOf(
-            Color(0x228E2DE2),
-            Color(0x224A00E0),
-            Color(0x22FF00C8),
-            colors.background
-        ),
-        center = Offset(shift % 600f, shift % 900f),
-        radius = 1200f
-    )
-
     var startAnimation by remember { mutableStateOf(false) }
-
-    val scale by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.9f,
-        animationSpec = tween(900, easing = FastOutSlowInEasing),
-        label = "scale"
-    )
 
     val alpha by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(900),
+        animationSpec = tween(700, easing = FastOutSlowInEasing),
         label = "alpha"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0.85f,
+        animationSpec = tween(750, easing = FastOutSlowInEasing),
+        label = "scale"
     )
 
     LaunchedEffect(Unit) {
@@ -2647,65 +2626,66 @@ fun HeadphoneSplashScreen(statusText: String? = null) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(animatedBackground),
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
+        // PNG Headphone Icon cleanly displayed with smooth entrance, no glow or shadow
+        Image(
+            painter = painterResource(id = R.drawable.splash_logo),
+            contentDescription = "IceBeats",
+            modifier = Modifier
+                .size(160.dp)
+                .graphicsLayer {
+                    this.alpha = alpha
+                    scaleX = scale
+                    scaleY = scale
+                }
+        )
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                this.alpha = alpha
-            }
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp)
+                .graphicsLayer {
+                    this.alpha = alpha
+                },
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .width(220.dp)
-                    .height(145.dp)
-                    .clipToBounds()
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.airbeats_logo),
-                    contentDescription = null,
-                    modifier = Modifier.size(220.dp)
-                )
-            }
-
-            Text(
-                text = stringResource(R.string.ui_text_airbeats),
-                fontSize = 42.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 2.sp,
-                style = TextStyle(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFFE91E63),
-                            Color(0xFFFFC107),
-                            Color(0xFF2196F3)
-                        )
-                    )
-                )
-            )
-
-            if (!statusText.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = statusText,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                    )
+            val context = LocalContext.current
+            val versionName = remember {
+                try {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                } catch (e: Exception) {
+                    BuildConfig.VERSION_NAME
                 }
             }
+
+            if (!statusText.isNullOrBlank()) {
+                Text(
+                    text = statusText,
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            Text(
+                text = "Versi : $versionName",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Power By IceBeats",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Developer : Valora Official",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp
+            )
         }
     }
 }
