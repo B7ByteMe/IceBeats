@@ -60,6 +60,7 @@ fun SpotifyAccountScreen(
     }
 
     Scaffold(
+        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.ui_text_spotify_account)) },

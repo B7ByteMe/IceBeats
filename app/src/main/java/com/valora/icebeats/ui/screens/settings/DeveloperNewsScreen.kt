@@ -225,10 +225,7 @@ private fun DeveloperNewsListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(
-                        RoundedCornerShape(
-                            bottomStart = 30.dp,
-                            bottomEnd = 30.dp
-                        )
+                        RoundedCornerShape(0.dp)
                     )
                     .background(
                         Brush.verticalGradient(
@@ -247,10 +244,7 @@ private fun DeveloperNewsListScreen(
                                 Color.White.copy(alpha = 0.3f)
                             )
                         ),
-                        shape = RoundedCornerShape(
-                            bottomStart = 30.dp,
-                            bottomEnd = 30.dp
-                        )
+                        shape = RoundedCornerShape(0.dp)
                     )
             ) {
                 TopAppBar(
@@ -676,10 +670,7 @@ private fun DeveloperNewsDetailScreen(
                 },
                 modifier = Modifier
                     .clip(
-                        RoundedCornerShape(
-                            bottomStart = 30.dp,
-                            bottomEnd = 30.dp
-                        )
+                        RoundedCornerShape(0.dp)
                     )
                     .background(
                         Brush.verticalGradient(
@@ -698,10 +689,7 @@ private fun DeveloperNewsDetailScreen(
                                 Color.White.copy(alpha = 0.3f)
                             )
                         ),
-                        shape = RoundedCornerShape(
-                            bottomStart = 30.dp,
-                            bottomEnd = 30.dp
-                        )
+                        shape = RoundedCornerShape(0.dp)
                     ),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),

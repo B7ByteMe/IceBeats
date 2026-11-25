@@ -182,7 +182,14 @@ fun AccountSettings(
                                     )
                                 },
                                 description = if (isLoggedIn) getAccountDescription else null,
-                                icon = { Icon(painterResource(R.drawable.login), null) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.youtube),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
                                 trailingContent = {
                                     if (isLoggedIn) {
                                         OutlinedButton(onClick = {
@@ -271,6 +278,62 @@ fun AccountSettings(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // IceBeats Account (Supabase: Google, Facebook, GitHub, GitLab, Email)
+                val supabaseAuth = remember { com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context) }
+                val isIceBeatsLoggedIn by supabaseAuth.isLoggedIn.collectAsState()
+                val iceBeatsEmail by nameManager.accountEmail.collectAsState(initial = "")
+                SettingsGeneralCategory(
+                    title = "IceBeats",
+                    items = listOf(
+                        {
+                            PreferenceEntry(
+                                title = {
+                                    Text(
+                                        if (isIceBeatsLoggedIn) "Akun IceBeats Terhubung"
+                                        else "Login Akun IceBeats"
+                                    )
+                                },
+                                description = if (isIceBeatsLoggedIn) {
+                                    iceBeatsEmail.ifBlank { currentDisplayName.ifBlank { "Terhubung ke akun IceBeats" } }
+                                } else {
+                                    "Masuk dengan Google, Facebook, GitHub, GitLab, atau Email"
+                                },
+                                icon = {
+                                    androidx.compose.foundation.Image(
+                                        painter = painterResource(R.drawable.icebeats_logo),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                trailingContent = {
+                                    if (isIceBeatsLoggedIn) {
+                                        OutlinedButton(onClick = {
+                                            scope.launch {
+                                                com.valora.icebeats.supabase.SupabaseClient(context).signOut()
+                                                nameManager.clearUser()
+                                                com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearCachedUserId(context)
+                                                navController.navigate("onboarding") {
+                                                    popUpTo(0) { inclusive = true }
+                                                    launchSingleTop = true
+                                                }
+                                            }
+                                        }) {
+                                            Text(stringResource(R.string.logout))
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (!isIceBeatsLoggedIn) {
+                                        navController.navigate("onboarding")
+                                    }
+                                }
+                            )
+                        }
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 // Spotify Group
                 val hasSpotifyCookie by context.dataStore.data.map { it.contains(com.valora.icebeats.constants.SpotifyCookieKey) }.collectAsState(initial = false)
@@ -281,7 +344,14 @@ fun AccountSettings(
                             PreferenceEntry(
                                 title = { Text(if (hasSpotifyCookie) "Connected" else "Login to Spotify") },
                                 description = if (hasSpotifyCookie) "Connected to Spotify account" else "Sign in to see your feed and playlists",
-                                icon = { Icon(painterResource(R.drawable.music_note), null) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.spotify),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
                                 trailingContent = {
                                     if (hasSpotifyCookie) {
                                         OutlinedButton(onClick = {
@@ -322,7 +392,14 @@ fun AccountSettings(
                             PreferenceEntry(
                                 title = { Text(if (hasDiscordToken) "Connected" else "Login to Discord") },
                                 description = if (hasDiscordToken) "Connected to Discord account" else "Sign in to enable Rich Presence",
-                                icon = { Icon(painterResource(R.drawable.discord), null) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.discord),
+                                        contentDescription = null,
+                                        tint = Color(0xFF5865F2),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
                                 trailingContent = {
                                     if (hasDiscordToken) {
                                         OutlinedButton(onClick = {
@@ -364,16 +441,10 @@ fun AccountSettings(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // 🔥 AVATAR SELECTOR
-                com.valora.icebeats.ui.component.SettingsGlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    AvatarSelector(
-                        useLiquidSilverTheme = true,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
+                AvatarSelector(
+                    useLiquidSilverTheme = false,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 

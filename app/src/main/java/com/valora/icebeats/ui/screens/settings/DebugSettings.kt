@@ -76,6 +76,7 @@ fun DebugSettings(
     navController: NavController
 ) {
     Scaffold(
+        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         topBar = {
             TopAppBar(
                 title = {

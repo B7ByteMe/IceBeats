@@ -477,59 +477,19 @@ fun AppearanceSettings(
             modifier = Modifier.fillMaxSize(),
             containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
             topBar = {
-                // U-Shaped TopAppBar
                 TopAppBar(
-                    title = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.appearance),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_back),
+                                contentDescription = stringResource(R.string.back)
                             )
                         }
                     },
-                    navigationIcon = {
-                        Spacer(modifier = Modifier.width(48.dp))
-                    },
-                    actions = {
-                        Spacer(modifier = Modifier.width(48.dp))
-                    },
-                    modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(
-                                bottomStart = 30.dp,
-                                bottomEnd = 30.dp
-                            )
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 0.6.dp,
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.3f),
-                                    Color.White.copy(alpha = 0.1f),
-                                    Color.White.copy(alpha = 0.3f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(
-                                bottomStart = 30.dp,
-                                bottomEnd = 30.dp
-                            )
-                        ),
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
-                        scrolledContainerColor = Color.Transparent
+                        scrolledContainerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground()
                     ),
                     scrollBehavior = scrollBehavior
                 )
@@ -547,6 +507,7 @@ fun AppearanceSettings(
                         )
                     )
             ) {
+                com.valora.icebeats.ui.component.BitChordSettingsPageTitle(stringResource(R.string.appearance))
                 // App Mode (Lite / Normal) - moved here from the main Settings screen
                 run {
                     val (appMode, onAppModeChange) = rememberPreference(AppModeKey, defaultValue = APP_MODE_LITE)

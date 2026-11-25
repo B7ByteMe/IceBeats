@@ -301,70 +301,25 @@ fun ElegantSelectorButton(
     useLiquidSilverTheme: Boolean = false
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(24.dp)
+    val dark = isBitChordDarkTheme()
+    val shape = RoundedCornerShape(12.dp)
+    val solidBg = if (dark) Color.White else Color.Black
+    val secondaryBg = bitChordSettingsOutlineColor()
     val bgModifier = when {
-        useLiquidSilverTheme && solid -> {
-            if (enabled) {
-                Modifier.background(
-                    brush = Brush.verticalGradient(
-                        listOf(Color(0xFFF8FAFC), Color(0xFFD8E0EA), Color(0xFFB4BFC9))
-                    ),
-                    shape = shape
-                )
-            } else {
-                Modifier.background(Color.White.copy(alpha = 0.12f), shape = shape)
-            }
-        }
-        useLiquidSilverTheme -> {
-            Modifier.background(
-                brush = Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.04f))
-                ),
-                shape = shape
-            )
-        }
         solid -> {
             Modifier.background(
-                color = if (enabled) Color(0xFFE2E8F0) else Color(0xFFE2E8F0).copy(alpha = 0.2f),
+                color = if (enabled) solidBg else solidBg.copy(alpha = 0.25f),
                 shape = shape
             )
         }
         else -> {
-            Modifier.background(Color.Transparent, shape = shape)
-        }
-    }
-    val borderModifier = when {
-        useLiquidSilverTheme && solid -> {
-            Modifier.border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.9f), Color(0xFF8C98A8).copy(alpha = 0.5f))
-                ),
-                shape = shape
-            )
-        }
-        useLiquidSilverTheme -> {
-            Modifier.border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    listOf(
-                        Color.White.copy(alpha = if (enabled) 0.42f else 0.15f),
-                        Color.White.copy(alpha = 0.08f),
-                        Color.White.copy(alpha = if (enabled) 0.24f else 0.08f)
-                    )
-                ),
-                shape = shape
-            )
-        }
-        solid -> Modifier
-        else -> {
-            Modifier.border(
-                width = 1.dp,
-                color = if (enabled) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.08f),
+            Modifier.background(
+                color = if (enabled) secondaryBg else secondaryBg.copy(alpha = 0.5f),
                 shape = shape
             )
         }
     }
+    val borderModifier = Modifier
 
     Box(
         modifier = modifier
@@ -389,11 +344,13 @@ fun ElegantSelectorButton(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
+            val primaryText = if (dark) Color.White else Color.Black
+            val inverseText = if (dark) Color.Black else Color.White
             val contentColor = when {
-                solid && enabled -> Color(0xFF0C1016)
-                solid -> Color.White.copy(alpha = 0.4f)
-                enabled -> Color.White
-                else -> Color.White.copy(alpha = 0.3f)
+                solid && enabled -> inverseText
+                solid -> inverseText.copy(alpha = 0.45f)
+                enabled -> primaryText
+                else -> primaryText.copy(alpha = 0.35f)
             }
             
             if (icon != null) {
@@ -503,46 +460,12 @@ fun AvatarSelector(
         }
     }
 
-    val cardShape = RoundedCornerShape(24.dp)
+    val cardShape = BitChordGroupShape
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(cardShape)
-            .then(
-                if (useLiquidSilverTheme) {
-                    Modifier
-                        .background(
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.14f),
-                                    Color(0xFFD6E0EC).copy(alpha = 0.05f),
-                                    Color(0xFF0A0D12).copy(alpha = 0.45f)
-                                )
-                            ),
-                            shape = cardShape
-                        )
-                        .border(
-                            width = 1.2.dp,
-                            brush = Brush.linearGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.48f),
-                                    Color(0xFFD0D9E4).copy(alpha = 0.16f),
-                                    Color.White.copy(alpha = 0.06f),
-                                    Color(0xFFE2E8F0).copy(alpha = 0.28f)
-                                )
-                            ),
-                            shape = cardShape
-                        )
-                } else {
-                    Modifier
-                        .background(Color(0xFF161616), shape = RoundedCornerShape(20.dp))
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                }
-            )
+            .background(bitChordSettingsCardColor(), shape = cardShape)
             .padding(20.dp)
     ) {
         Column(
@@ -556,8 +479,9 @@ fun AvatarSelector(
                 Text(
                     text = stringResource(id = R.string.avatar_selection),
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold
+                )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 if (uiState.isLoading) {

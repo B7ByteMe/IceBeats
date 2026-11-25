@@ -98,6 +98,7 @@ fun DynamicIslandSettings(
     val onActiveHChange: (Int) -> Unit = if (selectedOrientationTab == 0) onIslandHeightChange else onIslandLandscapeHeightChange
 
     Scaffold(
+        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {

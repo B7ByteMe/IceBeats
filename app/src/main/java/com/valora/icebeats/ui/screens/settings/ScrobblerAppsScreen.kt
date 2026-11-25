@@ -71,6 +71,7 @@ fun ScrobblerAppsScreen(
     val undetectedSelected = detectedCount > 0 && apps.filter { it.isKnownMusicPlayer }.any { it.packageName !in selected }
 
     Scaffold(
+        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         topBar = {
             TopAppBar(
                 title = {

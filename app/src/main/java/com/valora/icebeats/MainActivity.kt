@@ -601,6 +601,7 @@ class MainActivity : FragmentActivity() {
 
             val isNameSet by namePreferenceManager.isNameSet.collectAsState(initial = null)
             val isSupabaseLoggedIn by com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(this@MainActivity).isLoggedIn.collectAsState()
+            var migrationChecked by remember { mutableStateOf(false) }
             var showSplash by remember { mutableStateOf(true) }
 
             LaunchedEffect(Unit) {
@@ -612,10 +613,11 @@ class MainActivity : FragmentActivity() {
                     }
                     migrationPrefs.edit().putBoolean("migrated_v800_login", true).apply()
                 }
+                migrationChecked = true
             }
 
-            LaunchedEffect(isNameSet) {
-                if (isNameSet != null) {
+            LaunchedEffect(isNameSet, migrationChecked) {
+                if (migrationChecked && isNameSet != null) {
                     delay(1800)
                     showSplash = false
                 }

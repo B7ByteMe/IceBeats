@@ -55,20 +55,16 @@ fun SettingsPage(
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     items: @Composable () -> Unit
 ) {
-    val playerConnection = LocalPlayerConnection.current
-    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
-        ?: remember { mutableStateOf(null) }
+    val bgColor = bitChordSettingsBackground()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
-        val artworkUrl = mediaMetadata?.thumbnailUrl
-        ScreenAdaptiveBackground(
-            artworkUrl = artworkUrl
-        )
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+    ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent,
+            containerColor = bgColor,
             topBar = {
                 SettingsTopAppBar(
                     title = title,
@@ -90,7 +86,7 @@ fun SettingsPage(
                 verticalArrangement = verticalArrangement,
                 horizontalAlignment = horizontalAlignment
             ) {
-                Spacer(Modifier.height(12.dp))
+                BitChordSettingsPageTitle(title)
                 items()
                 Spacer(Modifier.height(24.dp))
             }
@@ -101,15 +97,9 @@ fun SettingsPage(
 @ExperimentalMaterial3Api
 @Composable
 fun SettingsTopAppBar(title: String, navController: NavController, scrollBehavior: TopAppBarScrollBehavior) {
+    val bgColor = bitChordSettingsBackground()
     TopAppBar(
-        title = {
-            Text(
-                text = title,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        },
+        title = {},
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
@@ -118,42 +108,13 @@ fun SettingsTopAppBar(title: String, navController: NavController, scrollBehavio
                 Icon(
                     painter = painterResource(R.drawable.arrow_back),
                     contentDescription = stringResource(R.string.back),
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
         },
-        modifier = Modifier
-            .clip(
-                RoundedCornerShape(
-                    bottomStart = 30.dp,
-                    bottomEnd = 30.dp
-                )
-            )
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                    )
-                )
-            )
-            .border(
-                width = 0.6.dp,
-                brush = Brush.horizontalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.3f),
-                        Color.White.copy(alpha = 0.1f),
-                        Color.White.copy(alpha = 0.3f)
-                    )
-                ),
-                shape = RoundedCornerShape(
-                    bottomStart = 30.dp,
-                    bottomEnd = 30.dp
-                )
-            ),
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            scrolledContainerColor = Color.Transparent
+            containerColor = bgColor,
+            scrolledContainerColor = bgColor
         ),
         scrollBehavior = scrollBehavior
     )

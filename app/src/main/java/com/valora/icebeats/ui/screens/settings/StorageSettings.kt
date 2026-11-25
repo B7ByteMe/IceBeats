@@ -141,7 +141,9 @@ fun StorageSettings(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val bgColor = com.valora.icebeats.ui.component.bitChordSettingsBackground()
+
+    Box(modifier = Modifier.fillMaxSize().background(bgColor)) {
         Column(
             modifier = Modifier
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
@@ -273,14 +275,13 @@ private fun StorageCard(
     onManageClick: (() -> Unit)?,
     extraContent: (@Composable () -> Unit)? = null
 ) {
-    val isFrosted = isFrostedGlassUiEnabled()
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
-            containerColor = if (isFrosted) settingsCardContainerColor(true) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()
         ),
-        border = settingsCardBorder(isFrosted),
+        border = null,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
