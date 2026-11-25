@@ -100,7 +100,6 @@ fun DynamicIslandSettings(
     Scaffold(
         containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
