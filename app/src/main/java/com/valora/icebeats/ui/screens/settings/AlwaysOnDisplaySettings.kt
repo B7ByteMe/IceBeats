@@ -19,6 +19,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -103,10 +104,16 @@ import com.valora.icebeats.constants.AodStyle
 import com.valora.icebeats.constants.AodStyleKey
 import com.valora.icebeats.constants.AodTextScaleKey
 import com.valora.icebeats.constants.AodTransitionDurationKey
+import com.valora.icebeats.ui.component.BitChordGroupShape
+import com.valora.icebeats.ui.component.BitChordIosSwitch
 import com.valora.icebeats.ui.component.IconButton
 import com.valora.icebeats.ui.component.PreferenceGroupTitle
 import com.valora.icebeats.ui.component.SettingsPage
 import com.valora.icebeats.ui.component.SwitchPreference
+import com.valora.icebeats.ui.component.bitChordSettingsCardColor
+import com.valora.icebeats.ui.component.bitChordSettingsOutlineColor
+import com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor
+import com.valora.icebeats.ui.component.isBitChordDarkTheme
 import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
 import com.valora.icebeats.ui.component.settingsCardContainerColor
 import com.valora.icebeats.ui.component.settingsCardBorder
@@ -290,12 +297,16 @@ fun AODSettings(
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val dark = isBitChordDarkTheme()
+                    val primaryTextColor = if (dark) Color.White else Color.Black
+                    val outlineColor = bitChordSettingsOutlineColor()
+                    val secondaryColor = bitChordSettingsSecondaryTextColor()
                     Text(
                         " ", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = secondaryColor,
                         modifier = Modifier.width(32.dp)
                     )
-                    SquigglySlider(
+                    Slider(
                         value = autoTimeoutIndex.toFloat(),
                         onValueChange = { v ->
                             val idx = (v + 0.5f).toInt().coerceIn(0, 4)
@@ -303,6 +314,11 @@ fun AODSettings(
                             setAutoTimeoutSecs(autoTimeouts[idx].seconds)
                         },
                         valueRange = 0f..4f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = primaryTextColor,
+                            activeTrackColor = primaryTextColor,
+                            inactiveTrackColor = outlineColor
+                        ),
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 8.dp)
@@ -310,7 +326,7 @@ fun AODSettings(
                     Text(
                         stringResource(R.string.aod_auto_2m_short),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = secondaryColor
                     )
                 }
                 Spacer(Modifier.height(4.dp))
@@ -546,6 +562,10 @@ private fun AodSettingsSection(
     title: String,
     content: @Composable () -> Unit,
 ) {
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val cardColor = bitChordSettingsCardColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -557,14 +577,13 @@ private fun AodSettingsSection(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.5.sp
             ),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            color = secondaryColor,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 12.dp)
         )
-        val isFrosted = isFrostedGlassUiEnabled()
         Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = settingsCardContainerColor(isFrosted),
-            border = settingsCardBorder(isFrosted),
+            shape = BitChordGroupShape,
+            color = cardColor,
+            border = BorderStroke(1.dp, outlineColor),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
@@ -576,7 +595,7 @@ private fun AodSettingsSection(
 }
 
 /**
- * Fila con switch estilo M3 Expressive.
+ * Fila con switch estilo BitChord Settings.
  */
 @Composable
 private fun AodSwitchRow(
@@ -586,6 +605,11 @@ private fun AodSwitchRow(
     checked: Boolean,
     onChanged: (Boolean) -> Unit,
 ) {
+    val dark = isBitChordDarkTheme()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val iconBg = if (dark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -599,36 +623,36 @@ private fun AodSwitchRow(
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.secondaryContainer,
+            color = iconBg,
             modifier = Modifier.size(40.dp)
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
                     painter = painterResource(icon),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = primaryTextColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
         }
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = primaryTextColor)
             if (description != null) {
                 Text(
                     description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = secondaryColor
                 )
             }
         }
         Spacer(Modifier.width(8.dp))
-        Switch(checked = checked, onCheckedChange = onChanged)
+        BitChordIosSwitch(checked = checked, onCheckedChange = onChanged)
     }
 }
 
 /**
- * Fila de slider con etiqueta de valor como pill M3 Expressive.
+ * Fila de slider con etiqueta de valor como pill BitChord.
  */
 @Composable
 private fun AodSliderRow(
@@ -641,11 +665,16 @@ private fun AodSliderRow(
     endLabel: String,
     description: String? = null,
 ) {
+    val dark = isBitChordDarkTheme()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = primaryTextColor, modifier = Modifier.weight(1f))
         ExpressivePill(text = valueLabel)
     }
     if (description != null) {
@@ -653,7 +682,7 @@ private fun AodSliderRow(
         Text(
             description,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = secondaryColor
         )
     }
     Spacer(Modifier.height(6.dp))
@@ -661,19 +690,24 @@ private fun AodSliderRow(
         Text(
             startLabel,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = secondaryColor,
             modifier = Modifier.width(40.dp)
         )
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
+            colors = SliderDefaults.colors(
+                thumbColor = primaryTextColor,
+                activeTrackColor = primaryTextColor,
+                inactiveTrackColor = outlineColor
+            ),
             modifier = Modifier.weight(1f)
         )
         Text(
             endLabel,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = secondaryColor,
             textAlign = TextAlign.End,
             modifier = Modifier.width(40.dp)
         )
@@ -681,21 +715,27 @@ private fun AodSliderRow(
 }
 
 /**
- * Pill / chip con color primario — M3 Expressive style.
+ * Pill / chip monokrom gaya BitChord Settings.
  */
 @Composable
 private fun ExpressivePill(text: String) {
+    val dark = isBitChordDarkTheme()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val pillBg = if (dark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
+    val outlineColor = bitChordSettingsOutlineColor()
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .background(pillBg)
+            .border(1.dp, outlineColor, RoundedCornerShape(50))
             .padding(horizontal = 10.dp, vertical = 3.dp)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = primaryTextColor,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -710,16 +750,19 @@ private fun ControlStyleChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val dark = isBitChordDarkTheme()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+    val selectedBg = if (dark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
+    val unselectedBg = if (dark) Color.White.copy(alpha = 0.04f) else Color.Black.copy(alpha = 0.03f)
+
     val borderColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.outlineVariant,
+        targetValue = if (selected) primaryTextColor else outlineColor,
         animationSpec = tween(200),
         label = "control_chip_border"
     )
-    val bgColor = if (selected)
-        MaterialTheme.colorScheme.primaryContainer
-    else
-        MaterialTheme.colorScheme.surfaceVariant
+    val bgColor = if (selected) selectedBg else unselectedBg
 
     val label = when (style) {
         AodControlStyle.ROUNDED -> stringResource(R.string.aod_control_style_rounded)
@@ -731,11 +774,11 @@ private fun ControlStyleChip(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
             .border(
-                width = if (selected) 2.dp else 1.dp,
+                width = if (selected) 1.5.dp else 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             )
             .background(bgColor)
             .clickable(
@@ -757,23 +800,23 @@ private fun ControlStyleChip(
                             Modifier
                                 .clip(CircleShape)
                                 .background(
-                                    if (selected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface.copy(0.18f)
+                                    if (selected) primaryTextColor
+                                    else primaryTextColor.copy(alpha = 0.16f)
                                 )
 
                         AodControlStyle.SQUARE ->
                             Modifier
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(
-                                    if (selected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface.copy(0.18f)
+                                    if (selected) primaryTextColor
+                                    else primaryTextColor.copy(alpha = 0.16f)
                                 )
 
                         AodControlStyle.MINIMAL_FLAT ->
                             Modifier
                                 .clip(CircleShape)
                                 .background(
-                                    MaterialTheme.colorScheme.onSurface.copy(0.06f)
+                                    primaryTextColor.copy(alpha = 0.08f)
                                 )
                     }
                 )
@@ -783,12 +826,10 @@ private fun ControlStyleChip(
                 contentDescription = null,
                 tint = if (selected) {
                     when (style) {
-                        AodControlStyle.MINIMAL_FLAT ->
-                            MaterialTheme.colorScheme.primary
-
-                        else -> MaterialTheme.colorScheme.onPrimary
+                        AodControlStyle.MINIMAL_FLAT -> primaryTextColor
+                        else -> if (dark) Color.Black else Color.White
                     }
-                } else MaterialTheme.colorScheme.onSurface.copy(0.55f),
+                } else secondaryColor,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -797,8 +838,7 @@ private fun ControlStyleChip(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (selected) primaryTextColor else secondaryColor,
             textAlign = TextAlign.Center,
         )
     }
@@ -815,9 +855,15 @@ private fun AodStyleCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dark = isBitChordDarkTheme()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+    val selectedBg = if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
+    val unselectedBg = if (dark) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.02f)
+
     val borderColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.outlineVariant,
+        targetValue = if (selected) primaryTextColor else outlineColor,
         animationSpec = tween(250),
         label = "style_border"
     )
@@ -847,16 +893,13 @@ private fun AodStyleCard(
         modifier = modifier
             .scale(scale)
             .width(120.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(14.dp))
             .border(
-                width = if (selected) 2.dp else 1.dp,
+                width = if (selected) 1.5.dp else 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(14.dp)
             )
-            .background(
-                if (selected) MaterialTheme.colorScheme.primaryContainer.copy(0.25f)
-                else MaterialTheme.colorScheme.surfaceContainerHigh
-            )
+            .background(if (selected) selectedBg else unselectedBg)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -868,7 +911,7 @@ private fun AodStyleCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(106.dp)
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
                 .background(Color(0xFF070707))
         ) {
             AodStylePreview(style = style)
@@ -883,15 +926,14 @@ private fun AodStyleCard(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
+                color = if (selected) primaryTextColor else secondaryColor,
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 9.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = secondaryColor,
                 textAlign = TextAlign.Center,
                 lineHeight = 11.sp,
             )
@@ -1283,9 +1325,15 @@ private fun AodShapeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dark = isBitChordDarkTheme()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+    val selectedBg = if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
+    val unselectedBg = if (dark) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.02f)
+
     val borderColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.outlineVariant,
+        targetValue = if (selected) primaryTextColor else outlineColor,
         animationSpec = tween(250),
         label = "shape_border"
     )
@@ -1314,14 +1362,11 @@ private fun AodShapeCard(
             .scale(scale)
             .clip(RoundedCornerShape(14.dp))
             .border(
-                width = if (selected) 2.dp else 1.dp,
+                width = if (selected) 1.5.dp else 1.dp,
                 color = borderColor,
                 shape = RoundedCornerShape(14.dp)
             )
-            .background(
-                if (selected) MaterialTheme.colorScheme.primaryContainer.copy(0.30f)
-                else MaterialTheme.colorScheme.surfaceContainerHigh
-            )
+            .background(if (selected) selectedBg else unselectedBg)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1335,8 +1380,8 @@ private fun AodShapeCard(
                 .size(54.dp)
                 .clip(shape)
                 .background(
-                    if (selected) MaterialTheme.colorScheme.primary.copy(0.20f)
-                    else MaterialTheme.colorScheme.surfaceVariant
+                    if (selected) primaryTextColor.copy(alpha = 0.16f)
+                    else primaryTextColor.copy(alpha = 0.07f)
                 )
         ) {
             Box(
@@ -1344,8 +1389,8 @@ private fun AodShapeCard(
                     .fillMaxSize(0.55f)
                     .clip(shape)
                     .background(
-                        if (selected) MaterialTheme.colorScheme.primary.copy(0.50f)
-                        else MaterialTheme.colorScheme.onSurface.copy(0.12f)
+                        if (selected) primaryTextColor.copy(alpha = 0.45f)
+                        else primaryTextColor.copy(alpha = 0.15f)
                     )
             )
         }
@@ -1354,8 +1399,7 @@ private fun AodShapeCard(
             style = MaterialTheme.typography.labelSmall,
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (selected) primaryTextColor else secondaryColor,
             textAlign = TextAlign.Center,
         )
     }

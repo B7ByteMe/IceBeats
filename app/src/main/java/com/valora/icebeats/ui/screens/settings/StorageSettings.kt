@@ -1,7 +1,9 @@
 package com.valora.icebeats.ui.screens.settings
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -275,13 +277,19 @@ private fun StorageCard(
     onManageClick: (() -> Unit)?,
     extraContent: (@Composable () -> Unit)? = null
 ) {
+    val dark = com.valora.icebeats.ui.component.isBitChordDarkTheme()
+    val primaryTextColor = if (dark) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
+    val secondaryColor = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
+    val outlineColor = com.valora.icebeats.ui.component.bitChordSettingsOutlineColor()
+    val iconBg = if (dark) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.06f)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
             containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()
         ),
-        border = null,
+        border = BorderStroke(1.dp, outlineColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -297,14 +305,14 @@ private fun StorageCard(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        .background(iconBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(icon),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        tint = primaryTextColor,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -312,6 +320,7 @@ private fun StorageCard(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
+                        color = primaryTextColor,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -326,6 +335,8 @@ private fun StorageCard(
                             .fillMaxWidth()
                             .height(8.dp)
                             .clip(RoundedCornerShape(4.dp)),
+                        color = primaryTextColor,
+                        trackColor = iconBg,
                     )
 
                     Row(
@@ -335,14 +346,14 @@ private fun StorageCard(
                         Text(
                             text = formatFileSize(usedSize),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = secondaryColor
                         )
                         if (maxSize != null) {
                             Text(
                                 text = if (maxSize == -1L) stringResource(R.string.unlimited)
                                 else formatFileSize(maxSize),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = secondaryColor
                             )
                         }
                     }
@@ -351,7 +362,7 @@ private fun StorageCard(
                 Text(
                     text = stringResource(R.string.size_used, formatFileSize(0)),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = secondaryColor
                 )
             }
 
@@ -362,7 +373,7 @@ private fun StorageCard(
             if (usedSize > 0) {
                 HorizontalDivider(
                     thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    color = outlineColor
                 )
 
                 Row(
@@ -399,15 +410,16 @@ private fun ActionButton(
     modifier: Modifier = Modifier,
     isDestructive: Boolean = false
 ) {
+    val dark = com.valora.icebeats.ui.component.isBitChordDarkTheme()
+    val primaryTextColor = if (dark) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
+    val outlineColor = com.valora.icebeats.ui.component.bitChordSettingsOutlineColor()
+    val btnBg = if (dark) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.06f)
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isDestructive)
-                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                else
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
+            .background(btnBg)
+            .border(1.dp, outlineColor, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -420,20 +432,14 @@ private fun ActionButton(
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = if (isDestructive)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.primary,
+                tint = primaryTextColor,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (isDestructive)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.primary,
+                color = primaryTextColor,
                 fontWeight = FontWeight.Medium
             )
         }
