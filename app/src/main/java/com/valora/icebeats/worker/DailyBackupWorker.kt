@@ -34,7 +34,7 @@ class DailyBackupWorker(
             }
 
             Log.i("DailyBackupWorker", "Starting daily cloud backup for $email")
-            val database = com.valora.icebeats.db.MusicDatabase.newInstance(context)
+            val database = com.valora.icebeats.db.InternalDatabase.newInstance(context)
             val backupViewModel = BackupRestoreViewModel(database)
             val tempFile = java.io.File(context.cacheDir, "daily_backup.zip")
             tempFile.outputStream().use { out ->

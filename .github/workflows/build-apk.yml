@@ -64,6 +64,17 @@ jobs:
           echo "VERSION_TAG=v$VERSION_NAME" >> $GITHUB_ENV
           echo "App version: $VERSION_NAME"
 
+      - name: Compile Release Kotlin
+        run: |
+          set -o pipefail
+          ./gradlew :app:compileReleaseKotlin --console=plain 2>&1 | tee compile.log || {
+            echo "=== KOTLIN COMPILE ERRORS ==="
+            grep -E "^(e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Caused by:)" compile.log | head -n 80
+            echo "=== TAIL OF COMPILE LOG ==="
+            tail -n 60 compile.log
+            exit 1
+          }
+
       - name: Build Release APK
         run: |
           set -o pipefail
@@ -75,12 +86,14 @@ jobs:
             exit 1
           }
 
-      - name: Upload Build Log
+      - name: Upload Build Logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: build.log
+          name: build-logs
+          path: |
+            compile.log
+            build.log
           if-no-files-found: ignore
           retention-days: 7
 

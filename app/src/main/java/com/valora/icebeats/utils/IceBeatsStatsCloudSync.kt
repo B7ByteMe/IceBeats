@@ -187,15 +187,39 @@ object icebeatsStatsCloudSync {
     fun getUserNumber(context: Context): String? {
         val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
         return preferences.getString(KEY_USER_NUMBER, null)?.trim()?.takeIf { it.isNotBlank() }
+            ?: runCatching {
+                val f = java.io.File(context.filesDir, STATS_IDENTITY_FILENAME)
+                if (f.exists()) {
+                    org.json.JSONObject(f.readText()).optString("userNumber").trim().takeIf { it.isNotBlank() }
+                } else null
+            }.getOrNull()
     }
 
     fun persistUserNumber(context: Context, userNumber: String) {
         if (userNumber.isBlank()) return
         val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-        preferences.edit().putString(KEY_USER_NUMBER, userNumber).apply()
+        preferences.edit().putString(KEY_USER_NUMBER, userNumber).commit()
+        runCatching {
+            val f = java.io.File(context.filesDir, STATS_IDENTITY_FILENAME)
+            val json = if (f.exists()) runCatching { org.json.JSONObject(f.readText()) }.getOrDefault(org.json.JSONObject()) else org.json.JSONObject()
+            json.put("userNumber", userNumber)
+            f.writeText(json.toString())
+        }
+    }
+
+    fun persistUserId(context: Context, preferences: android.content.SharedPreferences, userId: String) {
+        if (userId.isBlank()) return
+        preferences.edit().putString(KEY_USER_ID, userId).commit()
+        runCatching {
+            val f = java.io.File(context.filesDir, STATS_IDENTITY_FILENAME)
+            val json = if (f.exists()) runCatching { org.json.JSONObject(f.readText()) }.getOrDefault(org.json.JSONObject()) else org.json.JSONObject()
+            json.put("userId", userId)
+            f.writeText(json.toString())
+        }
     }
 
     const val PREFERENCES_NAME = "icebeats_global_stats"
+    const val STATS_IDENTITY_FILENAME = "stats_identity.json"
     const val KEY_USER_ID = "global_stats_user_id"
     const val KEY_USER_NUMBER = "global_stats_user_number"
     const val KEY_DEVICE_ID = "global_stats_device_id"

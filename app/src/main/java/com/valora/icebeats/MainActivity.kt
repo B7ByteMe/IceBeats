@@ -1525,7 +1525,7 @@ class MainActivity : FragmentActivity() {
                                                             modifier = Modifier.fillMaxSize()
                                                         )
                                                     } else if (lyricsScreenStyle == com.valora.icebeats.constants.LyricsScreenStyle.LYRICS_2 && playerScreenStyle != PlayerScreenStyle.GALAXY) {
-                                                        com.valora.icebeats.ui.player.AirBeatsLyricsScreen(
+                                                        com.valora.icebeats.ui.player.IceBeatsLyricsScreen(
                                                             mediaMetadata = mediaMetadata!!,
                                                             navController = navController,
                                                             onBackClick = {
