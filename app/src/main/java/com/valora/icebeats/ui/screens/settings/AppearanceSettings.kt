@@ -471,17 +471,11 @@ fun AppearanceSettings(
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
         ?: remember { mutableStateOf(null) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
-        val artworkUrl = mediaMetadata?.thumbnailUrl
-        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
-            artworkUrl = artworkUrl
-        )
-
-        // Main Scaffold with U-Shaped TopAppBar
+    Box(modifier = Modifier.fillMaxSize().background(com.valora.icebeats.ui.component.bitChordSettingsBackground())) {
+// Main Scaffold with U-Shaped TopAppBar
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent,
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
             topBar = {
                 // U-Shaped TopAppBar
                 TopAppBar(
@@ -534,7 +528,7 @@ fun AppearanceSettings(
                             )
                         ),
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
+                        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
                         scrolledContainerColor = Color.Transparent
                     ),
                     scrollBehavior = scrollBehavior

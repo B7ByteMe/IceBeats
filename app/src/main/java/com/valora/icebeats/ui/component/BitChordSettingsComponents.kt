@@ -33,6 +33,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -65,6 +67,8 @@ internal val BIT_CHORD_ROW_INSET = 16.dp
 internal val BIT_CHORD_ICON_SIZE = 22.dp
 internal val BIT_CHORD_ICON_GAP = 14.dp
 internal val BIT_CHORD_TEXT_INSET = BIT_CHORD_ROW_INSET + BIT_CHORD_ICON_SIZE + BIT_CHORD_ICON_GAP
+
+val LocalInsideBitChordGroup = compositionLocalOf { false }
 
 @Composable
 fun isBitChordDarkTheme(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -426,3 +430,4 @@ fun BitChordSettingsRow(
         }
     }
 }
+

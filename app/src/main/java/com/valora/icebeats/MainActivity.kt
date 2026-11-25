@@ -600,10 +600,18 @@ class MainActivity : FragmentActivity() {
             }
 
             val isNameSet by namePreferenceManager.isNameSet.collectAsState(initial = null)
+            val isSupabaseLoggedIn by com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(this@MainActivity).isLoggedIn.collectAsState()
             var showSplash by remember { mutableStateOf(true) }
 
             LaunchedEffect(Unit) {
                 AutoBackupManager.resetRestartAttempts(this@MainActivity)
+                val migrationPrefs = getSharedPreferences("icebeats_migration", Context.MODE_PRIVATE)
+                if (!migrationPrefs.getBoolean("migrated_v800_login", false)) {
+                    if (!com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(this@MainActivity).isLoggedIn.value) {
+                        namePreferenceManager.clearUser()
+                    }
+                    migrationPrefs.edit().putBoolean("migrated_v800_login", true).apply()
+                }
             }
 
             LaunchedEffect(isNameSet) {
@@ -1840,7 +1848,7 @@ class MainActivity : FragmentActivity() {
                                     val justRestored = remember { AutoBackupManager.consumeJustRestoredFlag(this@MainActivity) }
                                     NavHost(
                                         navController = navController,
-                                        startDestination = if (isNameSet != true && !justRestored) {
+                                        startDestination = if (isNameSet != true && !isSupabaseLoggedIn && !justRestored) {
                                             "onboarding"
                                         } else {
                                             when (tabOpenedFromShortcut ?: defaultOpenTab) {

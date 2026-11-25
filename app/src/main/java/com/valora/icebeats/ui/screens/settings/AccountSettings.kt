@@ -105,31 +105,19 @@ fun AccountSettings(
 
 
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
-        val artworkUrl = mediaMetadata?.thumbnailUrl
-        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
-            artworkUrl = artworkUrl
-        )
+    val bgColor = com.valora.icebeats.ui.component.bitChordSettingsBackground()
 
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+    ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent,
+            containerColor = bgColor,
             topBar = {
                 TopAppBar(
-                    title = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(end = 48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.account),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
+                    title = {},
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
@@ -138,38 +126,9 @@ fun AccountSettings(
                             )
                         }
                     },
-                    modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(
-                                bottomStart = 30.dp,
-                                bottomEnd = 30.dp
-                            )
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 0.6.dp,
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.3f),
-                                    Color.White.copy(alpha = 0.1f),
-                                    Color.White.copy(alpha = 0.3f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(
-                                bottomStart = 30.dp,
-                                bottomEnd = 30.dp
-                            )
-                        ),
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent
+                        containerColor = bgColor,
+                        scrolledContainerColor = bgColor
                     ),
                     scrollBehavior = scrollBehavior
                 )
@@ -186,11 +145,11 @@ fun AccountSettings(
                         )
                     )
             ) {
+            com.valora.icebeats.ui.component.BitChordSettingsPageTitle(stringResource(R.string.account))
             // Main content with horizontal padding
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
             ) {
                 SettingsGeneralCategory(
                     title = stringResource(R.string.google),
@@ -405,21 +364,24 @@ fun AccountSettings(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // 🔥 AVATAR SELECTOR
-                GlassCard(
+                com.valora.icebeats.ui.component.SettingsGlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    AvatarSelector(modifier = Modifier.padding(vertical = 8.dp))
+                    AvatarSelector(
+                        useLiquidSilverTheme = true,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // 🔥 RANK BADGE SELECTOR
-                GlassCard(
+                com.valora.icebeats.ui.component.SettingsGlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     RankBadgeSelector(modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp))
                 }

@@ -106,13 +106,9 @@ fun AppIconScreen(
 
     var showSubmitDialog by rememberSaveable { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        ScreenAdaptiveBackground(
-            artworkUrl = mediaMetadata?.thumbnailUrl
-        )
-
-        Scaffold(
-            containerColor = Color.Transparent,
+    Box(modifier = Modifier.fillMaxSize().background(com.valora.icebeats.ui.component.bitChordSettingsBackground())) {
+Scaffold(
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 TopAppBar(
@@ -131,7 +127,7 @@ fun AppIconScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
+                        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
                         scrolledContainerColor = Color.Transparent
                     ),
                     scrollBehavior = scrollBehavior,

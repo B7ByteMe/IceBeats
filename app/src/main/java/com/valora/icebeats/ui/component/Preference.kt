@@ -59,12 +59,20 @@ fun PreferenceEntry(
     isEnabled: Boolean = true,
 ) {
     val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val insideGroup = LocalInsideBitChordGroup.current
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
-            .clip(BitChordGroupShape)
-            .background(bitChordSettingsCardColor())
+            .then(
+                if (insideGroup) {
+                    Modifier
+                } else {
+                    Modifier
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
+                        .clip(BitChordGroupShape)
+                        .background(bitChordSettingsCardColor())
+                }
+            )
             .clickable(
                 enabled = isEnabled && onClick != null,
                 onClick = onClick ?: {},

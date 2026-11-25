@@ -48,9 +48,18 @@ class NamePreferenceManager @Inject constructor(
     val isNameSet: Flow<Boolean> = context.nameDataStore.data
         .map { preferences ->
             val isV58Set = preferences[NAME_SET_KEY]?.toBoolean() ?: false
-            val hasOldName = !preferences[USER_NAME_KEY].isNullOrBlank()
-            isV58Set || hasOldName
+            val savedName = preferences[USER_NAME_KEY]?.trim().orEmpty()
+            val isDefaultModelName = savedName.equals(android.os.Build.MODEL, ignoreCase = true)
+            isV58Set || (savedName.isNotBlank() && !isDefaultModelName)
         }
+
+    suspend fun clearUser() {
+        context.nameDataStore.edit { preferences ->
+            preferences.remove(USER_NAME_KEY)
+            preferences.remove(NAME_SET_KEY)
+            preferences.remove(ACCOUNT_EMAIL_KEY)
+        }
+    }
 
     suspend fun saveUserName(name: String) {
         context.nameDataStore.edit { preferences ->

@@ -42,33 +42,31 @@ fun SettingsCategory(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // Section title
         title?.let {
             Text(
-                text = it,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 12.dp),
-                style = MaterialTheme.typography.titleSmall.copy(
+                text = it.uppercase(java.util.Locale.ROOT),
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 20.dp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.4.sp
                 ),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                color = bitChordSettingsSecondaryTextColor()
             )
         }
 
-        // Settings card
-        val isFrosted = isFrostedGlassUiEnabled()
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(),
-            shape = RoundedCornerShape(28.dp),
+            shape = BitChordGroupShape,
             colors = CardDefaults.cardColors(
-                containerColor = settingsCardContainerColor(isFrosted)
+                containerColor = bitChordSettingsCardColor()
             ),
-            border = settingsCardBorder(isFrosted),
+            border = null,
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Column {
                 items.forEachIndexed { index, item ->
                     Material3SettingsItemRow(
                         item = item,
@@ -90,44 +88,37 @@ fun SettingsGeneralCategory(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // Section title
         title?.let {
             Text(
-                text = it,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 12.dp),
-                style = MaterialTheme.typography.titleSmall.copy(
+                text = it.uppercase(java.util.Locale.ROOT),
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 20.dp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.4.sp
                 ),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                color = bitChordSettingsSecondaryTextColor()
             )
         }
 
-        // Settings card
-        val isFrosted = isFrostedGlassUiEnabled()
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(),
-            shape = RoundedCornerShape(28.dp),
+            shape = BitChordGroupShape,
             colors = CardDefaults.cardColors(
-                containerColor = settingsCardContainerColor(isFrosted)
+                containerColor = bitChordSettingsCardColor()
             ),
-            border = settingsCardBorder(isFrosted),
+            border = null,
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                items.forEachIndexed { index, item ->
-                    item()
-                    if (index < items.size - 1) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(
-                                start = 72.dp,
-                                end = 16.dp
-                            ),
-                            thickness = 0.5.dp,
-                            color = Color.White.copy(alpha = 0.08f)
-                        )
+            androidx.compose.runtime.CompositionLocalProvider(LocalInsideBitChordGroup provides true) {
+                Column {
+                    items.forEachIndexed { index, item ->
+                        item()
+                        if (index < items.size - 1) {
+                            BitChordRowDivider()
+                        }
                     }
                 }
             }

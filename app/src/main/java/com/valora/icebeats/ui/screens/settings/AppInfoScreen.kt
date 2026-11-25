@@ -279,12 +279,10 @@ fun AppInfoScreen(
         label = "refreshRotation"
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        ScreenAdaptiveBackground(artworkUrl = mediaMetadata?.thumbnailUrl)
-
-        Scaffold(
+    Box(modifier = Modifier.fillMaxSize().background(com.valora.icebeats.ui.component.bitChordSettingsBackground())) {
+Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent,
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
             topBar = {
                 TopAppBar(
                     title = {
@@ -316,7 +314,7 @@ fun AppInfoScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
+                        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
                         scrolledContainerColor = Color.Transparent
                     )
                 )

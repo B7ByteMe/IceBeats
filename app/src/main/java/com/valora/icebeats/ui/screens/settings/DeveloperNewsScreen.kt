@@ -157,10 +157,8 @@ fun DeveloperNewsScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        ScreenAdaptiveBackground(artworkUrl = mediaMetadata?.thumbnailUrl)
-
-        AnimatedContent(
+    Box(modifier = Modifier.fillMaxSize().background(com.valora.icebeats.ui.component.bitChordSettingsBackground())) {
+AnimatedContent(
             targetState = selectedNewsItem,
             transitionSpec = {
                 if (targetState != null) {
@@ -221,7 +219,7 @@ private fun DeveloperNewsListScreen(
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
+        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         topBar = {
             Column(
                 modifier = Modifier
@@ -298,7 +296,7 @@ private fun DeveloperNewsListScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
+                        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
                         scrolledContainerColor = Color.Transparent
                     ),
                     scrollBehavior = scrollBehavior
@@ -634,7 +632,7 @@ private fun DeveloperNewsDetailScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
+        containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
         topBar = {
             TopAppBar(
                 title = {
@@ -706,7 +704,7 @@ private fun DeveloperNewsDetailScreen(
                         )
                     ),
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = com.valora.icebeats.ui.component.bitChordSettingsBackground(),
                     scrolledContainerColor = Color.Transparent
                 )
             )

@@ -325,7 +325,7 @@ fun ElegantSelectorButton(
         }
         solid -> {
             Modifier.background(
-                color = if (enabled) Color(0xFFCCFF00) else Color(0xFFCCFF00).copy(alpha = 0.2f),
+                color = if (enabled) Color(0xFFE2E8F0) else Color(0xFFE2E8F0).copy(alpha = 0.2f),
                 shape = shape
             )
         }
@@ -564,7 +564,7 @@ fun AvatarSelector(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = if (useLiquidSilverTheme) Color(0xFFE2E8F0) else Color(0xFFCCFF00)
+                        color = if (useLiquidSilverTheme) Color(0xFFE2E8F0) else Color(0xFFE2E8F0)
                     )
                 }
             }
@@ -910,7 +910,7 @@ private fun CurrentAvatarDisplay(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val accentColor = if (useLiquidSilverTheme) Color(0xFFE2E8F0) else Color(0xFFCCFF00)
+    val accentColor = if (useLiquidSilverTheme) Color(0xFFE2E8F0) else Color(0xFFE2E8F0)
 
     Box(
         modifier = modifier

@@ -31,18 +31,8 @@ fun isFrostedGlassUiEnabled(): Boolean {
  * Resolves standard card container color based on whether frosted glass UI is active.
  */
 @Composable
-fun settingsCardContainerColor(frosted: Boolean = isFrostedGlassUiEnabled()): Color {
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    return if (frosted) {
-        if (isDark) {
-            Color.White.copy(alpha = 0.08f)
-        } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
-        }
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)
-    }
-}
+fun settingsCardContainerColor(frosted: Boolean = isFrostedGlassUiEnabled()): Color =
+    bitChordSettingsCardColor()
 
 /**
  * Resolves popup and bottom sheet glass container color with enhanced opacity and depth
@@ -66,28 +56,17 @@ fun popupGlassContainerColor(frosted: Boolean = isFrostedGlassUiEnabled()): Colo
  * Resolves card border stroke based on whether frosted glass UI is active.
  */
 @Composable
-fun settingsCardBorder(frosted: Boolean = isFrostedGlassUiEnabled()): BorderStroke? {
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    return if (frosted) {
-        BorderStroke(
-            1.dp,
-            if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-        )
-    } else {
-        null
-    }
-}
+fun settingsCardBorder(frosted: Boolean = isFrostedGlassUiEnabled()): BorderStroke? = null
 
 /**
- * Unified Card container that automatically switches between frosted glass styling
- * and the default opaque Material 3 container.
+ * Unified Card container styled cleanly to match BitChord Settings.
  */
 @Composable
 fun SettingsGlassCard(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(28.dp),
-    containerColor: Color = settingsCardContainerColor(),
-    border: BorderStroke? = settingsCardBorder(),
+    shape: Shape = RoundedCornerShape(14.dp),
+    containerColor: Color = bitChordSettingsCardColor(),
+    border: BorderStroke? = null,
     content: @Composable () -> Unit
 ) {
     Card(
