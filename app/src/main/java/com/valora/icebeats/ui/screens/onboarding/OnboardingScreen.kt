@@ -41,9 +41,11 @@ import com.valora.icebeats.R
 import com.valora.icebeats.ui.component.AvatarPreferenceManager
 import com.valora.icebeats.ui.component.AvatarSelection
 import com.valora.icebeats.ui.component.NamePreferenceManager
-import com.valora.icebeats.ui.component.drawBackdropCustomShape
-import com.valora.icebeats.ui.component.layerBackdrop
-import com.valora.icebeats.ui.component.rememberBackdrop
+import com.valora.icebeats.ui.component.bitChordSettingsBackground
+import com.valora.icebeats.ui.component.bitChordSettingsCardColor
+import com.valora.icebeats.ui.component.bitChordSettingsOutlineColor
+import com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor
+import com.valora.icebeats.ui.component.isBitChordDarkTheme
 import com.valora.icebeats.utils.AuthApiClient
 import com.valora.icebeats.utils.AuthResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -445,177 +447,69 @@ fun OnboardingScreen(
         }
     }
 
-    val hazeState = remember { HazeState() }
-    val backdrop = rememberBackdrop()
-    val glassLayer = rememberGraphicsLayer()
-
-    val silverAccent = Color(0xFFE2E8F0)
-    val liquidCardShape = RoundedCornerShape(34.dp)
-    val liquidCardFill = remember {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.14f),
-                Color(0xFFD6E0EC).copy(alpha = 0.05f),
-                Color(0xFF0A0D12).copy(alpha = 0.52f)
-            )
-        )
-    }
-    val liquidCardBorder = remember {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.50f),
-                Color(0xFFD0D9E4).copy(alpha = 0.18f),
-                Color.White.copy(alpha = 0.06f),
-                Color(0xFFE2E8F0).copy(alpha = 0.30f)
-            )
-        )
-    }
+    val dark = isBitChordDarkTheme()
+    val bgColor = bitChordSettingsBackground()
+    val cardColor = bitChordSettingsCardColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val silverAccent = secondaryColor
+    val groupShape = RoundedCornerShape(14.dp)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF06070A))
+            .background(bgColor)
     ) {
-        // Subtle monochrome titanium-slate spatial depth behind glass (no glow on logos)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .layerBackdrop(backdrop)
-                .haze(hazeState)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(Color(0xFF06070A))
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF94A3B8).copy(alpha = 0.16f),
-                            Color(0xFF475569).copy(alpha = 0.06f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.18f, size.height * 0.84f),
-                        radius = size.width * 0.85f
-                    ),
-                    center = Offset(size.width * 0.18f, size.height * 0.84f),
-                    radius = size.width * 0.85f
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFCBD5E1).copy(alpha = 0.12f),
-                            Color(0xFF64748B).copy(alpha = 0.04f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.86f, size.height * 0.52f),
-                        radius = size.width * 0.75f
-                    ),
-                    center = Offset(size.width * 0.86f, size.height * 0.52f),
-                    radius = size.width * 0.75f
-                )
-            }
-        }
-
-        // Top-left iOS 26 Liquid Glass Back Button (hidden on main Login screen so entry is only via Login or Continue as Guest)
+        // Clean BitChord-style Back Button (hidden on main Login screen)
         if (authMode != AuthMode.LOGIN && syncState == SyncState.IDLE) {
             Box(
                 modifier = Modifier
                     .statusBarsPadding()
                     .padding(16.dp)
                     .align(Alignment.TopStart)
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .drawBackdropCustomShape(
-                        backdrop = backdrop,
-                        layer = glassLayer,
-                        luminanceAnimation = 0.35f,
-                        shape = CircleShape
-                    )
-                    .background(
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.18f),
-                                Color.White.copy(alpha = 0.06f)
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.linearGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.52f),
-                                Color.White.copy(alpha = 0.12f),
-                                Color.White.copy(alpha = 0.28f)
-                            )
-                        ),
-                        shape = CircleShape
-                    )
+                    .background(cardColor)
                     .clickable { stepBackAuthMode() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back),
                     contentDescription = "Back",
-                    tint = Color.White,
+                    tint = primaryTextColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
         }
 
-        // Floating iOS 26 Liquid Glass Login Sheet
+        // Clean BitChord Settings-style Auth Container
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
+                .fillMaxSize()
+                .systemBarsPadding()
                 .imePadding()
-                .padding(horizontal = 14.dp, vertical = 12.dp)
-                .fillMaxWidth()
-                .fillMaxHeight(if (authMode == AuthMode.SIGNUP || authMode == AuthMode.VERIFY_RECOVERY_OTP) 0.78f else 0.70f)
-                .clip(liquidCardShape)
-                .hazeChild(
-                    state = hazeState,
-                    style = HazeMaterials.ultraThin()
-                )
-                .background(
-                    brush = liquidCardFill,
-                    shape = liquidCardShape
-                )
-                .border(
-                    width = 1.2.dp,
-                    brush = liquidCardBorder,
-                    shape = liquidCardShape
-                )
         ) {
-            // Top subtle Liquid Glass grabber pill
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 10.dp)
-                    .width(38.dp)
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.32f))
-            )
-
             val scrollState = rememberScrollState()
             Crossfade(targetState = syncState, label = "OnboardingState") { state ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(start = 24.dp, end = 24.dp, top = 26.dp, bottom = 20.dp),
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     when (state) {
                         SyncState.IDLE -> {
                             val textFieldColors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = silverAccent.copy(alpha = 0.85f),
-                                unfocusedBorderColor = Color.White.copy(alpha = 0.20f),
-                                focusedContainerColor = Color.White.copy(alpha = 0.11f),
-                                unfocusedContainerColor = Color.White.copy(alpha = 0.06f),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = silverAccent
+                                focusedBorderColor = primaryTextColor.copy(alpha = 0.65f),
+                                unfocusedBorderColor = outlineColor,
+                                focusedContainerColor = cardColor,
+                                unfocusedContainerColor = cardColor,
+                                focusedTextColor = primaryTextColor,
+                                unfocusedTextColor = primaryTextColor,
+                                cursorColor = primaryTextColor
                             )
 
                             when (authMode) {
@@ -649,11 +543,11 @@ fun OnboardingScreen(
                                             OutlinedTextField(
                                                 value = nameInput,
                                                 onValueChange = { nameInput = it },
-                                                placeholder = { Text("@yourname", color = Color.White.copy(alpha = 0.45f)) },
+                                                placeholder = { Text("@yourname", color = secondaryColor) },
                                                 leadingIcon = { Icon(painterResource(R.drawable.person), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f)) },
                                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                                 singleLine = true,
-                                                shape = RoundedCornerShape(18.dp),
+                                                shape = RoundedCornerShape(14.dp),
                                                 colors = textFieldColors
                                             )
                                         }
@@ -664,12 +558,12 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = emailInput,
                                             onValueChange = { emailInput = it },
-                                            placeholder = { Text("yourname@gmail.com", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("yourname@gmail.com", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(if (authMode == AuthMode.SIGNUP) R.drawable.email else R.drawable.person), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f)) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -679,7 +573,7 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = passwordInput,
                                             onValueChange = { passwordInput = it },
-                                            placeholder = { Text("••••••••", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("••••••••", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(R.drawable.lock), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f), modifier = Modifier.size(20.dp)) },
                                             trailingIcon = {
                                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -690,7 +584,7 @@ fun OnboardingScreen(
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -722,30 +616,30 @@ fun OnboardingScreen(
 
                                     // Or continue with divider
                                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.16f))
+                                        HorizontalDivider(modifier = Modifier.weight(1f), color = outlineColor)
                                         Text(
                                             text = if (authMode == AuthMode.SIGNUP) " Or sign up with " else " Or continue with ",
                                             color = silverAccent.copy(alpha = 0.55f),
                                             fontSize = 12.sp,
                                             modifier = Modifier.padding(horizontal = 8.dp)
                                         )
-                                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.16f))
+                                        HorizontalDivider(modifier = Modifier.weight(1f), color = outlineColor)
                                     }
 
                                     Spacer(modifier = Modifier.height(14.dp))
 
-                                    // Liquid Glass Social Icons Row
-                                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                        LiquidGlassSocialTile(
-                                            backdrop = backdrop,
-                                            glassLayer = glassLayer,
+                                    // Liquid Glass Social Icons Row -> BitChord Clean Card Tiles
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        BitChordSocialTile(
+                                            cardColor = cardColor,
+                                            outlineColor = outlineColor,
                                             onClick = { onGoogleSignInClick() }
                                         ) {
                                             Icon(painterResource(R.drawable.ic_google_logo), contentDescription = "Google", tint = Color.Unspecified)
                                         }
-                                        LiquidGlassSocialTile(
-                                            backdrop = backdrop,
-                                            glassLayer = glassLayer,
+                                        BitChordSocialTile(
+                                            cardColor = cardColor,
+                                            outlineColor = outlineColor,
                                             onClick = {
                                                 val oauthUrl = supabaseClient.getOAuthAuthorizeUrl("facebook")
                                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(oauthUrl))
@@ -754,20 +648,20 @@ fun OnboardingScreen(
                                         ) {
                                             Icon(painterResource(R.drawable.facebook), contentDescription = "Facebook", tint = Color(0xFF1877F2))
                                         }
-                                        LiquidGlassSocialTile(
-                                            backdrop = backdrop,
-                                            glassLayer = glassLayer,
+                                        BitChordSocialTile(
+                                            cardColor = cardColor,
+                                            outlineColor = outlineColor,
                                             onClick = {
                                                 val oauthUrl = supabaseClient.getOAuthAuthorizeUrl("github")
                                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(oauthUrl))
                                                 context.startActivity(intent)
                                             }
                                         ) {
-                                            Icon(painterResource(R.drawable.github), contentDescription = "Github", tint = Color.White)
+                                            Icon(painterResource(R.drawable.github), contentDescription = "Github", tint = primaryTextColor)
                                         }
-                                        LiquidGlassSocialTile(
-                                            backdrop = backdrop,
-                                            glassLayer = glassLayer,
+                                        BitChordSocialTile(
+                                            cardColor = cardColor,
+                                            outlineColor = outlineColor,
                                             onClick = {
                                                 val oauthUrl = supabaseClient.getOAuthAuthorizeUrl("gitlab")
                                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(oauthUrl))
@@ -836,12 +730,12 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = otpInput,
                                             onValueChange = { if (it.length <= 8) otpInput = it },
-                                            placeholder = { Text("Contoh: 123456", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("Contoh: 123456", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(R.drawable.lock), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f), modifier = Modifier.size(20.dp)) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -901,12 +795,12 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = emailInput,
                                             onValueChange = { emailInput = it },
-                                            placeholder = { Text("yourname@gmail.com", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("yourname@gmail.com", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(R.drawable.email), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f)) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -961,12 +855,12 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = otpInput,
                                             onValueChange = { if (it.length <= 8) otpInput = it },
-                                            placeholder = { Text("Contoh: 123456", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("Contoh: 123456", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(R.drawable.lock), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f), modifier = Modifier.size(20.dp)) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -976,7 +870,7 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = newPasswordInput,
                                             onValueChange = { newPasswordInput = it },
-                                            placeholder = { Text("••••••••", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("••••••••", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(R.drawable.lock), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f), modifier = Modifier.size(20.dp)) },
                                             trailingIcon = {
                                                 IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
@@ -987,7 +881,7 @@ fun OnboardingScreen(
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -997,7 +891,7 @@ fun OnboardingScreen(
                                         OutlinedTextField(
                                             value = confirmNewPasswordInput,
                                             onValueChange = { confirmNewPasswordInput = it },
-                                            placeholder = { Text("••••••••", color = Color.White.copy(alpha = 0.45f)) },
+                                            placeholder = { Text("••••••••", color = secondaryColor) },
                                             leadingIcon = { Icon(painterResource(R.drawable.lock), contentDescription = null, tint = silverAccent.copy(alpha = 0.65f), modifier = Modifier.size(20.dp)) },
                                             trailingIcon = {
                                                 IconButton(onClick = { confirmNewPasswordVisible = !confirmNewPasswordVisible }) {
@@ -1008,7 +902,7 @@ fun OnboardingScreen(
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                                             modifier = Modifier.fillMaxWidth().height(52.dp),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             colors = textFieldColors
                                         )
                                     }
@@ -1141,7 +1035,7 @@ fun OnboardingScreen(
 }
 
 /**
- * Primary metallic silver pill button styled for iOS Liquid Glass.
+ * Clean primary action button styled like BitChord Settings.
  */
 @Composable
 private fun SilverLiquidGlassButton(
@@ -1150,51 +1044,35 @@ private fun SilverLiquidGlassButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val silverGradient = remember {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFFF8FAFC),
-                Color(0xFFD8E0EA),
-                Color(0xFFB4BFC9)
-            )
-        )
-    }
-    val silverBorder = remember {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.92f),
-                Color(0xFF8C98A8).copy(alpha = 0.55f)
-            )
-        )
-    }
+    val dark = isBitChordDarkTheme()
+    val containerColor = if (dark) Color.White else Color.Black
+    val contentColor = if (dark) Color.Black else Color.White
 
     Button(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp)
-            .clip(CircleShape)
-            .background(brush = silverGradient, shape = CircleShape)
-            .border(width = 1.dp, brush = silverBorder, shape = CircleShape),
-        shape = CircleShape,
+            .height(52.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            disabledContainerColor = Color.Transparent
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = containerColor.copy(alpha = 0.5f),
+            disabledContentColor = contentColor
         ),
-        contentPadding = PaddingValues(),
         enabled = !isLoading
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                color = Color(0xFF0C1016),
+                color = contentColor,
                 strokeWidth = 2.5.dp,
                 modifier = Modifier.size(22.dp)
             )
         } else {
             Text(
                 text = text,
-                color = Color(0xFF0C1016),
-                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
             )
         }
@@ -1202,48 +1080,24 @@ private fun SilverLiquidGlassButton(
 }
 
 /**
- * Frosted Liquid Glass tile used for third-party OAuth providers.
+ * Clean grouped card tile used for third-party OAuth providers in BitChord style.
  */
 @Composable
-private fun LiquidGlassSocialTile(
-    backdrop: com.valora.icebeats.ui.component.PlatformBackdrop,
-    glassLayer: androidx.compose.ui.graphics.layer.GraphicsLayer,
+private fun BitChordSocialTile(
+    cardColor: Color,
+    outlineColor: Color,
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(50.dp)
             .clip(shape)
-            .drawBackdropCustomShape(
-                backdrop = backdrop,
-                layer = glassLayer,
-                luminanceAnimation = 0.35f,
-                shape = shape
-            )
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.16f),
-                        Color.White.copy(alpha = 0.05f)
-                    )
-                ),
-                shape = shape
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.48f),
-                        Color.White.copy(alpha = 0.10f),
-                        Color.White.copy(alpha = 0.25f)
-                    )
-                ),
-                shape = shape
-            )
+            .background(cardColor, shape)
+            .border(width = 0.5.dp, color = outlineColor, shape = shape)
             .clickable(onClick = onClick)
-            .padding(11.dp),
+            .padding(12.dp),
         contentAlignment = Alignment.Center
     ) {
         content()
