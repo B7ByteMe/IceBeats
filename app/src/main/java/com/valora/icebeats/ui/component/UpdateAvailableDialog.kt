@@ -17,7 +17,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -124,6 +126,14 @@ fun UpdateAvailableDialog(
         label = "pulseScale"
     )
 
+    val dark = isBitChordDarkTheme()
+    val cardColor = bitChordSettingsCardColor()
+    val innerCardColor = bitChordSettingsBackground()
+    val outlineColor = bitChordSettingsOutlineColor()
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val badgeBg = if (dark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -132,12 +142,11 @@ fun UpdateAvailableDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 32.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 6.dp,
+            shape = RoundedCornerShape(22.dp),
+            color = cardColor,
             border = BorderStroke(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                color = outlineColor
             )
         ) {
             Column(
@@ -146,51 +155,34 @@ fun UpdateAvailableDialog(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Top Icon Badge
+                // App Icon Badge
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(64.dp)
                         .scale(pulseScale)
+                        .clip(CircleShape)
+                        .background(badgeBg)
+                        .border(1.dp, outlineColor, CircleShape)
                 ) {
-                    Box(
+                    Image(
+                        painter = painterResource(R.drawable.icebeats_logo),
+                        contentDescription = "IceBeats",
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(46.dp)
                             .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                        Color.Transparent
-                                    )
-                                )
-                            )
                     )
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.update),
-                            contentDescription = stringResource(R.string.ui_a11y_update_icon),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Title
                 Text(
-                    text = stringResource(R.string.ui_text_update_available),
+                    text = "Update IceBeats",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = primaryTextColor,
                     textAlign = TextAlign.Center
                 )
 
@@ -199,15 +191,15 @@ fun UpdateAvailableDialog(
                 // Version Badge Tag
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    color = badgeBg,
+                    border = BorderStroke(1.dp, outlineColor)
                 ) {
                     Text(
                         text = "Version v${updateInfo.versionName}",
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = primaryTextColor,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )
                 }
@@ -215,24 +207,24 @@ fun UpdateAvailableDialog(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = stringResource(R.string.ui_sweep_a_new_version_of_airbeats_is_ready_to_install_with_latest_feature),
+                    text = "A new version of IceBeats is ready to install with latest features and enhancements.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = secondaryColor,
                     textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Expandable stringResource(R.string.ui_sweep_what_s_new) Accordion Card
+                // Expandable What's New Accordion Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        containerColor = innerCardColor
                     ),
                     border = BorderStroke(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        color = outlineColor
                     )
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -240,7 +232,7 @@ fun UpdateAvailableDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(14.dp))
                                 .clickable { isWhatIsNewExpanded = !isWhatIsNewExpanded }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -254,13 +246,13 @@ fun UpdateAvailableDialog(
                                     modifier = Modifier
                                         .size(30.dp)
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                                        .background(badgeBg),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.info),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary,
+                                        tint = primaryTextColor,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -270,14 +262,14 @@ fun UpdateAvailableDialog(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = primaryTextColor
                                 )
                             }
 
                             Icon(
                                 painter = painterResource(R.drawable.expand_more),
                                 contentDescription = if (isWhatIsNewExpanded) "Collapse" else "Expand",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = secondaryColor,
                                 modifier = Modifier
                                     .size(24.dp)
                                     .rotate(arrowRotation)
@@ -297,7 +289,7 @@ fun UpdateAvailableDialog(
                                     .padding(bottom = 14.dp)
                             ) {
                                 HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                    color = outlineColor,
                                     modifier = Modifier.padding(bottom = 10.dp)
                                 )
 
@@ -316,7 +308,7 @@ fun UpdateAvailableDialog(
                                         Text(
                                             text = stringResource(R.string.ui_sweep_performance_improvements_and_bug_fixes),
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = secondaryColor
                                         )
                                     } else {
                                         notesList.forEach { note ->
@@ -327,14 +319,14 @@ fun UpdateAvailableDialog(
                                             ) {
                                                 Text(
                                                     text = "•",
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = primaryTextColor,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 16.sp
                                                 )
                                                 Text(
                                                     text = note,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    color = secondaryColor,
                                                     modifier = Modifier.weight(1f)
                                                 )
                                             }
@@ -360,13 +352,13 @@ fun UpdateAvailableDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 16.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                                    containerColor = innerCardColor
                                 ),
                                 border = BorderStroke(
                                     1.dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                    outlineColor
                                 )
                             ) {
                                 Column(
@@ -385,7 +377,7 @@ fun UpdateAvailableDialog(
                                             style = MaterialTheme.typography.bodyMedium.copy(
                                                 fontWeight = FontWeight.SemiBold
                                             ),
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = primaryTextColor
                                         )
                                         if (state.progress >= 0f) {
                                             Text(
@@ -393,7 +385,7 @@ fun UpdateAvailableDialog(
                                                 style = MaterialTheme.typography.labelLarge.copy(
                                                     fontWeight = FontWeight.Bold
                                                 ),
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = primaryTextColor
                                             )
                                         }
                                     }
@@ -405,8 +397,8 @@ fun UpdateAvailableDialog(
                                                 .fillMaxWidth()
                                                 .height(8.dp)
                                                 .clip(RoundedCornerShape(4.dp)),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                            color = primaryTextColor,
+                                            trackColor = badgeBg
                                         )
                                     } else {
                                         LinearProgressIndicator(
@@ -414,8 +406,8 @@ fun UpdateAvailableDialog(
                                                 .fillMaxWidth()
                                                 .height(8.dp)
                                                 .clip(RoundedCornerShape(4.dp)),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                            color = primaryTextColor,
+                                            trackColor = badgeBg
                                         )
                                     }
 
@@ -436,7 +428,7 @@ fun UpdateAvailableDialog(
                                         Text(
                                             text = bytesText,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = secondaryColor
                                         )
                                     }
                                 }
@@ -447,13 +439,13 @@ fun UpdateAvailableDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 16.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                    containerColor = innerCardColor
                                 ),
                                 border = BorderStroke(
                                     1.dp,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                    outlineColor
                                 )
                             ) {
                                 Row(
@@ -467,13 +459,13 @@ fun UpdateAvailableDialog(
                                         modifier = Modifier
                                             .size(36.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                            .background(badgeBg),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.check_circle),
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
+                                            tint = primaryTextColor,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -483,12 +475,12 @@ fun UpdateAvailableDialog(
                                             style = MaterialTheme.typography.titleSmall.copy(
                                                 fontWeight = FontWeight.Bold
                                             ),
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = primaryTextColor
                                         )
                                         Text(
                                             text = stringResource(R.string.ui_text_tap_install_to_update_now),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = secondaryColor
                                         )
                                     }
                                 }
@@ -554,20 +546,21 @@ fun UpdateAvailableDialog(
                             .weight(1f)
                             .height(48.dp),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        border = BorderStroke(1.dp, outlineColor)
                     ) {
                         Text(
                             text = stringResource(R.string.ui_text_later),
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = secondaryColor
                         )
                     }
 
                     val isDownloading = downloadState is UpdateDownloadState.Downloading
                     val isCompleted = downloadState is UpdateDownloadState.Completed
                     val isFailed = downloadState is UpdateDownloadState.Failed
+                    val actionContentColor = if (dark) Color.Black else Color.White
 
                     Button(
                         onClick = {
@@ -594,8 +587,10 @@ fun UpdateAvailableDialog(
                             .height(48.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = primaryTextColor,
+                            contentColor = actionContentColor,
+                            disabledContainerColor = primaryTextColor.copy(alpha = 0.5f),
+                            disabledContentColor = actionContentColor
                         )
                     ) {
                         val iconRes = when {
