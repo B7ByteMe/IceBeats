@@ -1146,16 +1146,15 @@ fun AppleStatsScreen(
     val mostPlayedAlbums by viewModel.mostPlayedAlbums.collectAsState()
     val mostPlayedSongs by viewModel.mostPlayedSongs.collectAsState()
     val playerConnection = LocalPlayerConnection.current ?: return
+    val top100Users = remember(globalStats.board.users) { globalStats.board.users.take(100) }
+    val topUser = top100Users.firstOrNull()
+    val currentUser = globalStats.board.users.firstOrNull { it.id == globalStats.currentUserId }
+    val isCurrentUserOutsideTop100 = currentUser != null && top100Users.none { it.id == currentUser.id }
 
     AppleScaffold(
         title = stringResource(R.string.stats),
         navController = navController
     ) {
-        val top100Users = remember(globalStats.board.users) { globalStats.board.users.take(100) }
-        val topUser = top100Users.firstOrNull()
-        val currentUser = globalStats.board.users.firstOrNull { it.id == globalStats.currentUserId }
-        val isCurrentUserOutsideTop100 = currentUser != null && top100Users.none { it.id == currentUser.id }
-
         item {
             AppleSectionTitle("Global Rankings")
             Column(
