@@ -199,6 +199,7 @@ fun OnboardingScreen(
 
     fun continueToHome() {
         coroutineScope.launch {
+            AutoBackupManager.markSetupCompleted(context)
             syncState = SyncState.IDLE
             navController.navigate("home") {
                 popUpTo("onboarding") {

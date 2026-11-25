@@ -1847,10 +1847,11 @@ class MainActivity : FragmentActivity() {
                                         onBack = { navController.popBackStack() },
                                         modifier = Modifier.fillMaxSize()
                                     ) {
+                                    val hasCompletedSetup = remember { AutoBackupManager.hasCompletedSetup(this@MainActivity) }
                                     val justRestored = remember { AutoBackupManager.consumeJustRestoredFlag(this@MainActivity) }
                                     NavHost(
                                         navController = navController,
-                                        startDestination = if (isNameSet != true && !isSupabaseLoggedIn && !justRestored) {
+                                        startDestination = if (!hasCompletedSetup && isNameSet != true && !isSupabaseLoggedIn && !justRestored) {
                                             "onboarding"
                                         } else {
                                             when (tabOpenedFromShortcut ?: defaultOpenTab) {
