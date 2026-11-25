@@ -804,7 +804,6 @@ fun SettingsScreen(
                 val storageTitle = stringResource(R.string.storage)
                 val privacyTitle = stringResource(R.string.privacy)
                 val backupTitle = stringResource(R.string.backup_restore)
-                val experimentalTitle = stringResource(R.string.ui_text_experimental_settings)
 
                 data class MenuRowSpec(
                     val title: String,
@@ -865,9 +864,6 @@ fun SettingsScreen(
                     if (matches(backupTitle, "drive", "restore", "export", "import")) {
                         add(MenuRowSpec(backupTitle, R.drawable.restore, "settings/backup_restore"))
                     }
-                    if (matches(experimentalTitle, "debug", "experimental")) {
-                        add(MenuRowSpec(experimentalTitle, R.drawable.bug_report, "settings/experimental"))
-                    }
                 }
 
                 if (dataRows.isNotEmpty()) {
@@ -884,7 +880,6 @@ fun SettingsScreen(
                 }
 
                 // Community & Info group
-                val newsTitle = stringResource(R.string.ui_text_news_from_developers_2)
                 val aboutTitle = stringResource(R.string.about)
                 val translateTitle = stringResource(R.string.ui_text_help_translate)
                 val telegramTitle = stringResource(R.string.ui_text_telegram)
@@ -896,9 +891,6 @@ fun SettingsScreen(
                 )
 
                 val communityRows = buildList {
-                    if (matches(newsTitle, "news", "developer")) {
-                        add(ActionRowSpec(newsTitle, R.drawable.newspaper) { navController.navigate("settings/developer_news") })
-                    }
                     if (matches(aboutTitle, "license", "contributor", "valora")) {
                         add(ActionRowSpec(aboutTitle, R.drawable.info) { navController.navigate("settings/about") })
                     }
