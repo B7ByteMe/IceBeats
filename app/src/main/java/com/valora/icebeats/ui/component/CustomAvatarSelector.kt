@@ -482,7 +482,6 @@ fun AvatarSelector(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold
                 )
-                )
                 Spacer(modifier = Modifier.width(8.dp))
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
