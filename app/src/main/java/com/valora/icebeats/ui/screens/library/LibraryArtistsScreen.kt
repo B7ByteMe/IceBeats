@@ -229,7 +229,7 @@ fun LibraryArtistsScreen(
                                 EmptyPlaceholder(
                                     icon = R.drawable.artist,
                                     text = stringResource(R.string.library_artist_empty),
-                                    modifier = Modifier.animateItem()
+                                    modifier = Modifier
                                 )
                             }
                         }
@@ -243,7 +243,7 @@ fun LibraryArtistsScreen(
                                 navController = navController,
                                 menuState = menuState,
                                 coroutineScope = coroutineScope,
-                                modifier = Modifier.animateItem(),
+                                modifier = Modifier,
                                 artist = artist
                             )
                         }
@@ -281,7 +281,7 @@ fun LibraryArtistsScreen(
                                 EmptyPlaceholder(
                                     icon = R.drawable.artist,
                                     text = stringResource(R.string.library_artist_empty),
-                                    modifier = Modifier.animateItem()
+                                    modifier = Modifier
                                 )
                             }
                         }
@@ -295,7 +295,7 @@ fun LibraryArtistsScreen(
                                 navController = navController,
                                 menuState = menuState,
                                 coroutineScope = coroutineScope,
-                                modifier = Modifier.animateItem(),
+                                modifier = Modifier,
                                 artist = artist
                             )
                         }

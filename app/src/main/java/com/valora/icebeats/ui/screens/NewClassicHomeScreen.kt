@@ -675,27 +675,6 @@ private fun NewClassicHeroSection(
                 Spacer(Modifier.width(10.dp))
 
                 IconButton(
-                    onClick = onDeveloperNewsClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(buttonBg)
-                        .then(
-                            if (buttonBorder != null) Modifier.border(buttonBorder, CircleShape)
-                            else Modifier
-                        )
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.newspaper),
-                        contentDescription = stringResource(R.string.ui_a11y_news_from_developer),
-                        tint = buttonTint,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Spacer(Modifier.width(10.dp))
-
-                IconButton(
                     onClick = onSettingsClick,
                     modifier = Modifier
                         .size(40.dp)

@@ -453,8 +453,7 @@ fun LibraryPlaylistsScreen(
                     coroutineScope = coroutineScope,
                     playlist = playlist,
                     modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .animateItem(),
+                        .padding(horizontal = 16.dp),
                 )
             }
 

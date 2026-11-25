@@ -333,7 +333,7 @@ fun AppleScaffold(
     isRefreshing: Boolean? = null,
     onRefresh: (() -> Unit)? = null,
     onNewReleaseClick: (() -> Unit)? = { navController.navigate("new_release") },
-    onDeveloperNewsClick: (() -> Unit)? = { navController.navigate("settings/developer_news") },
+    onDeveloperNewsClick: (() -> Unit)? = null,
     floatingActionButton: (@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)? = null,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {

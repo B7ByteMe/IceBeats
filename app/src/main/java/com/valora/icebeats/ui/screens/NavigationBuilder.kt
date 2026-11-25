@@ -66,19 +66,20 @@ fun NavGraphBuilder.navigationBuilder(
     navigationItems: List<Screens> = emptyList(),
 ) {
     composable(Screens.Home.route) {
+        val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+        val (rawHomeScreenStyle, _) = rememberEnumPreference(
+            HomeScreenStyleKey,
+            defaultValue = HomeScreenStyle.SPOTIFY
+        )
+        val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
         if (rootPagerState != null && navigationItems.isNotEmpty()) {
             HorizontalPager(
                 state = rootPagerState,
+                beyondViewportPageCount = 1,
                 modifier = Modifier.fillMaxSize(),
                 key = { index -> navigationItems.getOrNull(index)?.route ?: index.toString() }
             ) { pageIndex ->
                 val screen = navigationItems.getOrNull(pageIndex) ?: Screens.Home
-                val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
-                val (rawHomeScreenStyle, _) = rememberEnumPreference(
-                    HomeScreenStyleKey,
-                    defaultValue = HomeScreenStyle.SPOTIFY
-                )
-                val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
                 when (screen.route) {
                     Screens.Home.route -> {
                         when (homeScreenStyle) {

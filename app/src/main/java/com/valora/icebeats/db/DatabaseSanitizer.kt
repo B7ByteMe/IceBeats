@@ -18,11 +18,11 @@ object DatabaseSanitizer {
 
                 // Ensure non-null integrity for essential string fields across tables
                 db.execSQL("UPDATE song SET title = 'Unknown Track' WHERE title IS NULL OR title = ''")
-                db.execSQL("UPDATE song SET thumbnailUrl = '' WHERE thumbnailUrl IS NULL")
+                db.execSQL("UPDATE song SET thumbnailUrl = '' WHERE thumbnailUrl IS NULL OR LENGTH(thumbnailUrl) > 500000")
                 db.execSQL("UPDATE artist SET name = 'Unknown Artist' WHERE name IS NULL OR name = ''")
-                db.execSQL("UPDATE artist SET thumbnailUrl = '' WHERE thumbnailUrl IS NULL")
+                db.execSQL("UPDATE artist SET thumbnailUrl = '' WHERE thumbnailUrl IS NULL OR LENGTH(thumbnailUrl) > 500000")
                 db.execSQL("UPDATE album SET title = 'Unknown Album' WHERE title IS NULL OR title = ''")
-                db.execSQL("UPDATE album SET thumbnailUrl = '' WHERE thumbnailUrl IS NULL")
+                db.execSQL("UPDATE album SET thumbnailUrl = '' WHERE thumbnailUrl IS NULL OR LENGTH(thumbnailUrl) > 500000")
                 db.execSQL("UPDATE playlist SET name = 'Unknown Playlist' WHERE name IS NULL OR name = ''")
                 db.execSQL("UPDATE playlist SET browseId = NULL WHERE browseId = 'null' OR browseId = '' OR browseId LIKE 'Success(%'")
                 db.execSQL("UPDATE playlist SET bookmarkedAt = datetime('now') WHERE bookmarkedAt IS NULL")

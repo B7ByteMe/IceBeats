@@ -1446,22 +1446,11 @@ private fun WelcomeStep(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .size(88.dp)
-                    .clip(CircleShape)
-                    .background(cardColor)
-                    .border(1.dp, outlineColor, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(R.drawable.icebeats_logo),
-                    contentDescription = "IceBeats",
-                    modifier = Modifier
-                        .size(58.dp)
-                        .clip(CircleShape)
-                )
-            }
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.drawable.icebeats_logo),
+                contentDescription = "IceBeats",
+                modifier = Modifier.size(80.dp)
+            )
 
             Spacer(modifier = Modifier.height(22.dp))
 

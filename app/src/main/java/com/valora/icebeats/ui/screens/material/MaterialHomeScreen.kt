@@ -657,14 +657,6 @@ private fun MaterialTopHeader(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = onDevNewsClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.newspaper),
-                        contentDescription = stringResource(R.string.ui_a11y_news_from_developer),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
                 IconButton(onClick = onSettingsClick) {
                     Icon(
                         imageVector = Icons.Filled.Settings,

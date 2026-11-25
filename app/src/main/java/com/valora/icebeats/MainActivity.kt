@@ -1637,10 +1637,10 @@ class MainActivity : FragmentActivity() {
                                                          } else {
                                                              navigateToExplore = true
                                                              coroutineScope.launch {
-                                                                 delay(300L)
+                                                                 delay(180L)
                                                                  if (navigateToExplore) {
                                                                      if (currentDestRoute == Screens.Home.route) {
-                                                                         rootPagerState.animateScrollToPage(index)
+                                                                         rootPagerState.scrollToPage(index)
                                                                      } else {
                                                                          navigateToScreen(navController, Screens.Home)
                                                                          rootPagerState.scrollToPage(index)
@@ -1657,7 +1657,7 @@ class MainActivity : FragmentActivity() {
                                                          } else {
                                                              if (currentDestRoute == Screens.Home.route) {
                                                                  coroutineScope.launch {
-                                                                     rootPagerState.animateScrollToPage(index)
+                                                                     rootPagerState.scrollToPage(index)
                                                                  }
                                                              } else {
                                                                  navigateToScreen(navController, Screens.Home)

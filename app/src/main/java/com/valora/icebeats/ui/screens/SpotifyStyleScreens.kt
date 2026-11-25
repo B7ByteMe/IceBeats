@@ -150,14 +150,6 @@ fun SpotifyHeaderActions(navController: NavController) {
         label = "spotifySettingsGearRotation"
     )
 
-    androidx.compose.material3.IconButton(onClick = { navController.navigate("settings/developer_news") }) {
-        androidx.compose.material3.Icon(
-            painter = androidx.compose.ui.res.painterResource(R.drawable.newspaper),
-            contentDescription = stringResource(R.string.ui_a11y_news_from_developer),
-            tint = SpotifyText,
-            modifier = Modifier.size(24.dp)
-        )
-    }
     androidx.compose.material3.IconButton(onClick = { navController.navigate("new_release") }) {
         androidx.compose.material3.Icon(
             painter = androidx.compose.ui.res.painterResource(R.drawable.notification_on),
@@ -784,8 +776,7 @@ fun SpotifyLibraryScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SpotifyBg)
-                .then(if (!com.valora.icebeats.utils.isBlurDisabled()) Modifier.haze(state = androidx.compose.runtime.remember { dev.chrisbanes.haze.HazeState() }) else Modifier),
+                .background(SpotifyBg),
         ) {
             IceBeatsMeshBackground()
             androidx.compose.runtime.CompositionLocalProvider(

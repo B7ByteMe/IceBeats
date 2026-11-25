@@ -494,39 +494,12 @@ private fun AppInfoHeaderCard(
                 .padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Icon with glow aura
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(64.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(
-                                    (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.25f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background((if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.icebeats_logo),
-                        contentDescription = "IceBeats",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(34.dp)
-                    )
-                }
-            }
+            // App Icon (transparent, no background)
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.drawable.icebeats_logo),
+                contentDescription = "IceBeats",
+                modifier = Modifier.size(56.dp)
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 

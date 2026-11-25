@@ -1384,13 +1384,6 @@ fun ModernHomeTopBarInline(
                 )
 
                 CircleIconButton(
-                    icon = R.drawable.newspaper,
-                    onClick = {
-                        navController.navigate("settings/developer_news")
-                    }
-                )
-
-                CircleIconButton(
                     icon = if (showUpdateIcon)
                         R.drawable.update
                     else

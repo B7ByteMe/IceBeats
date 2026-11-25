@@ -756,25 +756,6 @@ private fun BetterHeroSection(
 
                 Spacer(Modifier.width(8.dp))
 
-                // News From Developer
-                IconButton(
-                    onClick = onDeveloperNewsClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(buttonBg)
-                        .border(buttonBorder, CircleShape)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.newspaper),
-                        contentDescription = stringResource(R.string.ui_a11y_news_from_developer),
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Spacer(Modifier.width(8.dp))
-
                 // Settings
                 IconButton(
                     onClick = onSettingsClick,

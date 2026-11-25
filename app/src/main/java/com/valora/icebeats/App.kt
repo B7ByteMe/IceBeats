@@ -72,6 +72,12 @@ class App : LocaleAwareApplication(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // Prevent SQLiteBlobTooBigException (default Android CursorWindow is only 2MB)
+        runCatching {
+            val field = android.database.CursorWindow::class.java.getDeclaredField("sCursorWindowSize")
+            field.isAccessible = true
+            field.set(null, 50 * 1024 * 1024)
+        }
         com.valora.icebeats.utils.RemoteConfigManager.initialize(this)
         kotlinx.coroutines.runBlocking {
             runCatching { dataStore.initializeCache() }
