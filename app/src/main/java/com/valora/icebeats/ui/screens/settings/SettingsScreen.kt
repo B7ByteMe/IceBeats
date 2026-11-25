@@ -887,7 +887,6 @@ fun SettingsScreen(
                 val newsTitle = stringResource(R.string.ui_text_news_from_developers_2)
                 val aboutTitle = stringResource(R.string.about)
                 val translateTitle = stringResource(R.string.ui_text_help_translate)
-                val changelogTitle = stringResource(R.string.Changelog)
                 val telegramTitle = stringResource(R.string.ui_text_telegram)
 
                 data class ActionRowSpec(
@@ -906,13 +905,9 @@ fun SettingsScreen(
                     if (matches(translateTitle, "crowdin", "language")) {
                         add(ActionRowSpec(translateTitle, R.drawable.translate) { showTranslateDialog = true })
                     }
-                    if (matches(changelogTitle, "update", "notes")) {
-                        add(ActionRowSpec(changelogTitle, R.drawable.schedule) { showChangelogSheet = true })
-                    }
                     if (matches(telegramTitle, "community", "channel")) {
                         add(ActionRowSpec(telegramTitle, R.drawable.telegram) {
-                            val telegramUrl = RemoteConfigManager.telegramUrl.ifBlank { RemoteConfigManager.DEFAULT_TELEGRAM_URL }
-                            uriHandler.openUri(telegramUrl)
+                            uriHandler.openUri("https://t.me/Riz_BuyX")
                         })
                     }
                 }
