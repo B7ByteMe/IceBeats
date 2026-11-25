@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -19,8 +19,10 @@ import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,15 +63,23 @@ fun <E> ChipsRow(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     icons: Map<E, Int> = emptyMap(),
+    startPadding: androidx.compose.ui.unit.Dp = 12.dp,
+    verticalPadding: androidx.compose.ui.unit.Dp = 8.dp,
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val chipContainer = if (isFrosted) (if (isDark) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)) else containerColor
+    val chipBorder = if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+
     Row(
         modifier =
         modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = verticalPadding)
             .horizontalScroll(rememberScrollState()),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(startPadding))
 
         chips.forEach { (value, label) ->
             val isSelected = currentValue == value
@@ -95,9 +105,29 @@ fun <E> ChipsRow(
                     }
                 },
                 shape = RoundedCornerShape(16.dp),
-                border = null,
+                border = if (isFrosted) {
+                    BorderStroke(
+                        1.dp,
+                        if (isSelected) {
+                            if (isDark) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+                        } else {
+                            chipBorder
+                        }
+                    )
+                } else null,
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = containerColor,
+                    containerColor = chipContainer,
+                    selectedContainerColor = if (isFrosted) {
+                        if (isDark) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    },
+                    labelColor = MaterialTheme.colorScheme.onSurface,
+                    selectedLabelColor = if (isFrosted) {
+                        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    },
                 ),
             )
 
@@ -118,6 +148,11 @@ fun <Int> ChoiceChipsRow(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val chipContainer = if (isFrosted) (if (isDark) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)) else containerColor
+    val chipBorder = if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+
     var expandIconDegree by remember { mutableFloatStateOf(0f) }
     val rotationAnimation by animateFloatAsState(
         targetValue = expandIconDegree,
@@ -158,9 +193,9 @@ fun <Int> ChoiceChipsRow(
                     )
                 },
                 shape = RoundedCornerShape(16.dp),
-                border = null,
+                border = if (isFrosted) BorderStroke(1.dp, chipBorder) else null,
                 colors = AssistChipDefaults.assistChipColors(
-                    containerColor = containerColor,
+                    containerColor = chipContainer,
                     labelColor = MaterialTheme.colorScheme.onSurface
                 )
             )
@@ -204,17 +239,38 @@ fun <Int> ChoiceChipsRow(
                     .horizontalScroll(rememberScrollState()),
             ) {
                 chips.forEach { (value, label) ->
+                    val isSelected = currentValue == value
                     Spacer(Modifier.width(8.dp))
 
                     FilterChip(
                         label = { Text(label) },
-                        selected = currentValue == value,
+                        selected = isSelected,
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = containerColor,
+                            containerColor = chipContainer,
+                            selectedContainerColor = if (isFrosted) {
+                                if (isDark) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            },
+                            labelColor = MaterialTheme.colorScheme.onSurface,
+                            selectedLabelColor = if (isFrosted) {
+                                if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            },
                         ),
                         onClick = { onValueUpdate(value) },
                         shape = RoundedCornerShape(16.dp),
-                        border = null
+                        border = if (isFrosted) {
+                            BorderStroke(
+                                1.dp,
+                                if (isSelected) {
+                                    if (isDark) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+                                } else {
+                                    chipBorder
+                                }
+                            )
+                        } else null
                     )
                 }
             }
@@ -222,3 +278,81 @@ fun <Int> ChoiceChipsRow(
     }
 }
 
+
+/**
+ * The "selected category" chip (with a close icon) used on the Library sub-screens.
+ * Colors work in both light and dark themes.
+ */
+@Composable
+fun DeselectFilterChip(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isFrosted = isFrostedGlassUiEnabled()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val container = if (isFrosted) {
+        if (isDark) Color.White.copy(alpha = 0.22f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer
+    }
+    FilterChip(
+        selected = true,
+        onClick = onClick,
+        modifier = modifier,
+        label = { Text(label) },
+        leadingIcon = {
+            Icon(
+                painter = painterResource(R.drawable.close),
+                contentDescription = null,
+                modifier = Modifier.size(FilterChipDefaults.IconSize),
+            )
+        },
+        shape = RoundedCornerShape(16.dp),
+        border = if (isFrosted) {
+            BorderStroke(
+                1.dp,
+                if (isDark) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+            )
+        } else null,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = container,
+            selectedLabelColor = if (isFrosted && !isDark) MaterialTheme.colorScheme.primary
+                else if (isFrosted) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
+            selectedLeadingIconColor = if (isFrosted && !isDark) MaterialTheme.colorScheme.primary
+                else if (isFrosted) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+    )
+}
+
+/**
+ * One aligned row: [x Category] [sub chips...]. Replaces the hand-rolled Row blocks that
+ * left the close chip and the other chips on different baselines / paddings.
+ */
+@Composable
+fun <E> LibraryFilterRow(
+    selectedLabel: String,
+    onDeselect: () -> Unit,
+    chips: List<Pair<E, String>>,
+    currentValue: E,
+    onValueUpdate: (E) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        DeselectFilterChip(label = selectedLabel, onClick = onDeselect)
+        Spacer(Modifier.width(8.dp))
+        ChipsRow(
+            chips = chips,
+            currentValue = currentValue,
+            onValueUpdate = onValueUpdate,
+            modifier = Modifier.weight(1f),
+            startPadding = 0.dp,
+            verticalPadding = 0.dp,
+        )
+    }
+}

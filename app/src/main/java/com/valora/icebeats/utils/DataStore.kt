@@ -18,10 +18,16 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.properties.ReadOnlyProperty
 
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 // Cache for DataStore values to avoid blocking calls
-@PublishedApi internal val dataStoreCache = mutableMapOf<String, Any?>()
+@PublishedApi internal val dataStoreCache = ConcurrentHashMap<String, Any?>()
+@PublishedApi internal val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
 operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? {
     val cacheKey = key.name
@@ -33,7 +39,20 @@ operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? {
 fun <T> DataStore<Preferences>.get(
     key: Preferences.Key<T>,
     defaultValue: T,
-): T = get(key) ?: defaultValue
+): T {
+    val cached = get(key)
+    if (cached != null) return cached
+    val diskVal = runCatching {
+        kotlinx.coroutines.runBlocking {
+            data.first()[key]
+        }
+    }.getOrNull()
+    if (diskVal != null) {
+        dataStoreCache[key.name] = diskVal
+        return diskVal
+    }
+    return defaultValue
+}
 
 // Suspend version for critical paths
 suspend fun <T> DataStore<Preferences>.getSuspend(key: Preferences.Key<T>): T? {
@@ -41,7 +60,7 @@ suspend fun <T> DataStore<Preferences>.getSuspend(key: Preferences.Key<T>): T? {
     @Suppress("UNCHECKED_CAST")
     if (dataStoreCache.containsKey(cacheKey)) return dataStoreCache[cacheKey] as? T
     val value = data.first()[key]
-    val finalValue = if (value is String && (cacheKey == "discordToken" || cacheKey == "innerTubeCookie" || cacheKey == "accountEmail")) {
+    val finalValue = if (value is String && (cacheKey == "discordToken" || cacheKey == "innerTubeCookie" || cacheKey == "accountEmail" || cacheKey == "spotifyCookie")) {
         CryptoManager.decrypt(value) as T
     } else {
         value
@@ -60,12 +79,25 @@ suspend fun DataStore<Preferences>.initializeCache() {
     val prefs = data.first()
     prefs.asMap().forEach { (key, value) ->
         val cacheKey = key.name
-        val decryptedValue = if (value is String && (cacheKey == "discordToken" || cacheKey == "innerTubeCookie" || cacheKey == "accountEmail")) {
+        val decryptedValue = if (value is String && (cacheKey == "discordToken" || cacheKey == "innerTubeCookie" || cacheKey == "accountEmail" || cacheKey == "spotifyCookie")) {
             CryptoManager.decrypt(value)
         } else {
             value
         }
         dataStoreCache[cacheKey] = decryptedValue
+    }
+    dataStoreScope.launch {
+        data.collect { updatedPrefs ->
+            updatedPrefs.asMap().forEach { (key, value) ->
+                val cacheKey = key.name
+                val decryptedValue = if (value is String && (cacheKey == "discordToken" || cacheKey == "innerTubeCookie" || cacheKey == "accountEmail" || cacheKey == "spotifyCookie")) {
+                    CryptoManager.decrypt(value)
+                } else {
+                    value
+                }
+                dataStoreCache[cacheKey] = decryptedValue
+            }
+        }
     }
 }
 
@@ -87,23 +119,22 @@ fun <T> rememberPreference(
     defaultValue: T,
 ): MutableState<T> {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val state =
-        remember {
+        remember(key) {
             context.dataStore.data
                 .map { it[key] ?: defaultValue }
                 .distinctUntilChanged()
         }.collectAsState(context.dataStore[key] ?: defaultValue)
 
-    return remember {
+    return remember(key) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
                 set(value) {
                     // Update cache immediately
                     dataStoreCache[key.name] = value
-                    coroutineScope.launch {
+                    dataStoreScope.launch {
                         context.dataStore.edit {
                             it[key] = value
                         }
@@ -123,24 +154,23 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     defaultValue: T,
 ): MutableState<T> {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val initialValue = context.dataStore[key].toEnum(defaultValue = defaultValue)
     val state =
-        remember {
+        remember(key) {
             context.dataStore.data
                 .map { it[key].toEnum(defaultValue = defaultValue) }
                 .distinctUntilChanged()
         }.collectAsState(initialValue)
 
-    return remember {
+    return remember(key) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
                 set(value) {
                     // Update cache immediately
                     dataStoreCache[key.name] = value.name
-                    coroutineScope.launch {
+                    dataStoreScope.launch {
                         context.dataStore.edit {
                             it[key] = value.name
                         }
@@ -152,4 +182,31 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
             override fun component2(): (T) -> Unit = { value = it }
         }
     }
+}
+
+@Composable
+fun isLiteModeActive(): Boolean {
+    val (appMode) = rememberPreference(
+        key = com.valora.icebeats.constants.AppModeKey,
+        defaultValue = com.valora.icebeats.constants.APP_MODE_LITE
+    )
+    return appMode == com.valora.icebeats.constants.APP_MODE_LITE
+}
+
+fun Context.isLiteMode(): Boolean {
+    return (this.dataStore[com.valora.icebeats.constants.AppModeKey] ?: com.valora.icebeats.constants.APP_MODE_LITE) == com.valora.icebeats.constants.APP_MODE_LITE
+}
+
+@Composable
+fun isBlurDisabled(): Boolean {
+    val isLite = isLiteModeActive()
+    val (disableBlur) = rememberPreference(
+        key = com.valora.icebeats.constants.DisableBlurKey,
+        defaultValue = false
+    )
+    return isLite || disableBlur
+}
+
+fun Context.isBlurDisabled(): Boolean {
+    return isLiteMode() || (this.dataStore[com.valora.icebeats.constants.DisableBlurKey] ?: false)
 }

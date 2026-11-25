@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -354,7 +354,7 @@
     <string name="backup_create_failed">"バックアップの作成に失敗しました"</string>
     <string name="restore_failed">"バックアップの復元に失敗しました"</string>
     <string name="discord_integration">"Discordと接続"</string>
-    <string name="discord_information">"icebeatsはKizzyRPCライブラリを使用してDiscordアカウントのステータスを設定します。これにはDiscord ゲートウェイ接続が使用されるため、Discordの利用規約違反とみなされる可能性があります。ただし、この理由でユーザーアカウントが停止された事例は確認されていません。この設定の使用は完全に自己責任です。icebeatsはトークンのみを抽出し、その他の情報はローカルに保存されるため安全です。"</string>
+    <string name="discord_information">"IceBeatsはKizzyRPCライブラリを使用してDiscordアカウントのステータスを設定します。これにはDiscord ゲートウェイ接続が使用されるため、Discordの利用規約違反とみなされる可能性があります。ただし、この理由でユーザーアカウントが停止された事例は確認されていません。この設定の使用は完全に自己責任です。IceBeatsはトークンのみを抽出し、その他の情報はローカルに保存されるため安全です。"</string>
     <string name="dismiss">"キャンセル"</string>
     <string name="options">"設定"</string>
     <string name="preview">"プレビュー"</string>

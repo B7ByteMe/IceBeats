@@ -1,5 +1,7 @@
 package com.valora.icebeats.ui.player
 
+import androidx.compose.ui.res.stringResource
+
 import com.valora.icebeats.ui.component.BottomSheetState
 import com.valora.icebeats.ui.component.bottomSheetDraggable
 import androidx.compose.foundation.Canvas
@@ -108,25 +110,31 @@ fun FoldPlayer(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.lyrics),
-                    contentDescription = "Lyrics",
+                    contentDescription = stringResource(R.string.lyrics),
                     tint = textSecondary,
                     modifier = Modifier.size(20.dp).clickable(onClick = onLyricsClick)
                 )
                 Icon(
                     painter = painterResource(R.drawable.queue_music),
-                    contentDescription = "Queue",
+                    contentDescription = stringResource(R.string.queue),
                     tint = textSecondary,
                     modifier = Modifier.size(20.dp).clickable(onClick = onQueueClick)
                 )
                 Icon(
                     painter = painterResource(if (shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle),
-                    contentDescription = "Shuffle",
+                    contentDescription = stringResource(R.string.shuffle),
                     tint = if (shuffleModeEnabled) Color(0xFFE91E63) else textSecondary,
                     modifier = Modifier.size(20.dp).clickable(onClick = onShuffleClick)
                 )
                 Icon(
-                    painter = painterResource(if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat),
-                    contentDescription = "Repeat",
+                    painter = painterResource(
+                        when (repeatMode) {
+                            Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                            Player.REPEAT_MODE_ALL -> R.drawable.repeat_on
+                            else -> R.drawable.repeat
+                        }
+                    ),
+                    contentDescription = stringResource(R.string.ui_a11y_repeat),
                     tint = if (repeatMode != Player.REPEAT_MODE_OFF) Color(0xFFE91E63) else textSecondary,
                     modifier = Modifier.size(20.dp).clickable(onClick = onRepeatClick)
                 )
@@ -137,7 +145,7 @@ fun FoldPlayer(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Music",
+                    text = stringResource(R.string.ui_text_music),
                     color = textSecondary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
@@ -145,7 +153,7 @@ fun FoldPlayer(
                 )
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = "Menu",
+                    contentDescription = stringResource(R.string.ui_a11y_menu),
                     tint = textSecondary,
                     modifier = Modifier.size(20.dp).clickable(onClick = onMenuClick)
                 )
@@ -243,7 +251,7 @@ fun FoldPlayer(
             // Previous
             Icon(
                 imageVector = Icons.Rounded.SkipPrevious,
-                contentDescription = "Previous",
+                contentDescription = stringResource(R.string.ui_a11y_previous),
                 tint = if (canSkipPrevious) Color(0xFF404040) else Color(0xFFC0C0C0),
                 modifier = Modifier
                     .size(24.dp)
@@ -262,7 +270,7 @@ fun FoldPlayer(
             } else {
                 Icon(
                     imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = "Play/Pause",
+                    contentDescription = stringResource(R.string.ui_a11y_play_pause),
                     tint = Color(0xFF2E3345),
                     modifier = Modifier
                         .size(40.dp)
@@ -275,7 +283,7 @@ fun FoldPlayer(
             // Next
             Icon(
                 imageVector = Icons.Rounded.SkipNext,
-                contentDescription = "Next",
+                contentDescription = stringResource(R.string.ui_a11y_next),
                 tint = if (canSkipNext) Color(0xFF404040) else Color(0xFFC0C0C0),
                 modifier = Modifier
                     .size(24.dp)

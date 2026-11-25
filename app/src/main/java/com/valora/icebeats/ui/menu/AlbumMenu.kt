@@ -64,6 +64,7 @@ import com.valora.icebeats.constants.ListThumbnailSize
 import com.valora.icebeats.db.entities.Album
 import com.valora.icebeats.db.entities.Song
 import com.valora.icebeats.extensions.toMediaItem
+import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.ui.component.AlbumListItem
 import com.valora.icebeats.ui.component.DownloadGridMenu
@@ -325,6 +326,33 @@ fun AlbumMenu(
                 }
             },
         )
+        if (songs.isNotEmpty()) {
+            GridMenuItem(
+                icon = R.drawable.save_to_storage,
+                title = R.string.save_playlist_to_storage,
+            ) {
+                val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    true
+                } else {
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+
+                if (hasPermission) {
+                    val albumTitle = album.album.title
+                    val savingToastMsg = context.getString(R.string.saving_playlist_to_storage, albumTitle)
+                    android.widget.Toast.makeText(context, savingToastMsg, android.widget.Toast.LENGTH_SHORT).show()
+                    com.valora.icebeats.utils.SaveToStorageUtil.savePlaylistToMusicFolderAsync(
+                        context = context,
+                        playlistName = albumTitle,
+                        mediaList = songs.map { it.toMediaMetadata() }
+                    )
+                    onDismiss()
+                }
+            }
+        }
         GridMenuItem(
             icon = R.drawable.artist,
             title = R.string.view_artist,
@@ -366,7 +394,7 @@ fun AlbumMenu(
                     type = "text/plain"
                     putExtra(
                         Intent.EXTRA_TEXT,
-                        "https://icebeats.pages.dev/album?id=${album.album.id}"
+                        com.valora.icebeats.utils.RemoteConfigManager.getAlbumShareUrl(album.album.id)
                     )
                 }
             context.startActivity(Intent.createChooser(intent, null))

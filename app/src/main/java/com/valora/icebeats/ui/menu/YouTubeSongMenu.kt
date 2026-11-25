@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import com.valora.icebeats.LocalRingtoneViewModel
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -74,6 +75,7 @@ import com.valora.icebeats.utils.joinByBullet
 import com.valora.icebeats.utils.makeTimeString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 @SuppressLint("MutableCollectionMutableState")
@@ -89,6 +91,7 @@ fun YouTubeSongMenu(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val librarySong by database.song(song.id).collectAsState(initial = null)
+    val isExcluded by database.isRecommendationExcluded(song.id).collectAsState(initial = false)
     val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
     val artists =
@@ -104,6 +107,12 @@ fun YouTubeSongMenu(
         mutableStateOf(false)
     }
 
+    var showSnippetStudioDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    val ringtoneViewModel = LocalRingtoneViewModel.current
+
     val notAddedList by remember {
         mutableStateOf(mutableListOf<MediaMetadata>())
     }
@@ -118,20 +127,10 @@ fun YouTubeSongMenu(
     ) { isGranted: Boolean ->
         if (isGranted) {
             Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
-            coroutineScope.launch(Dispatchers.IO) {
-                com.valora.icebeats.utils.SaveToStorageUtil
-                    .saveToMusicFolder(context, song.toMediaMetadata())
-                    .onSuccess {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, savedToastMsg, Toast.LENGTH_LONG).show()
-                        }
-                    }
-                    .onFailure { e ->
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(context, "$failedToastMsg: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                    }
-            }
+            com.valora.icebeats.utils.SaveToStorageUtil.saveToMusicFolderAsync(
+                context = context,
+                mediaMetadata = song.toMediaMetadata(),
+            )
             onDismiss()
         } else {
             Toast.makeText(context, permReqMsg, Toast.LENGTH_LONG).show()
@@ -334,24 +333,36 @@ fun YouTubeSongMenu(
 
             if (hasPermission) {
                 Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
-                coroutineScope.launch(Dispatchers.IO) {
-                    com.valora.icebeats.utils.SaveToStorageUtil
-                        .saveToMusicFolder(context, song.toMediaMetadata())
-                        .onSuccess {
-                            launch(Dispatchers.Main) {
-                                Toast.makeText(context, savedToastMsg, Toast.LENGTH_LONG).show()
-                            }
-                        }
-                        .onFailure { e ->
-                            launch(Dispatchers.Main) {
-                                Toast.makeText(context, "$failedToastMsg: ${e.message}", Toast.LENGTH_LONG).show()
-                            }
-                        }
-                }
+                com.valora.icebeats.utils.SaveToStorageUtil.saveToMusicFolderAsync(
+                    context = context,
+                    mediaMetadata = song.toMediaMetadata(),
+                )
                 onDismiss()
             } else {
                 permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
+        }
+        GridMenuItem(
+            icon = R.drawable.notification,
+            title = R.string.set_as_ringtone,
+        ) {
+            if (ringtoneViewModel.hasSettingsPermission(context)) {
+                ringtoneViewModel.showTrimmer(
+                    song.id,
+                    song.title,
+                    song.artists.joinToString { it.name },
+                    song.duration?.toLong() ?: 0L
+                )
+            } else {
+                ringtoneViewModel.requestSettingsPermission(context)
+            }
+            onDismiss()
+        }
+        GridMenuItem(
+            icon = R.drawable.content_cut,
+            title = R.string.ringtone_studio,
+        ) {
+            showSnippetStudioDialog = true
         }
         if (artists.isNotEmpty()) {
             GridMenuItem(
@@ -408,5 +419,45 @@ fun YouTubeSongMenu(
             context.startActivity(Intent.createChooser(intent, null))
             onDismiss()
         }
+        GridMenuItem(
+            icon = R.drawable.block,
+            title = if (isExcluded) R.string.allow_recommendations else R.string.dont_recommend_again,
+        ) {
+            val wasExcluded = isExcluded
+            coroutineScope.launch(Dispatchers.IO) {
+                if (wasExcluded) {
+                    database.removeRecommendationExclusion(song.id)
+                } else {
+                    database.insert(
+                        com.valora.icebeats.db.entities.RecommendationExclusionEntity(
+                            songId = song.id,
+                            title = song.title,
+                            artist = song.artists.joinToString { it.name },
+                            thumbnailUrl = song.thumbnail
+                        )
+                    )
+                    withContext(Dispatchers.Main) {
+                        playerConnection.removeSongFromQueue(song.id)
+                    }
+                }
+            }
+            if (!wasExcluded) {
+                onDismiss()
+            }
+            Toast.makeText(
+                context,
+                if (wasExcluded) R.string.recommendation_restored else R.string.dont_recommend_applied,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    if (showSnippetStudioDialog) {
+        com.valora.icebeats.ui.component.SongSnippetStudioDialog(
+            mediaMetadata = song.toMediaMetadata(),
+            onDismiss = {
+                showSnippetStudioDialog = false
+            }
+        )
     }
 }

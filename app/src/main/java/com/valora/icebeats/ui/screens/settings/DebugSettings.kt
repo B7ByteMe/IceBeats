@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -57,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import com.valora.icebeats.R
 import com.valora.icebeats.ui.component.IconButton
 import com.valora.icebeats.ui.utils.backToMain
@@ -76,7 +80,7 @@ fun DebugSettings(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Experimental Settings",
+                        text = stringResource(R.string.ui_text_experimental_settings),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -95,6 +99,9 @@ fun DebugSettings(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
+                )
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -112,16 +119,29 @@ private fun LogViewerPanel() {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
 
-    var filterMode by remember { mutableStateOf(1) }
+    var filterMode by remember { mutableStateOf(0) }
     var selectedLevels by remember {
-        mutableStateOf(setOf(Log.INFO, Log.WARN, Log.ERROR))
+        mutableStateOf(setOf(Log.VERBOSE, Log.DEBUG, Log.INFO, Log.WARN, Log.ERROR))
     }
     var levelsMenuExpanded by remember { mutableStateOf(false) }
+
+    val musicTags = remember {
+        setOf(
+            "LinkMediaResolver", "IdentifyMusicUseCase", "AudioExtractor",
+            "ShazamClient", "MediaInspector", "CompositeRecognitionEngine",
+            "MusicRecognition", "Instagram", "YouTube", "Snapchat"
+        )
+    }
 
     val filtered = remember(allLogs, filterMode, selectedLevels) {
         allLogs.filter { entry ->
             val tagMatch = when (filterMode) {
-                0 -> entry.tag?.contains("Discord", true) == true ||
+                1 -> {
+                    val tag = entry.tag.orEmpty()
+                    val msg = entry.message
+                    musicTags.any { tag.contains(it, ignoreCase = true) || msg.contains(it, ignoreCase = true) }
+                }
+                2 -> entry.tag?.contains("Discord", true) == true ||
                         entry.message.contains("Discord", true) == true
                 else -> true
             }
@@ -161,7 +181,7 @@ private fun LogViewerPanel() {
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Debug logs",
+                        text = stringResource(R.string.ui_text_debug_logs),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -185,7 +205,7 @@ private fun LogViewerPanel() {
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
-                            contentDescription = "Filter Levels"
+                            contentDescription = stringResource(R.string.ui_a11y_filter_levels)
                         )
                     }
 
@@ -216,7 +236,7 @@ private fun LogViewerPanel() {
                             }
                         )
                         LogLevelMenuItem(
-                            label = "Info",
+                            label = stringResource(R.string.info_button),
                             level = Log.INFO,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -238,7 +258,7 @@ private fun LogViewerPanel() {
                             }
                         )
                         LogLevelMenuItem(
-                            label = "Error",
+                            label = stringResource(R.string.error),
                             level = Log.ERROR,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -251,12 +271,12 @@ private fun LogViewerPanel() {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         DropdownMenuItem(
                             onClick = {
-                                selectedLevels = setOf(Log.INFO, Log.WARN, Log.ERROR)
+                                selectedLevels = setOf(Log.VERBOSE, Log.DEBUG, Log.INFO, Log.WARN, Log.ERROR)
                                 levelsMenuExpanded = false
                             },
                             text = {
                                 Text(
-                                    text = "Reset to Default",
+                                    text = stringResource(R.string.ui_text_reset_to_default),
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             },
@@ -278,18 +298,26 @@ private fun LogViewerPanel() {
                 SegmentedButton(
                     selected = filterMode == 0,
                     onClick = { filterMode = 0 },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                     icon = { }
                 ) {
-                    Text("Discord only")
+                    Text(stringResource(R.string.ui_text_all_logs))
                 }
                 SegmentedButton(
                     selected = filterMode == 1,
                     onClick = { filterMode = 1 },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
                     icon = { }
                 ) {
-                    Text("All Logs")
+                    Text(stringResource(R.string.ui_text_music_id))
+                }
+                SegmentedButton(
+                    selected = filterMode == 2,
+                    onClick = { filterMode = 2 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                    icon = { }
+                ) {
+                    Text(stringResource(R.string.discord))
                 }
             }
 
@@ -336,7 +364,7 @@ private fun LogViewerPanel() {
                         modifier = Modifier.size(18.dp)
                     )
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(8.dp))
-                    Text("Clear")
+                    Text(stringResource(R.string.clear))
                 }
                 androidx.compose.material3.Button(
                     onClick = {
@@ -354,7 +382,7 @@ private fun LogViewerPanel() {
                         modifier = Modifier.size(18.dp)
                     )
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(8.dp))
-                    Text("Copy")
+                    Text(stringResource(R.string.ui_text_copy))
                 }
             }
         }
@@ -379,13 +407,13 @@ private fun EmptyLogPlaceholder() {
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Text(
-            text = "No logs match the current filters.",
+            text = stringResource(R.string.ui_sweep_no_logs_match_the_current_filters),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Adjust the level or tag filter to see more.",
+            text = stringResource(R.string.ui_sweep_adjust_the_level_or_tag_filter_to_see_more),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             textAlign = TextAlign.Center

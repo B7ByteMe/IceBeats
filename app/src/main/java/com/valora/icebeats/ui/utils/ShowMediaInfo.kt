@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -113,8 +113,21 @@ fun ShowMediaInfo(videoId: String) {
                             Triple(R.drawable.info, stringResource(R.string.media_id), song?.id)
                         )
 
+                        val isJioSaavn = videoId.startsWith("JS:") ||
+                            currentFormat?.playbackUrl?.contains("saavn", ignoreCase = true) == true ||
+                            currentFormat?.playbackUrl?.contains("jio", ignoreCase = true) == true
+                        val isLocal = videoId.startsWith("local:") ||
+                            currentFormat?.playbackUrl?.startsWith("content://") == true ||
+                            currentFormat?.playbackUrl?.startsWith("file://") == true
+                        val source = when {
+                            isLocal -> "Local File"
+                            isJioSaavn -> "JioSaavn (320kbps)"
+                            else -> "YouTube Music"
+                        }
+
                         val extendedList = baseList + if (currentFormat != null) {
                             listOf<Triple<Int, String, String?>>(
+                                Triple(R.drawable.info, "Source", source),
                                 Triple(R.drawable.info, "Itag", currentFormat?.itag?.toString()),
                                 Triple(R.drawable.info, stringResource(R.string.mime_type), currentFormat?.mimeType),
                                 Triple(R.drawable.tune, stringResource(R.string.codecs), currentFormat?.codecs),

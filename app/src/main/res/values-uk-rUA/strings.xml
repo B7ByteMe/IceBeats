@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Bottom navigation -->
     <string name="home">Головна</string>
@@ -367,7 +367,7 @@
     <string name="backup_create_failed">Не вдалося створити резервну копію</string>
     <string name="restore_failed">Не вдалося відновити з резервної копії</string>
     <string name="discord_integration">Інтеграція з Discord</string>
-    <string name="discord_information">icebeats використовує бібліотеку KizzyRPC для встановлення статусу вашого акаунта Discord. Це передбачає використання з\'єднання Discord Gateway, що може вважатися порушенням Умов надання послуг Discord. Однак, наразі невідомо про випадки блокування акаунтів користувачів з цієї причини. Використовуйте на свій страх і ризик. icebeats витягує лише ваш токен, а все інше зберігається локально.</string>
+    <string name="discord_information">IceBeats використовує бібліотеку KizzyRPC для встановлення статусу вашого акаунта Discord. Це передбачає використання з\'єднання Discord Gateway, що може вважатися порушенням Умов надання послуг Discord. Однак, наразі невідомо про випадки блокування акаунтів користувачів з цієї причини. Використовуйте на свій страх і ризик. IceBeats витягує лише ваш токен, а все інше зберігається локально.</string>
     <string name="dismiss">Зрозуміло</string>
     <string name="options">Опції</string>
     <string name="preview">Попередній перегляд</string>

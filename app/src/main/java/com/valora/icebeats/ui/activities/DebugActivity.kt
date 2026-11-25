@@ -1,5 +1,7 @@
 package com.valora.icebeats.ui.activities
 
+import androidx.compose.ui.res.stringResource
+
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -47,7 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.valora.icebeats.MainActivity
 import com.valora.icebeats.R
-import com.valora.icebeats.ui.theme.icebeatsTheme
+import com.valora.icebeats.ui.theme.IceBeatsTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,8 +70,13 @@ class DebugActivity : ComponentActivity() {
         val reportText = buildCrashReport(this, timestampText, stack)
         val deviceInfo = buildDeviceInfo(this)
 
+        // Automatically dispatch fatal crash report to Telegram Crash Topic via Worker when crash screen is shown
+        runCatching {
+            com.valora.icebeats.utils.IceBeatsCrashReporter.sendCrashFromDebugScreen(stack)
+        }
+
         setContent {
-            icebeatsTheme(
+            IceBeatsTheme(
                 darkTheme = true
             ) {
                 CrashReportScreen(
@@ -148,7 +155,7 @@ private fun CrashReportScaffold(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Crash Report",
+                        text = stringResource(R.string.ui_text_crash_report),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -212,7 +219,7 @@ private fun CrashReportScaffold(
                             modifier = Modifier.size(22.dp),
                         )
                         Text(
-                            text = "Application crashed",
+                            text = stringResource(R.string.ui_text_application_crashed),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -247,7 +254,7 @@ private fun CrashReportScaffold(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        text = "Device info",
+                        text = stringResource(R.string.ui_text_device_info),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     )
                     deviceInfo.forEachIndexed { index, (k, v) ->
@@ -275,7 +282,7 @@ private fun CrashReportScaffold(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        text = "Stack trace",
+                        text = stringResource(R.string.ui_text_stack_trace),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     )
                     SelectionContainer {
@@ -301,7 +308,7 @@ private fun CrashReportScaffold(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 ) {
-                    Text("Restart")
+                    Text(stringResource(R.string.ui_text_restart))
                 }
                 Button(
                     onClick = onClose,
@@ -309,7 +316,7 @@ private fun CrashReportScaffold(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
 
@@ -361,7 +368,7 @@ private fun buildCrashReport(
     }.getOrDefault("")
 
     val header = buildString {
-        appendLine("icebeats crash report")
+        appendLine("IceBeats crash report")
         if (timestampText.isNotBlank()) appendLine("Time: $timestampText")
         if (versionName.isNotBlank() || versionCode.isNotBlank()) {
             appendLine("App: $versionName ($versionCode)")

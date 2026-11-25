@@ -1,4 +1,4 @@
-﻿/*
+/*
  * IceBeats Project (2026)
  * Arturo254 (github.com/Arturo254)
  * Licensed Under GPL-3.0 | see git history for contributors
@@ -16,6 +16,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
@@ -47,6 +48,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.plus
@@ -59,6 +61,7 @@ constructor(
     @ApplicationContext val context: Context,
     val database: MusicDatabase,
     val downloadUtil: DownloadUtil,
+    val voiceMediaSearchManager: VoiceMediaSearchManager,
 ) : MediaLibrarySession.Callback {
     private val scope = CoroutineScope(Dispatchers.Main) + Job()
     var toggleLike: () -> Unit = {}
@@ -86,8 +89,29 @@ constructor(
         controller: MediaSession.ControllerInfo,
     ): MediaSession.ConnectionResult {
         val connectionResult = super.onConnect(session, controller)
+
+        // media3 1.11.1+: an unimplemented Callback.onConnect() does not throw, it returns a
+        // sentinel ConnectionResult built from SessionCommands.EMPTY + Player.Commands.EMPTY
+        // with extras flag "CALLBACK_NOT_IMPLEMENTED". Forwarding that to accept() would grant
+        // the notification controller zero commands, so start from the real defaults instead.
+        // The else branch also unions DEFAULT_PLAYER_COMMANDS so core transport stays available.
+        val baseSessionCommands =
+            if (connectionResult.availableSessionCommands.commands.isEmpty()) {
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+            } else {
+                connectionResult.availableSessionCommands
+            }
+        val playerCommands =
+            if (connectionResult.availablePlayerCommands.size() == 0) {
+                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            } else {
+                connectionResult.availablePlayerCommands.buildUpon()
+                    .addAll(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
+                    .build()
+            }
+
         return MediaSession.ConnectionResult.accept(
-            connectionResult.availableSessionCommands
+            baseSessionCommands
                 .buildUpon()
                 .add(MediaSessionConstants.CommandToggleLike)
                 .add(MediaSessionConstants.CommandToggleStartRadio)
@@ -95,7 +119,7 @@ constructor(
                 .add(MediaSessionConstants.CommandToggleShuffle)
                 .add(MediaSessionConstants.CommandToggleRepeatMode)
                 .build(),
-            connectionResult.availablePlayerCommands,
+            playerCommands,
         )
     }
 
@@ -115,6 +139,94 @@ constructor(
             MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
         }
         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+    }
+
+    override fun onPlayerCommandRequest(
+        session: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        @Player.Command playerCommand: Int,
+    ): Int {
+        val syncSession = com.valora.icebeats.utils.ListenTogetherSync.session.value
+        val isHost = com.valora.icebeats.utils.ListenTogetherSync.isHost.value
+        if (syncSession != null && !isHost) {
+            val allowPlayback = syncSession.settings.allowGuestsToControlPlayback
+            when (playerCommand) {
+                Player.COMMAND_SEEK_TO_NEXT,
+                Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
+                    if (!allowPlayback) {
+                        com.valora.icebeats.utils.ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                        return SessionResult.RESULT_ERROR_PERMISSION_DENIED
+                    }
+                    val conn = com.valora.icebeats.playback.PlayerConnection.instance
+                    if (conn != null) {
+                        conn.seekToNext()
+                    } else {
+                        val player = session.player
+                        if (player.hasNextMediaItem()) {
+                            val nextItem = player.getMediaItemAt(player.currentMediaItemIndex + 1)
+                            val data = org.json.JSONObject().apply {
+                                put("songId", nextItem.mediaId)
+                            }
+                            com.valora.icebeats.utils.ListenTogetherSync.sendGuestAction("skip_next", extraData = data)
+                            player.seekToNext()
+                            player.play()
+                        } else {
+                            com.valora.icebeats.utils.ListenTogetherSync.sendGuestAction("skip_next")
+                        }
+                    }
+                    return SessionResult.RESULT_SUCCESS
+                }
+                Player.COMMAND_SEEK_TO_PREVIOUS,
+                Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> {
+                    if (!allowPlayback) {
+                        com.valora.icebeats.utils.ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                        return SessionResult.RESULT_ERROR_PERMISSION_DENIED
+                    }
+                    val conn = com.valora.icebeats.playback.PlayerConnection.instance
+                    if (conn != null) {
+                        conn.seekToPrevious()
+                    } else {
+                        val player = session.player
+                        if (player.hasPreviousMediaItem() && player.currentPosition < 3000) {
+                            val prevItem = player.getMediaItemAt(player.currentMediaItemIndex - 1)
+                            val data = org.json.JSONObject().apply {
+                                put("songId", prevItem.mediaId)
+                            }
+                            com.valora.icebeats.utils.ListenTogetherSync.sendGuestAction("skip_previous", extraData = data)
+                            player.seekToPreviousMediaItem()
+                            player.play()
+                        } else {
+                            com.valora.icebeats.utils.ListenTogetherSync.sendGuestAction("skip_previous")
+                            player.seekTo(0)
+                            player.play()
+                        }
+                    }
+                    return SessionResult.RESULT_SUCCESS
+                }
+                Player.COMMAND_PLAY_PAUSE -> {
+                    if (!allowPlayback) {
+                        com.valora.icebeats.utils.ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                        return SessionResult.RESULT_ERROR_PERMISSION_DENIED
+                    }
+                    val conn = com.valora.icebeats.playback.PlayerConnection.instance
+                    if (conn != null) {
+                        conn.togglePlayPause()
+                    } else {
+                        com.valora.icebeats.utils.ListenTogetherSync.sendGuestAction("toggle_play_pause")
+                        session.player.playWhenReady = !session.player.playWhenReady
+                    }
+                    return SessionResult.RESULT_SUCCESS
+                }
+                Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
+                Player.COMMAND_SEEK_TO_MEDIA_ITEM -> {
+                    if (!allowPlayback) {
+                        com.valora.icebeats.utils.ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                        return SessionResult.RESULT_ERROR_PERMISSION_DENIED
+                    }
+                }
+            }
+        }
+        return super.onPlayerCommandRequest(session, controller, playerCommand)
     }
 
     override fun onGetLibraryRoot(
@@ -159,8 +271,20 @@ constructor(
         browser: MediaSession.ControllerInfo,
         query: String,
         params: MediaLibraryService.LibraryParams?,
-    ): ListenableFuture<LibraryResult<Void>> =
-        Futures.immediateFuture(LibraryResult.ofVoid(params))
+    ): ListenableFuture<LibraryResult<Void>> {
+        val q = query.trim()
+        if (q.isNotBlank()) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val count = database.searchSongs(q, previewSize = 50).first().size
+                    session.notifySearchResultChanged(browser, query, count, params)
+                } catch (e: Exception) {
+                    timber.log.Timber.w(e, "Error notifying search result changed")
+                }
+            }
+        }
+        return Futures.immediateFuture(LibraryResult.ofVoid(params))
+    }
 
     override fun onGetSearchResult(
         session: MediaLibrarySession,
@@ -732,19 +856,63 @@ constructor(
                 }
 
                 else -> {
-                    val query = firstItem.requestMetadata.searchQuery?.trim().orEmpty()
-                    if (query.isBlank()) return@future defaultResult
+                    val isSearchRequest = !firstItem.requestMetadata.searchQuery.isNullOrBlank() ||
+                        (firstItem.requestMetadata.extras != null && (
+                            firstItem.requestMetadata.extras!!.containsKey(android.provider.MediaStore.EXTRA_MEDIA_FOCUS) ||
+                            firstItem.requestMetadata.extras!!.containsKey(android.app.SearchManager.QUERY)
+                        ))
 
-                    val matchedSongs = database.searchSongs(query, previewSize = 50).first()
-                    val songId = matchedSongs.firstOrNull()?.id ?: return@future defaultResult
-                    val allSongs = database.songsByCreateDateAsc().first()
-                    MediaSession.MediaItemsWithStartPosition(
-                        allSongs.map { it.toMediaItem() },
-                        allSongs.indexOfFirst { it.id == songId }.takeIf { it != -1 } ?: 0,
-                        startPositionMs,
+                    if (!isSearchRequest && firstItem.mediaMetadata.isPlayable == true && firstItem.mediaId.isNotBlank() && mediaItems.size > 1) {
+                        return@future MediaSession.MediaItemsWithStartPosition(
+                            mediaItems,
+                            startIndex.coerceIn(0, (mediaItems.size - 1).coerceAtLeast(0)),
+                            startPositionMs,
+                        )
+                    }
+
+                    // Delegate voice search, Google Assistant commands, or query resolution
+                    voiceMediaSearchManager.resolveSearchToMediaItems(
+                        item = firstItem,
+                        player = mediaSession.player,
+                        defaultResult = defaultResult,
                     )
                 }
             }
+        }
+
+    override fun onPlaybackResumption(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
+        scope.future {
+            voiceMediaSearchManager.resolvePlaybackResumption(mediaSession.player)
+        }
+
+    override fun onAddMediaItems(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        mediaItems: MutableList<MediaItem>,
+    ): ListenableFuture<MutableList<MediaItem>> =
+        scope.future {
+            val resolvedList = mutableListOf<MediaItem>()
+            for (item in mediaItems) {
+                val isSearchRequest = !item.requestMetadata.searchQuery.isNullOrBlank() ||
+                    (item.requestMetadata.extras != null && (
+                        item.requestMetadata.extras!!.containsKey(android.provider.MediaStore.EXTRA_MEDIA_FOCUS) ||
+                        item.requestMetadata.extras!!.containsKey(android.app.SearchManager.QUERY)
+                    ))
+                if (isSearchRequest) {
+                    val resolved = voiceMediaSearchManager.resolveSearchToMediaItems(
+                        item = item,
+                        player = mediaSession.player,
+                        defaultResult = MediaSession.MediaItemsWithStartPosition(emptyList(), 0, 0L)
+                    )
+                    resolvedList.addAll(resolved.mediaItems)
+                } else {
+                    resolvedList.add(item)
+                }
+            }
+            resolvedList
         }
 
     private fun drawableUri(

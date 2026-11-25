@@ -50,6 +50,7 @@ fun LiquidGlassBottomNavigationBar(
     onItemSelected: (Int) -> Unit,
     backdrop: PlatformBackdrop
 ) {
+    if (items.isEmpty()) return
     val layer = rememberGraphicsLayer()
     val luminanceAnimation = remember { Animatable(0.3f) }
 
@@ -95,6 +96,7 @@ fun LiquidGlassBottomNavigationBar(
                         containerColor = if (isSelected) itemBgColor else Color.Transparent,
                         contentColor = if (isSelected) Color(0xFFF9A825) else themeContrastColor
                     ),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     modifier = Modifier.padding(horizontal = 2.dp)
                 ) {
                     Icon(
@@ -106,7 +108,7 @@ fun LiquidGlassBottomNavigationBar(
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(14.dp))
 
         // Separate FloatingActionButton containing the last item (e.g. Library) next to it
         val lastIndex = items.size - 1
@@ -122,7 +124,7 @@ fun LiquidGlassBottomNavigationBar(
                 ),
             onClick = { onItemSelected(lastIndex) },
             shape = CircleShape,
-            containerColor = Color.Transparent,
+            containerColor = if (isLastSelected) itemBgColor else Color.Transparent,
             elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
         ) {
             Icon(

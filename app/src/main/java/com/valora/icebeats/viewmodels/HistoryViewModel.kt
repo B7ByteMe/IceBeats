@@ -19,6 +19,14 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import com.valora.icebeats.db.entities.Song
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDateTime
+
+enum class HistoryCategory {
+    ALL, SONGS, ALBUMS, ARTISTS
+}
 
 @HiltViewModel
 class HistoryViewModel
@@ -27,6 +35,13 @@ constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
     var historySource = MutableStateFlow(HistorySource.LOCAL)
+
+    private val _selectedCategory = MutableStateFlow(HistoryCategory.ALL)
+    val selectedCategory: StateFlow<HistoryCategory> = _selectedCategory.asStateFlow()
+
+    fun setCategory(category: HistoryCategory) {
+        _selectedCategory.value = category
+    }
 
     private val today = LocalDate.now()
     private val thisMonday = today.with(DayOfWeek.MONDAY)
@@ -60,12 +75,39 @@ constructor(
                             }
                         },
                     ).mapValues { entry ->
-                        entry.value.distinctBy { it.song.id }
+                        entry.value
+                            .sortedByDescending { it.event.timestamp }
+                            .distinctBy { it.song.id }
                     }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
     init {
         fetchRemoteHistory()
+    }
+
+    fun clearToday() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val startOfToday = LocalDate.now().atStartOfDay()
+            database.clearHistorySince(startOfToday)
+        }
+    }
+
+    fun clearAll() {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.clearListenHistory()
+        }
+    }
+
+    fun deleteEvent(eventId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.deleteEvent(eventId)
+        }
+    }
+
+    fun toggleLike(song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.update(song.song.toggleLike())
+        }
     }
 
     fun fetchRemoteHistory() {

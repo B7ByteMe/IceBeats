@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.component
+package com.valora.icebeats.ui.component
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
@@ -26,10 +26,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -164,15 +165,22 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf(ChangelogTab.RELEASES) }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadChangelog("B7ByteMe", "IceBeats")
+    val repoString = com.valora.icebeats.utils.RemoteConfigManager.githubRepo.trim()
+    val repoParts = repoString.split("/")
+    val owner = repoParts.getOrNull(0)?.trim().orEmpty()
+    val repo = repoParts.getOrNull(1)?.trim().orEmpty()
+
+    LaunchedEffect(owner, repo) {
+        if (owner.isNotBlank() && repo.isNotBlank()) {
+            viewModel.loadChangelog(owner, repo)
+        }
     }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header con t•tulo principal
+        // Header con título principal
         Text(
             text = stringResource(R.string.changelogs),
             style = MaterialTheme.typography.headlineMedium,
@@ -194,7 +202,11 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
                     isLoading = uiState.isLoadingReleases,
                     error = uiState.releasesError,
                     lastUpdated = uiState.lastUpdated,
-                    onRetry = { viewModel.loadChangelog("B7ByteMe", "IceBeats") }
+                    onRetry = {
+                        if (owner.isNotBlank() && repo.isNotBlank()) {
+                            viewModel.loadChangelog(owner, repo)
+                        }
+                    }
                 )
             }
 
@@ -204,7 +216,11 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
                     isLoading = uiState.isLoadingCommits,
                     error = uiState.commitsError,
                     lastUpdated = uiState.lastUpdated,
-                    onRetry = { viewModel.loadChangelog("B7ByteMe", "IceBeats") }
+                    onRetry = {
+                        if (owner.isNotBlank() && repo.isNotBlank()) {
+                            viewModel.loadChangelog(owner, repo)
+                        }
+                    }
                 )
             }
         }
@@ -268,7 +284,7 @@ private fun ReleasesContent(
     onRetry: () -> Unit
 ) {
     when {
-        isLoading -> LoadingIndicator("Loading releases...")
+        isLoading -> ChangelogLoadingContent("Loading releases...")
         error != null -> ErrorContent(error, onRetry)
         releases.isEmpty() -> EmptyContent("No releases available")
         else -> SuccessReleasesContent(releases, lastUpdated)
@@ -284,15 +300,16 @@ private fun CommitsContent(
     onRetry: () -> Unit
 ) {
     when {
-        isLoading -> LoadingIndicator("Loading commits...")
+        isLoading -> ChangelogLoadingContent("Loading commits...")
         error != null -> ErrorContent(error, onRetry)
         commits.isEmpty() -> EmptyContent("No commits available")
         else -> SuccessCommitsContent(commits, lastUpdated)
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun LoadingIndicator(message: String) {
+private fun ChangelogLoadingContent(message: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -310,10 +327,7 @@ private fun LoadingIndicator(message: String) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 3.dp
-                )
+                LoadingIndicator()
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
@@ -344,7 +358,7 @@ private fun ErrorContent(error: String, onRetry: () -> Unit) {
                 modifier = Modifier.size(24.dp)
             )
             Text(
-                text = "Error al cargar",
+                text = stringResource(R.string.ui_text_error_loading),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -361,7 +375,7 @@ private fun ErrorContent(error: String, onRetry: () -> Unit) {
                     contentColor = MaterialTheme.colorScheme.onError
                 )
             ) {
-                Text("Reintentar")
+                Text(stringResource(R.string.retry))
             }
         }
     }
@@ -433,7 +447,7 @@ private fun LastUpdatedIndicator(lastUpdated: String?) {
             shape = RoundedCornerShape(16.dp)
         ) {
             Text(
-                text = "Last updated: $it",
+                text = stringResource(R.string.ui_sweep_last_updated_it, it),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -539,7 +553,7 @@ private fun ReleaseCard(release: Release) {
                                 color = MaterialTheme.colorScheme.tertiary
                             ) {
                                 Text(
-                                    text = "Pre-release",
+                                    text = stringResource(R.string.ui_sweep_pre_release),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onTertiary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -557,7 +571,7 @@ private fun ReleaseCard(release: Release) {
                     }
                     release.author?.let { author ->
                         Text(
-                            text = "by $author",
+                            text = stringResource(R.string.ui_sweep_by_author, author),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
@@ -751,8 +765,8 @@ private fun cleanMarkdown(markdown: String): String {
         "&#39;" to "'",
         "&#x27;" to "'",
         "&hellip;" to "...",
-        "&mdash;" to "•",
-        "&ndash;" to "•"
+        "&mdash;" to "—",
+        "&ndash;" to "–"
     )
 
     for ((entity, replacement) in htmlEntities) {
@@ -1086,7 +1100,7 @@ class ChangelogViewModel : ViewModel() {
             _uiState.update {
                 it.copy(
                     isLoadingReleases = false,
-                    releasesError = "Error al cargar releases: ${e.message}"
+                    releasesError = "Error loading releases: ${e.message}"
                 )
             }
         }
@@ -1125,7 +1139,7 @@ class ChangelogViewModel : ViewModel() {
             _uiState.update {
                 it.copy(
                     isLoadingCommits = false,
-                    commitsError = "Error al cargar commits: ${e.message}"
+                    commitsError = "Error loading commits: ${e.message}"
                 )
             }
         }
@@ -1157,7 +1171,7 @@ class ChangelogViewModel : ViewModel() {
                     connection.connectTimeout = 15000
                     connection.readTimeout = 15000
                     connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                    connection.setRequestProperty("User-Agent", "icebeats-App")
+                    connection.setRequestProperty("User-Agent", "IceBeats-App")
 
                     if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                         if (attempt == 2) throw IOException("Error HTTP: ${connection.responseCode}")
@@ -1193,7 +1207,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener la informaci•n despu•s de los reintentos")
+            throw IOException("No se pudo obtener la información después de los reintentos")
         }
 
     private suspend fun fetchCommits(owner: String, repo: String): List<Commit> =
@@ -1205,7 +1219,7 @@ class ChangelogViewModel : ViewModel() {
                     connection.connectTimeout = 15000
                     connection.readTimeout = 15000
                     connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                    connection.setRequestProperty("User-Agent", "icebeats-App")
+                    connection.setRequestProperty("User-Agent", "IceBeats-App")
 
                     if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                         if (attempt == 2) throw IOException("Error HTTP: ${connection.responseCode}")
@@ -1240,7 +1254,7 @@ class ChangelogViewModel : ViewModel() {
                 }
             }
 
-            throw IOException("No se pudo obtener los commits despu•s de los reintentos")
+            throw IOException("No se pudo obtener los commits después de los reintentos")
         }
 
     private fun getCurrentTimestamp(): String {
@@ -1248,3 +1262,5 @@ class ChangelogViewModel : ViewModel() {
         return formatter.format(Date())
     }
 }
+
+

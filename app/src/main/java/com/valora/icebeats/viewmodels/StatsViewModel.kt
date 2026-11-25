@@ -10,11 +10,13 @@ import com.valora.icebeats.ui.component.AvatarPreferenceManager
 import com.valora.icebeats.ui.component.AvatarSelection
 import com.valora.icebeats.ui.component.NamePreferenceManager
 import com.valora.icebeats.ui.screens.OptionStats
-import com.valora.icebeats.utils.icebeatsStatsCloudClient
-import com.valora.icebeats.utils.icebeatsStatsCloudSync
+import com.valora.icebeats.utils.IceBeatsStatsCloudClient
+import com.valora.icebeats.utils.IceBeatsStatsCloudSync
 import com.valora.icebeats.utils.GlobalStatsBoard
 import com.valora.icebeats.utils.LocalStatsUpload
+import com.valora.icebeats.utils.dataStore
 import com.valora.icebeats.utils.reportException
+import timber.log.Timber
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,16 +36,20 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.WeekFields
 import java.util.Locale
-import javax.inject.Inject
-
+import com.valora.icebeats.data.repository.NowPlayingTrack
+import com.valora.icebeats.data.repository.ScrobbleRepository
+import com.valora.icebeats.db.entities.EventWithSong
 import kotlinx.coroutines.flow.Flow
-import com.valora.icebeats.ui.component.icebeatsRank
+import kotlinx.coroutines.flow.StateFlow
+import com.valora.icebeats.ui.component.IceBeatsRank
+import javax.inject.Inject
 
 data class GlobalStatsUiState(
     val isLoading: Boolean = true,
     val board: GlobalStatsBoard = GlobalStatsBoard(),
     val error: String? = null,
     val currentUserId: String = "",
+    val currentUserName: String = "",
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,32 +60,31 @@ constructor(
     val database: MusicDatabase,
     @ApplicationContext private val context: Context,
     private val namePreferenceManager: NamePreferenceManager,
+    private val scrobbleRepository: ScrobbleRepository,
 ) : ViewModel() {
     val selectedOption = MutableStateFlow(OptionStats.CONTINUOUS)
     val indexChips = MutableStateFlow(0)
     val globalStats = MutableStateFlow(GlobalStatsUiState())
 
-    private val statsPreferences =
-        context.getSharedPreferences("icebeats_global_stats", Context.MODE_PRIVATE)
-    private val cloudClient = icebeatsStatsCloudClient()
+    val nowPlayingTrack: StateFlow<NowPlayingTrack?> = scrobbleRepository.nowPlaying
+
+    val recentEvents: StateFlow<List<EventWithSong>> = database.events()
+        .map { it.take(25) }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val totalListenHours: Flow<Double> = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = Long.MAX_VALUE)
         .map { songs ->
             val totalMs = songs.sumOf { it.timeListened?.toLong() ?: 0L }
-            val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, namePreferenceManager)
-            val userKey = "saved_max_total_listen_ms_$uid"
-            val savedMs = if (!uid.startsWith("device-")) {
-                statsPreferences.getLong(userKey, 0L)
-            } else {
-                statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
-            }
-            val effectiveMs = maxOf(totalMs, savedMs)
-            effectiveMs.toDouble() / (3600.0 * 1000.0)
+            totalMs.toDouble() / (3600.0 * 1000.0)
         }
 
-    val currentRank: Flow<icebeatsRank?> = totalListenHours.map { hours ->
-        if (hours >= 1.0) icebeatsRank.fromHours(hours.toInt()) else null
+    val currentRank: Flow<IceBeatsRank?> = totalListenHours.map { hours ->
+        if (hours >= 1.0) IceBeatsRank.fromHours(hours.toInt()) else null
     }
+
+    private val cloudClient = IceBeatsStatsCloudClient()
+    private val statsPreferences =
+        context.getSharedPreferences("airbeats_global_stats", Context.MODE_PRIVATE)
 
     val mostPlayedSongsStats =
         combine(
@@ -93,11 +98,7 @@ constructor(
                         limit = -1,
                         toTimeStamp =
                             if (selection == OptionStats.CONTINUOUS || t == 0) {
-                                LocalDateTime
-                                    .now()
-                                    .toInstant(
-                                        ZoneOffset.UTC,
-                                    ).toEpochMilli()
+                                Long.MAX_VALUE
                             } else {
                                 statToPeriod(selection, t - 1)
                             },
@@ -116,11 +117,7 @@ constructor(
                         limit = -1,
                         toTimeStamp =
                             if (selection == OptionStats.CONTINUOUS || t == 0) {
-                                LocalDateTime
-                                    .now()
-                                    .toInstant(
-                                        ZoneOffset.UTC,
-                                    ).toEpochMilli()
+                                Long.MAX_VALUE
                             } else {
                                 statToPeriod(selection, t - 1)
                             },
@@ -139,16 +136,12 @@ constructor(
                         limit = -1,
                         toTimeStamp =
                             if (selection == OptionStats.CONTINUOUS || t == 0) {
-                                LocalDateTime
-                                    .now()
-                                    .toInstant(
-                                        ZoneOffset.UTC,
-                                    ).toEpochMilli()
+                                Long.MAX_VALUE
                             } else {
                                 statToPeriod(selection, t - 1)
                             },
                     ).map { artists ->
-                        artists.filter { it.artist.isYouTubeArtist }
+                        artists.filter { it.artist.isYouTubeArtist || it.artist.isLocalArtist || it.artist.isScrobbleArtist }
                     }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -163,11 +156,7 @@ constructor(
                     limit = -1,
                     toTimeStamp =
                         if (selection == OptionStats.CONTINUOUS || t == 0) {
-                            LocalDateTime
-                                .now()
-                                .toInstant(
-                                    ZoneOffset.UTC,
-                                ).toEpochMilli()
+                            Long.MAX_VALUE
                         } else {
                             statToPeriod(selection, t - 1)
                         },
@@ -188,10 +177,10 @@ constructor(
                 artists
                     .map { it.artist }
                     .filter {
-                        it.thumbnailUrl == null || Duration.between(
+                        it.isYouTubeArtist && (it.thumbnailUrl == null || Duration.between(
                             it.lastUpdateTime,
                             LocalDateTime.now()
-                        ) > Duration.ofDays(10)
+                        ) > Duration.ofDays(10))
                     }.forEach { artist ->
                         YouTube.artist(artist.id).onSuccess { artistPage ->
                             database.query {
@@ -205,7 +194,7 @@ constructor(
             mostPlayedAlbums.collect { albums ->
                 albums
                     .filter {
-                        it.album.songCount == 0
+                        (it.album.id.startsWith("MPREb_") || it.album.id.startsWith("OLAK5uy_")) && it.album.songCount == 0
                     }.forEach { album ->
                         YouTube
                             .album(album.id)
@@ -240,74 +229,104 @@ constructor(
     }
 
     private suspend fun syncAndLoadGlobalStats(forceUpload: Boolean = false) {
-        globalStats.value = globalStats.value.copy(isLoading = true, error = null)
-        val userId = icebeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager, statsPreferences)
-        if (forceUpload || shouldUploadToday()) {
-            val upload = runCatching { buildUpload(userId) }.getOrNull()
-            if (upload != null) {
-                val authToken = com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context).accessToken
-                val uploadResult = cloudClient.uploadDaily(upload, authToken)
-                if (uploadResult.isSuccess) {
-                    val board = uploadResult.getOrThrow()
-                    // Pastikan HP menyimpan rekor skor tertinggi dari server agar tidak ter-reset
-                    val myCloudStats = board.users.find { it.id == userId }
-                    if (myCloudStats != null) {
-                        val userKey = "saved_max_total_listen_ms_${userId}"
-                        val currentSaved = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
-                        if (myCloudStats.totalListenMs > currentSaved) {
-                            statsPreferences.edit()
-                                .putLong(userKey, myCloudStats.totalListenMs)
-                                .putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs)
-                                .apply()
-                        }
-                    }
-                    statsPreferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
-                    globalStats.value =
-                        GlobalStatsUiState(
-                            isLoading = false,
-                            board = board,
-                            currentUserId = userId,
-                        )
-                    return
+        val currentName = runCatching { namePreferenceManager.userName.first().trim() }.getOrDefault("")
+        globalStats.value = globalStats.value.copy(isLoading = true, error = null, currentUserName = currentName)
+        val userId = IceBeatsStatsCloudSync.resolveStableUserId(context, namePreferenceManager, statsPreferences)
+
+        var mustUpdateGlobalStats = forceUpload || shouldUploadToday()
+
+        // Read leaderboard first to check if cloud has recorded higher or different listen time than local DB
+        val boardResult = cloudClient.readBoard()
+        val initialBoard = boardResult.getOrNull()
+        if (initialBoard != null) {
+            val userNumber = IceBeatsStatsCloudSync.getUserNumber(context)
+            val matchedUser = initialBoard.users.firstOrNull { it.id == userId }
+                ?: (if (currentName.isNotBlank() && !currentName.equals("IceBeats User", ignoreCase = true))
+                    initialBoard.users.firstOrNull { it.name.trim().equals(currentName, ignoreCase = true) }
+                else null)
+                ?: (if (!userNumber.isNullOrBlank())
+                    initialBoard.users.firstOrNull { it.user == userNumber }
+                else null)
+
+            // If global stats is greater than the app's local stats (e.g. user restored an older backup),
+            // update global stats according to the app so the app is the authoritative source
+            if (matchedUser != null) {
+                val currentLocalTime = buildUpload(userId)?.totalListenMs ?: 0L
+                if (matchedUser.totalListenMs > currentLocalTime) {
+                    mustUpdateGlobalStats = true
                 }
-                // If upload failed, continue below to readBoard so leaderboard is not lost
             }
         }
 
-        cloudClient
-            .readBoard()
-            .onSuccess { board ->
-                // Sinkronkan juga skor tertinggi dari cloud jika readBoard dipanggil
-                val myCloudStats = board.users.find { it.id == userId }
-                if (myCloudStats != null) {
-                    val userKey = "saved_max_total_listen_ms_${userId}"
-                    val currentSaved = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
-                    if (myCloudStats.totalListenMs > currentSaved) {
-                        statsPreferences.edit()
-                            .putLong(userKey, myCloudStats.totalListenMs)
-                            .putLong("saved_max_total_listen_ms", myCloudStats.totalListenMs)
-                            .apply()
+        if (mustUpdateGlobalStats) {
+            buildUpload(userId)?.let { upload ->
+                cloudClient
+                    .uploadDaily(upload)
+                    .onSuccess { board ->
+                        statsPreferences.edit().putString(KEY_LAST_UPLOAD_DAY, LocalDate.now().toString()).apply()
+                        val userNumber = IceBeatsStatsCloudSync.getUserNumber(context)
+                        val updatedUserNumber = board.userNumber ?: board.users.firstOrNull { it.id == userId }?.user
+                        if (!updatedUserNumber.isNullOrBlank()) {
+                            IceBeatsStatsCloudSync.persistUserNumber(context, updatedUserNumber)
+                        }
+                        globalStats.value =
+                            GlobalStatsUiState(
+                                isLoading = false,
+                                board = board,
+                                currentUserId = userId,
+                                currentUserName = currentName,
+                                error = null,
+                            )
+                        return
+                    }.onFailure { uploadError ->
+                        Timber.d("StatsViewModel: Daily upload error/throttled: ${uploadError.message}")
                     }
-                }
-                globalStats.value =
-                    GlobalStatsUiState(
-                        isLoading = false,
-                        board = board,
-                        currentUserId = userId,
-                    )
-            }.onFailure { error ->
-                globalStats.value =
-                    globalStats.value.copy(
-                        isLoading = false,
-                        error = error.message,
-                        currentUserId = userId,
-                    )
             }
+        }
+
+        if (initialBoard != null) {
+            globalStats.value =
+                GlobalStatsUiState(
+                    isLoading = false,
+                    board = initialBoard,
+                    currentUserId = userId,
+                    currentUserName = currentName,
+                )
+        } else {
+            val error = boardResult.exceptionOrNull()
+            globalStats.value =
+                globalStats.value.copy(
+                    isLoading = false,
+                    error = error?.message,
+                    currentUserId = userId,
+                    currentUserName = currentName,
+                )
+        }
     }
 
     private suspend fun buildUpload(userId: String): LocalStatsUpload? {
         val isNameSet = namePreferenceManager.isNameSet.first()
-        if (!isNameSet) return null
+        val settings = context.dataStore.data.first()
+        val settingsEmail = settings[com.valora.icebeats.constants.AccountEmailKey]?.trim()?.takeIf { it.isNotBlank() }
+        val managerEmail = namePreferenceManager.accountEmail.first().trim().takeIf { it.isNotBlank() }
+        val effectiveEmail = (managerEmail ?: settingsEmail)?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+
+        val settingsName = settings[com.valora.icebeats.constants.AccountNameKey]?.trim()?.takeIf { it.isNotBlank() }
+        val managerName = namePreferenceManager.userName.first().trim().takeIf { it.isNotBlank() }
+        val effectiveName = (managerName ?: settingsName ?: effectiveEmail?.substringBefore("@"))?.ifBlank { null }
+            ?: (android.os.Build.MODEL ?: "IceBeats User")
+
+        val isSignedIn = !effectiveEmail.isNullOrBlank() || settings[com.valora.icebeats.constants.InnerTubeCookieKey]?.isNotBlank() == true || isNameSet
+
+        // Automatically sync email and username to namePreferenceManager if missing
+        if (!effectiveEmail.isNullOrBlank() && managerEmail.isNullOrBlank()) {
+            runCatching { namePreferenceManager.saveAccountEmail(effectiveEmail) }
+        }
+        if (managerName.isNullOrBlank() && !effectiveName.isBlank() && effectiveName != "IceBeats User") {
+            runCatching { namePreferenceManager.saveUserName(effectiveName) }
+        }
+
+        if (!isSignedIn && !isNameSet) return null
 
         val now = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli()
         val weekStart =
@@ -317,61 +336,35 @@ constructor(
                 .atStartOfDay()
                 .toInstant(ZoneOffset.UTC)
                 .toEpochMilli()
-        val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
-        val weekSongs = database.mostPlayedSongsStats(weekStart, limit = -1, toTimeStamp = now).first()
-        val calculatedTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
-        val userKey = "saved_max_total_listen_ms_${userId}"
-        val anchorKey = "last_local_anchor_ms_${userId}"
-        val savedTotalMs = statsPreferences.getLong(userKey, statsPreferences.getLong("saved_max_total_listen_ms", 0L))
-        val lastLocalAnchorMs = statsPreferences.getLong(anchorKey, statsPreferences.getLong("last_local_anchor_ms", calculatedTotalMs))
-
-        // Hitung selisih waktu mendengarkan baru sejak sinkronisasi terakhir
-        val localDeltaMs = if (calculatedTotalMs >= lastLocalAnchorMs) {
-            calculatedTotalMs - lastLocalAnchorMs
-        } else {
-            0L
-        }
-
-        // Skor akhir: nilai tertinggi (dari server/boost) DITAMBAH waktu lagu yang baru diputar di HP
-        val totalListenMs = if (savedTotalMs > calculatedTotalMs) {
-            savedTotalMs + localDeltaMs
-        } else {
-            calculatedTotalMs
-        }
-
-        // Perbarui rekor dan titik acuan lokal
-        statsPreferences.edit()
-            .putLong(userKey, totalListenMs)
-            .putLong("saved_max_total_listen_ms", totalListenMs)
-            .putLong(anchorKey, calculatedTotalMs)
-            .putLong("last_local_anchor_ms", calculatedTotalMs)
-            .apply()
-
+        val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = Long.MAX_VALUE).first()
+        val weekSongs = database.mostPlayedSongsStats(weekStart, limit = -1, toTimeStamp = Long.MAX_VALUE).first()
+        val totalListenMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
         val weeklyListenMs = weekSongs.sumOf { it.timeListened?.toLong() ?: 0L }
-        val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
-        val email = namePreferenceManager.accountEmail.first().trim().lowercase().takeIf { it.isNotBlank() }
+        val name = effectiveName
+        val email = effectiveEmail
         val profileUrl =
             when (val avatar = AvatarPreferenceManager(context).getAvatarSelection.first()) {
                 is AvatarSelection.DiceBear -> avatar.url
-                is AvatarSelection.Custom -> avatar.cloudUrl
-                is AvatarSelection.Gif -> avatar.url
+                is AvatarSelection.Custom -> avatar.cloudUrl ?: avatar.uri
                 else -> null
             }
-        val borderStyle = com.valora.icebeats.ui.component.BorderPreferenceManager(context).selectedBorder.first().id.takeIf { it.isNotBlank() }
-        val bannerUrl = com.valora.icebeats.ui.component.BannerPreferenceManager(context).bannerUrl.first()?.takeIf { it.isNotBlank() }
         var fcmToken: String? = null
-        try {
-            fcmToken = kotlinx.coroutines.withTimeoutOrNull(2000L) {
+        for (i in 1..3) {
+            fcmToken = try {
                 suspendCancellableCoroutine<String?> { continuation ->
                     com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                        if (continuation.isActive) {
-                            continuation.resume(if (task.isSuccessful) task.result else null)
+                        if (task.isSuccessful) {
+                            continuation.resume(task.result)
+                        } else {
+                            continuation.resume(null)
                         }
                     }
                 }
+            } catch (e: Exception) {
+                null
             }
-        } catch (_: Exception) {
-            fcmToken = null
+            if (fcmToken != null) break
+            kotlinx.coroutines.delay(1000L * i)
         }
         if (fcmToken == null) {
             fcmToken = "n/v"
@@ -379,14 +372,13 @@ constructor(
 
         return LocalStatsUpload(
             userId = userId,
+            user = IceBeatsStatsCloudSync.getUserNumber(context),
             name = name,
             profileUrl = profileUrl,
             email = email,
             totalListenMs = totalListenMs,
             weeklyListenMs = weeklyListenMs,
             fcmToken = fcmToken,
-            borderStyle = borderStyle,
-            bannerUrl = bannerUrl,
         )
     }
 

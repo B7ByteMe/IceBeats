@@ -1,5 +1,5 @@
-﻿/*
- * icebeats Project Original (2026)
+/*
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -45,16 +45,16 @@ import com.valora.icebeats.constants.UseSystemFontKey
 import com.valora.icebeats.models.MediaMetadata
 import com.valora.icebeats.utils.rememberPreference
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Constantes compartidas entre layouts
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 internal val LyricsCardSize       = 340.dp
 internal val LyricsCardCorner     = 24.dp
 
-// -----------------------------------------------------------------------------
-// Helpers internos • reutilizados por todos los layouts
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers internos — reutilizados por todos los layouts
+// ─────────────────────────────────────────────────────────────────────────────
 
 /** Fuente de letras respetando la preferencia del usuario */
 @Composable
@@ -65,7 +65,7 @@ internal fun rememberLyricsFontFamily(): FontFamily? {
     }
 }
 
-/** Painter de la car•tula con crossfade */
+/** Painter de la carátula con crossfade */
 @Composable
 internal fun rememberArtworkPainter(thumbnailUrl: String?): Painter =
     rememberAsyncImagePainter(
@@ -75,7 +75,7 @@ internal fun rememberArtworkPainter(thumbnailUrl: String?): Painter =
             .build()
     )
 
-/** Fila de marca icebeats • aparece en el pie de todos los layouts si showBranding=true */
+/** Fila de marca IceBeats — aparece en el pie de todos los layouts si showBranding=true */
 @Composable
 internal fun LyricsBrandingRow(
     secondaryColor: Color,
@@ -95,7 +95,7 @@ internal fun LyricsBrandingRow(
             contentAlignment = Alignment.Center,
         ) {
             Image(
-                painter = painterResource(R.drawable.icebeats),
+                painter = painterResource(R.drawable.airbeats),
                 contentDescription = null,
                 modifier = Modifier.size(15.dp),
                 colorFilter = ColorFilter.tint(
@@ -116,7 +116,7 @@ internal fun LyricsBrandingRow(
 }
 
 /**
- * Fila de metadatos (car•tula + t•tulo + artista).
+ * Fila de metadatos (carátula + título + artista).
  * Respeta los flags showCoverArt / showTitle / showArtist del config.
  */
 @Composable
@@ -176,10 +176,10 @@ internal fun LyricsMetadataRow(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Dispatcher • punto de entrada •nico para cualquier caller
-// A•adir un nuevo layout = agregar entry al when + crear el composable abajo
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Dispatcher — punto de entrada único para cualquier caller
+// Añadir un nuevo layout = agregar entry al when + crear el composable abajo
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun LyricsCardByLayout(
@@ -198,10 +198,10 @@ fun LyricsCardByLayout(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Layout 1 • Glass Card
-// Extrae la l•gica del LyricsImageCard original. LyricsImageCard delega aqu•.
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout 1 — Glass Card
+// Extrae la lógica del LyricsImageCard original. LyricsImageCard delega aquí.
+// ─────────────────────────────────────────────────────────────────────────────
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -256,7 +256,7 @@ fun GlassCardLayout(
                 )
             )
 
-            // Panel de vidrio l•quido
+            // Panel de vidrio líquido
             Box(
                 modifier = Modifier
                     .padding(14.dp)
@@ -335,10 +335,10 @@ fun GlassCardLayout(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Layout 2 • Minimal
-// Fondo s•lido, tipograf•a grande, cita decorativa, sin efectos de vidrio.
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout 2 — Minimal
+// Fondo sólido, tipografía grande, cita decorativa, sin efectos de vidrio.
+// ─────────────────────────────────────────────────────────────────────────────
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -370,7 +370,7 @@ fun MinimalLayout(
                 .clip(RoundedCornerShape(LyricsCardCorner))
                 .background(bgColor),
         ) {
-            // L•nea de acento superior
+            // Línea de acento superior
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -477,10 +477,10 @@ fun MinimalLayout(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Layout 3 • Cover Focused
-// La car•tula ocupa la parte superior; la letra en la parte inferior sobre blur.
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout 3 — Cover Focused
+// La carátula ocupa la parte superior; la letra en la parte inferior sobre blur.
+// ─────────────────────────────────────────────────────────────────────────────
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -521,7 +521,7 @@ fun CoverFocusedLayout(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Car•tula grande
+                // Carátula grande
                 if (config.showCoverArt) {
                     Image(
                         painter      = artworkPainter,
@@ -612,11 +612,11 @@ fun CoverFocusedLayout(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Layout 4 • Centered
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout 4 — Centered
 // Letra protagonista en el centro exacto; metadatos arriba y branding abajo.
-// Sin panel de vidrio • solo scrim sobre la imagen desenfocada.
-// -----------------------------------------------------------------------------
+// Sin panel de vidrio — solo scrim sobre la imagen desenfocada.
+// ─────────────────────────────────────────────────────────────────────────────
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -648,7 +648,7 @@ fun CenteredLayout(
                 contentScale = ContentScale.Crop,
                 modifier     = Modifier.fillMaxSize().cloudy(radius = config.glassStyle.cloudyRadius),
             )
-            // Scrim vertical con m•s opacidad en bordes
+            // Scrim vertical con más opacidad en bordes
             Box(
                 modifier = Modifier.fillMaxSize().background(
                     Brush.verticalGradient(
@@ -697,7 +697,7 @@ fun CenteredLayout(
                     }
                 }
 
-                // Letra centrada • toma todo el espacio disponible
+                // Letra centrada — toma todo el espacio disponible
                 BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
@@ -749,10 +749,10 @@ fun CenteredLayout(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Layout 5 • Blur Wash
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout 5 — Blur Wash
 // Blur ultra intenso de fondo; letra sobre un panel frosted contenido.
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -778,7 +778,7 @@ fun BlurWashLayout(
                 .size(LyricsCardSize)
                 .clip(RoundedCornerShape(LyricsCardCorner)),
         ) {
-            // Fondo con blur m•ximo
+            // Fondo con blur máximo
             Image(
                 painter      = artworkPainter,
                 contentDescription = null,
@@ -843,7 +843,7 @@ fun BlurWashLayout(
                             else -> 12.sp
                         }
 
-                        // ? ahora SIN error de receiver
+                        // ✅ ahora SIN error de receiver
                         val dynamicFontSize = rememberAdjustedFontSize(
                             text = lyricText,
                             maxWidth = availableWidth,
@@ -880,10 +880,10 @@ fun BlurWashLayout(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Layout 6 • Streaming Modern
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout 6 — Streaming Modern
 // Fondo oscuro con gradiente, acento de color, comillas, estilo Spotify/Apple.
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -897,7 +897,7 @@ fun StreamingModernLayout(
     val fontFamily     = rememberLyricsFontFamily()
     val artworkPainter = rememberArtworkPainter(mediaMetadata.thumbnailUrl)
 
-    // Acento: usa surfaceTint del glassStyle, fallback •ndigo si es negro/blanco
+    // Acento: usa surfaceTint del glassStyle, fallback índigo si es negro/blanco
     val accent = config.glassStyle.surfaceTint.let {
         if (it == Color.Black || it == Color.White) Color(0xFF6366F1) else it.copy(alpha = 1f)
     }
@@ -932,7 +932,7 @@ fun StreamingModernLayout(
                     .padding(config.cardPadding),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Header: car•tula peque•a + t•tulo + artista + •cono play
+                // Header: carátula pequeña + título + artista + ícono play
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (config.showCoverArt) {
                         Image(
@@ -969,7 +969,7 @@ fun StreamingModernLayout(
                             )
                         }
                     }
-                    // Bot•n play decorativo
+                    // Botón play decorativo
                     Box(
                         modifier = Modifier
                             .size(30.dp)

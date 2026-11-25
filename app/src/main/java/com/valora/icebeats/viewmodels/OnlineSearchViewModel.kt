@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -29,6 +29,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import com.valora.icebeats.constants.EnableJioSaavnKey
+import com.valora.icebeats.innertube.models.SongItem
+import com.valora.icebeats.innertube.pages.SearchSummary
+import com.valora.icebeats.jiosaavn.JioSaavnApi
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -42,70 +47,67 @@ constructor(
     val filter = MutableStateFlow<YouTube.SearchFilter?>(null)
     var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
+    var jioSaavnSongs by mutableStateOf<List<SongItem>>(emptyList())
+    var isJioSaavnExpanded by mutableStateOf(false)
 
     init {
         viewModelScope.launch {
-            val musicProvider = context.dataStore.get(com.valora.icebeats.constants.MusicProviderKey, "YT")
+            val enableJioSaavn = context.dataStore.get(EnableJioSaavnKey, false)
+            val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+            if (enableJioSaavn) {
+                launch(Dispatchers.IO) {
+                    val jioResult = JioSaavnApi.searchSongs(query).getOrNull().orEmpty()
+                    jioSaavnSongs = jioResult.filterExplicit(hideExplicit)
+                }
+            }
+        }
+
+        viewModelScope.launch {
             filter.collect { filter ->
+                val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                val hideVideo = context.dataStore.get(HideVideoKey, false)
+
                 if (filter == null) {
                     if (summaryPage == null) {
-                        if (musicProvider == "JIOSAAVN") {
-                            com.valora.icebeats.jiosaavn.JioSaavnApi.searchSongs(query)
-                                .onSuccess { songs ->
+                        YouTube
+                            .searchSummary(query)
+                            .onSuccess {
+                                summaryPage = it.filterExplicit(hideExplicit).filterVideo(hideVideo)
+                            }.onFailure {
+                                val ytSongs = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                                if (ytSongs != null && ytSongs.items.isNotEmpty()) {
                                     summaryPage = SearchSummaryPage(
                                         summaries = listOf(
-                                            com.valora.icebeats.innertube.pages.SearchSummary(
+                                            SearchSummary(
                                                 title = "Songs",
-                                                items = songs
+                                                items = ytSongs.items
+                                                    .distinctBy { it.id }
+                                                    .filterExplicit(hideExplicit)
+                                                    .filterVideo(hideVideo)
                                             )
                                         )
                                     )
-                                }.onFailure {
+                                } else {
                                     reportException(it)
                                 }
-                        } else {
-                            YouTube
-                                .searchSummary(query)
-                                .onSuccess {
-                                    summaryPage = it.filterExplicit(context.dataStore.get(HideExplicitKey, false)).filterVideo(context.dataStore.get(HideVideoKey, false))
-                                }.onFailure {
-                                    reportException(it)
-                                }
-                        }
+                            }
                     }
                 } else {
                     if (viewStateMap[filter.value] == null) {
-                        if (musicProvider == "JIOSAAVN") {
-                            if (filter == YouTube.SearchFilter.FILTER_SONG) {
-                                com.valora.icebeats.jiosaavn.JioSaavnApi.searchSongs(query)
-                                    .onSuccess { songs ->
-                                        viewStateMap[filter.value] = ItemsPage(songs, null)
-                                    }.onFailure {
-                                        reportException(it)
-                                    }
-                            } else {
-                                viewStateMap[filter.value] = ItemsPage(emptyList(), null)
+                        YouTube
+                            .search(query, filter)
+                            .onSuccess { result ->
+                                viewStateMap[filter.value] =
+                                    ItemsPage(
+                                        result.items
+                                            .distinctBy { it.id }
+                                            .filterExplicit(hideExplicit)
+                                            .filterVideo(hideVideo),
+                                        result.continuation,
+                                    )
+                            }.onFailure {
+                                reportException(it)
                             }
-                        } else {
-                            YouTube
-                                .search(query, filter)
-                                .onSuccess { result ->
-                                    viewStateMap[filter.value] =
-                                        ItemsPage(
-                                            result.items
-                                                .distinctBy { it.id }
-                                                .filterExplicit(
-                                                    context.dataStore.get(
-                                                        HideExplicitKey,
-                                                        false
-                                                    )
-                                                ).filterVideo(context.dataStore.get(HideVideoKey, false)),
-                                            result.continuation,
-                                        )
-                                }.onFailure {
-                                    reportException(it)
-                                }
-                        }
                     }
                 }
             }

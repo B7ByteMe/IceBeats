@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.shazamkit.models
+package com.valora.icebeats.shazamkit.models
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

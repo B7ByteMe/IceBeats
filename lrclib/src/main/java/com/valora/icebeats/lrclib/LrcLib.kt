@@ -1,10 +1,11 @@
-﻿package com.valora.icebeats.lrclib
+package com.valora.icebeats.lrclib
 
 import com.valora.icebeats.lrclib.models.Track
 import com.valora.icebeats.lrclib.models.bestMatchingFor
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
@@ -21,8 +22,15 @@ object LrcLib {
                     Json {
                         isLenient = true
                         ignoreUnknownKeys = true
+                        coerceInputValues = true
                     },
                 )
+            }
+
+            install(HttpTimeout) {
+                requestTimeoutMillis = 10000L
+                connectTimeoutMillis = 10000L
+                socketTimeoutMillis = 10000L
             }
 
             defaultRequest {
@@ -37,13 +45,15 @@ object LrcLib {
         artist: String,
         title: String,
         album: String? = null,
-    ) = client
-        .get("/api/search") {
-            parameter("track_name", title)
-            parameter("artist_name", artist)
-            if (album != null) parameter("album_name", album)
-        }.body<List<Track>>()
-        .filter { it.syncedLyrics != null }
+    ): List<Track> = runCatching {
+        client
+            .get("/api/search") {
+                parameter("track_name", title)
+                parameter("artist_name", artist)
+                if (album != null) parameter("album_name", album)
+            }.body<List<Track>>()
+            .filter { it.syncedLyrics != null }
+    }.getOrElse { emptyList() }
 
     suspend fun getLyrics(
         title: String,
@@ -67,22 +77,22 @@ object LrcLib {
         duration: Int,
         album: String? = null,
         callback: (String) -> Unit,
-    ) {
+    ) = runCatching {
         val tracks = queryLyrics(artist, title, album)
         var count = 0
         var plain = 0
         tracks.forEach {
             if (count <= 4) {
-                if (it.syncedLyrics != null && duration == -1)
-                    {
-                        count++
-                        it.syncedLyrics.let(callback)
-                    } else {
-                    if (it.syncedLyrics != null && abs(it.duration - duration) <= 2) {
+                val dur = it.duration?.toInt() ?: -1
+                if (it.syncedLyrics != null && duration == -1) {
+                    count++
+                    it.syncedLyrics.let(callback)
+                } else {
+                    if (it.syncedLyrics != null && dur != -1 && abs(dur - duration) <= 2) {
                         count++
                         it.syncedLyrics.let(callback)
                     }
-                    if (it.plainLyrics != null && abs(it.duration - duration) <= 2 && plain == 0) {
+                    if (it.plainLyrics != null && dur != -1 && abs(dur - duration) <= 2 && plain == 0) {
                         count++
                         plain++
                         it.plainLyrics.let(callback)

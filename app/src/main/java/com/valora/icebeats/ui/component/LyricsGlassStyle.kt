@@ -1,12 +1,15 @@
 package com.valora.icebeats.ui.component
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
+import com.valora.icebeats.R
 
 data class LyricsGlassStyle(
     val name: String,
+    @StringRes val nameRes: Int = R.string.lyrics_glass_frosted_dark,
     val surfaceTint: Color,
     val surfaceAlpha: Float,
     val cloudyRadius: Int,
@@ -28,6 +31,7 @@ data class LyricsGlassStyle(
     companion object {
         val FrostedDark = LyricsGlassStyle(
             name = "Frosted Dark",
+            nameRes = R.string.lyrics_glass_frosted_dark,
             surfaceTint = Color.Black,
             surfaceAlpha = 0.35f,
             cloudyRadius = 15,
@@ -49,6 +53,7 @@ data class LyricsGlassStyle(
 
         val FrostedLight = LyricsGlassStyle(
             name = "Frosted Light",
+            nameRes = R.string.lyrics_glass_frosted_light,
             surfaceTint = Color.White,
             surfaceAlpha = 0.45f,
             cloudyRadius = 15,
@@ -70,6 +75,7 @@ data class LyricsGlassStyle(
 
         val ClearGlass = LyricsGlassStyle(
             name = "Clear Glass",
+            nameRes = R.string.lyrics_glass_clear_glass,
             surfaceTint = Color.White,
             surfaceAlpha = 0.15f,
             cloudyRadius = 12,
@@ -91,6 +97,7 @@ data class LyricsGlassStyle(
 
         val DeepBlur = LyricsGlassStyle(
             name = "Deep Blur",
+            nameRes = R.string.lyrics_glass_deep_blur,
             surfaceTint = Color(0xFF0A0A14),
             surfaceAlpha = 0.55f,
             cloudyRadius = 25,
@@ -112,6 +119,7 @@ data class LyricsGlassStyle(
 
         val VividGlow = LyricsGlassStyle(
             name = "Vivid Glow",
+            nameRes = R.string.lyrics_glass_vivid_glow,
             surfaceTint = Color(0xFFFF6B9D),
             surfaceAlpha = 0.2f,
             cloudyRadius = 18,
@@ -150,6 +158,7 @@ data class LyricsGlassStyle(
 
             return LyricsGlassStyle(
                 name = "Album Tint",
+                nameRes = R.string.lyrics_glass_album_tint,
                 surfaceTint = tintColor.copy(alpha = 0.6f),
                 surfaceAlpha = if (isDarkBackground) 0.25f else 0.3f,
                 cloudyRadius = 15,

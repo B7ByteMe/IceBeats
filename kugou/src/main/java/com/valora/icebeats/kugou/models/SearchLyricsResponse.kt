@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.kugou.models
+package com.valora.icebeats.kugou.models
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

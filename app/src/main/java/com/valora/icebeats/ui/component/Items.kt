@@ -686,7 +686,7 @@ fun ArtistListItem(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) = ListItem(
     title = artist.artist.name,
-    subtitle = if (artist.songCount > 0) pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount) else stringResource(R.string.artist),
+    subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
     badges = badges,
     thumbnailContent = {
         AsyncImage(
@@ -722,7 +722,7 @@ fun ArtistGridItem(
     fillMaxWidth: Boolean = false,
 ) = GridItem(
     title = artist.artist.name,
-    subtitle = if (artist.songCount > 0) pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount) else stringResource(R.string.artist),
+    subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
     badges = badges,
     thumbnailContent = {
         AsyncImage(
@@ -1220,8 +1220,12 @@ fun LibraryPlaylistFeatureCard(
         extractedGlowColor = withContext(Dispatchers.Default) { bitmap.extractThemeColor() }
     }
 
+    val isFrosted = isFrostedGlassUiEnabled()
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isFrosted) settingsCardContainerColor() else MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = if (isFrosted) settingsCardBorder() else null,
         shape = shape,
         modifier = modifier,
     ) {
@@ -1307,6 +1311,7 @@ fun LibraryHeroFavoriteTile(
     accentColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     val animatedColor by animateColorAsState(accentColor, spring(), label = "heroPlaylistTile")
+    val isFrosted = isFrostedGlassUiEnabled()
 
     Card(
         shape = RoundedCornerShape(
@@ -1316,9 +1321,9 @@ fun LibraryHeroFavoriteTile(
             bottomStart = 38.dp
         ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = if (isFrosted) settingsCardContainerColor() else MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+        border = if (isFrosted) settingsCardBorder() else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
         modifier = modifier
     ) {
         Row(
@@ -1345,7 +1350,7 @@ fun LibraryHeroFavoriteTile(
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = null,
-                    tint = if (iconRes == R.drawable.spotify) Color.Unspecified else animatedColor,
+                    tint = if (iconRes == R.drawable.spotify || iconRes == R.drawable.youtube) Color.Unspecified else animatedColor,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -1366,9 +1371,9 @@ fun LibraryHeroFavoriteTile(
                     },
                     shape = CircleShape,
                     colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        containerColor = if (isFrosted) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainerHighest
                     ),
-                    border = null,
+                    border = if (isFrosted) BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)) else null,
                     modifier = Modifier.height(24.dp)
                 )
 
@@ -1408,6 +1413,7 @@ fun LibraryPinnedCollectionTile(
     accentColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     val animatedColor by animateColorAsState(accentColor, spring(), label = "pinnedPlaylistTile")
+    val isFrosted = isFrostedGlassUiEnabled()
 
     val expressiveCardShape = when (gridPosition) {
         GridPosition.LEFT -> RoundedCornerShape(
@@ -1428,9 +1434,9 @@ fun LibraryPinnedCollectionTile(
     Card(
         shape = expressiveCardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = if (isFrosted) settingsCardContainerColor() else MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        border = if (isFrosted) settingsCardBorder() else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = modifier
     ) {
         Column(
@@ -1455,7 +1461,7 @@ fun LibraryPinnedCollectionTile(
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = null,
-                    tint = if (iconRes == R.drawable.spotify) Color.Unspecified else animatedColor,
+                    tint = if (iconRes == R.drawable.spotify || iconRes == R.drawable.youtube) Color.Unspecified else animatedColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1504,12 +1510,13 @@ fun PlaylistListItem(
     },
     thumbnailContent = {
         val painter =
-            when (playlist.playlist.name) {
-                stringResource(R.string.liked) -> R.drawable.favorite_border
-                stringResource(R.string.offline) -> R.drawable.offline
-                stringResource(R.string.cached_playlist) -> R.drawable.cached
-                stringResource(R.string.filter_local) -> R.drawable.folder
-                "Import Playlist", stringResource(R.string.import_playlist) -> R.drawable.spotify
+            when {
+                playlist.playlist.name == stringResource(R.string.liked) -> R.drawable.favorite_border
+                playlist.playlist.name == stringResource(R.string.offline) -> R.drawable.offline
+                playlist.playlist.name == stringResource(R.string.cached_playlist) -> R.drawable.cached
+                playlist.playlist.name == stringResource(R.string.filter_local) -> R.drawable.folder
+                playlist.playlist.browseId?.startsWith("sp:") == true -> R.drawable.spotify
+                playlist.playlist.name in listOf("Import Playlist", stringResource(R.string.import_playlist)) -> R.drawable.spotify
                 else -> {
                     if (autoPlaylist) {
                         R.drawable.trending_up
@@ -1617,11 +1624,13 @@ fun PlaylistGridItem(
         } else {
             // Si no hay miniatura, mostrar la imagen predeterminada
             val painter =
-                when (playlist.playlist.name) {
-                    stringResource(R.string.liked) -> R.drawable.favorite_border
-                    stringResource(R.string.offline) -> R.drawable.offline
-                    stringResource(R.string.cached_playlist) -> R.drawable.cached
-                    stringResource(R.string.filter_local) -> R.drawable.folder
+                when {
+                    playlist.playlist.name == stringResource(R.string.liked) -> R.drawable.favorite_border
+                    playlist.playlist.name == stringResource(R.string.offline) -> R.drawable.offline
+                    playlist.playlist.name == stringResource(R.string.cached_playlist) -> R.drawable.cached
+                    playlist.playlist.name == stringResource(R.string.filter_local) -> R.drawable.folder
+                    playlist.playlist.browseId?.startsWith("sp:") == true -> R.drawable.spotify
+                    playlist.playlist.name in listOf("Import Playlist", stringResource(R.string.import_playlist)) -> R.drawable.spotify
                     else -> {
                         if (autoPlaylist) {
                             R.drawable.trending_up
@@ -1767,6 +1776,45 @@ fun YouTubeListItem(
     albumIndex: Int? = null,
     isSelected: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {
+        if (item.id.startsWith("JS:")) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 5.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = "JioSaavn 320k",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        } else if (item is SongItem) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 5.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.ui_text_youtube),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 9.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         val database = LocalDatabase.current
         val song by database.song(item.id).collectAsState(initial = null)
         val album by database.album(item.id).collectAsState(initial = null)
@@ -2491,3 +2539,4 @@ fun LocalAlbumsGrid(
     fillMaxWidth = fillMaxWidth,
     modifier = modifier,
 )
+

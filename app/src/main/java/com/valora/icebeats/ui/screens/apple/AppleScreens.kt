@@ -7,7 +7,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.valora.icebeats.ui.component.AvatarDisplay
+import com.valora.icebeats.ui.screens.search.airbeatsChartsItems
+import com.valora.icebeats.ui.screens.search.recentSearchesItems
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,13 +42,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -88,6 +97,16 @@ import com.valora.icebeats.ui.screens.library.LibraryArtistsScreen
 import com.valora.icebeats.ui.screens.library.LibraryPlaylistsScreen
 import com.valora.icebeats.ui.screens.library.LibrarySongsScreen
 import com.valora.icebeats.ui.screens.library.LocalSongsScreen
+import com.valora.icebeats.constants.DefaultHiddenHomeSections
+import com.valora.icebeats.constants.HiddenHomeSectionsKey
+import com.valora.icebeats.constants.MaterialHomeSection
+import com.valora.icebeats.ui.component.HomeFloatingActions
+import com.valora.icebeats.ui.component.HomeTasteStrip
+import com.valora.icebeats.ui.component.UniversalHomeHeroBanner
+import com.valora.icebeats.ui.component.UniversalArtistSpotlightCard
+import com.valora.icebeats.ui.component.UniversalTopArtistsRow
+import com.valora.icebeats.ui.component.UniversalQuickAccessTiles
+import com.valora.icebeats.ui.component.HomeThemeStyle
 import com.valora.icebeats.ui.screens.settings.DarkMode
 import com.valora.icebeats.ui.utils.highQualityThumbnail
 import com.valora.icebeats.utils.rememberEnumPreference
@@ -107,7 +126,7 @@ fun isAppInDarkTheme(): Boolean {
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     return remember(darkTheme, isSystemInDarkTheme) {
-        true
+        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 }
 
@@ -117,61 +136,11 @@ val AppleRed = Color(0xFFFA233B)
 
 @Composable
 fun AppleMeshBackground() {
-    val color1 = MaterialTheme.colorScheme.primary
-    val color2 = MaterialTheme.colorScheme.secondary
-    val color3 = MaterialTheme.colorScheme.tertiary
-    val color4 = MaterialTheme.colorScheme.primaryContainer
-    val color5 = MaterialTheme.colorScheme.secondaryContainer
-    val surfaceColor = AppleBg
+    val playerConnection = LocalPlayerConnection.current
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxSize(0.7f)
-            .drawWithCache {
-                val width = size.width
-                val height = size.height
-
-                val brush1 = Brush.radialGradient(
-                    colors = listOf(color1.copy(alpha = 0.38f), color1.copy(alpha = 0.24f), color1.copy(alpha = 0.14f), color1.copy(alpha = 0.06f), Color.Transparent),
-                    center = Offset(width * 0.15f, height * 0.1f),
-                    radius = width * 0.55f,
-                )
-                val brush2 = Brush.radialGradient(
-                    colors = listOf(color2.copy(alpha = 0.34f), color2.copy(alpha = 0.2f), color2.copy(alpha = 0.11f), color2.copy(alpha = 0.05f), Color.Transparent),
-                    center = Offset(width * 0.85f, height * 0.2f),
-                    radius = width * 0.65f,
-                )
-                val brush3 = Brush.radialGradient(
-                    colors = listOf(color3.copy(alpha = 0.3f), color3.copy(alpha = 0.17f), color3.copy(alpha = 0.09f), color3.copy(alpha = 0.04f), Color.Transparent),
-                    center = Offset(width * 0.3f, height * 0.45f),
-                    radius = width * 0.6f,
-                )
-                val brush4 = Brush.radialGradient(
-                    colors = listOf(color4.copy(alpha = 0.26f), color4.copy(alpha = 0.14f), color4.copy(alpha = 0.08f), color4.copy(alpha = 0.03f), Color.Transparent),
-                    center = Offset(width * 0.7f, height * 0.5f),
-                    radius = width * 0.7f,
-                )
-                val brush5 = Brush.radialGradient(
-                    colors = listOf(color5.copy(alpha = 0.22f), color5.copy(alpha = 0.12f), color5.copy(alpha = 0.06f), color5.copy(alpha = 0.02f), Color.Transparent),
-                    center = Offset(width * 0.5f, height * 0.75f),
-                    radius = width * 0.8f,
-                )
-                val overlayBrush = Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = 0.22f), surfaceColor.copy(alpha = 0.55f), surfaceColor),
-                    startY = height * 0.4f,
-                    endY = height,
-                )
-
-                onDrawBehind {
-                    drawRect(brush1)
-                    drawRect(brush2)
-                    drawRect(brush3)
-                    drawRect(brush4)
-                    drawRect(brush5)
-                    drawRect(overlayBrush)
-                }
-            },
+    com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+        artworkUrl = mediaMetadata?.thumbnailUrl
     )
 }
 
@@ -182,39 +151,51 @@ fun AppleHeader(
     isAtTop: Boolean = true,
     hazeState: HazeState? = null,
     profileUrl: String? = null,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onNewReleaseClick: (() -> Unit)? = null,
+    onDeveloperNewsClick: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val profileImageRequest = remember(profileUrl) {
+        profileUrl?.let {
+            coil.request.ImageRequest.Builder(context)
+                .data(it)
+                .diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                .diskCacheKey(it)
+                .crossfade(true)
+                .build()
+        }
+    }
     val avatarManager = remember { AvatarPreferenceManager(context) }
     val currentSelection by avatarManager
         .getAvatarSelection
         .collectAsState(initial = AvatarSelection.Default)
+    val isDark = isAppInDarkTheme()
+
+    val blurAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isAtTop) 0f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(300),
+        label = "AppleHeaderBlurAlpha"
+    )
 
     Box(modifier = modifier.fillMaxWidth()) {
-        AnimatedContent(
-            targetState = isAtTop,
-            transitionSpec = {
-                fadeIn(tween(300)).togetherWith(fadeOut(tween(300)))
-            },
-            modifier = Modifier.matchParentSize(),
-            label = "AppleHeaderBackground"
-        ) { isAtTopState ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (isAtTopState) {
-                            Modifier.background(Color.Transparent)
-                        } else if (hazeState != null) {
-                            Modifier.hazeChild(
-                                state = hazeState,
-                                style = dev.chrisbanes.haze.materials.HazeMaterials.ultraThin()
-                            )
-                        } else {
-                            Modifier.background(AppleBg.copy(alpha = 0.95f))
-                        }
-                    )
+        if (hazeState != null) {
+            com.valora.icebeats.ui.component.TopFadeBlur(
+                hazeState = hazeState,
+                pageColor = Color.Transparent,
+                scrimColor = Color.Transparent,
+                alpha = blurAlpha,
+                modifier = Modifier.align(Alignment.TopCenter)
             )
+        } else {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !isAtTop,
+                enter = androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.fadeOut(),
+                modifier = Modifier.matchParentSize()
+            ) {
+                Box(modifier = Modifier.fillMaxSize().background(AppleBg.copy(alpha = 0.95f)))
+            }
         }
 
         Row(
@@ -226,52 +207,115 @@ fun AppleHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(title, color = AppleText, fontSize = 28.sp, fontWeight = FontWeight.Black)
+            Text(
+                text = title,
+                color = AppleText,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.weight(1f, fill = false),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
-            IconButton(
-                onClick = onProfileClick,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                when (val selection = currentSelection) {
-                    is AvatarSelection.Custom -> {
-                        AsyncImage(
-                            model = selection.uri.toUri(),
-                            contentDescription = "Profile",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                if (onDeveloperNewsClick != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isDark) Color.White.copy(alpha = 0.12f)
+                                else Color.Black.copy(alpha = 0.06f)
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = true),
+                                onClick = onDeveloperNewsClick
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.newspaper),
+                            contentDescription = stringResource(R.string.ui_a11y_news_from_developer),
+                            tint = AppleText,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    is AvatarSelection.DiceBear -> {
-                        AsyncImage(
-                            model = selection.url,
-                            contentDescription = "Profile",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                }
+
+                if (onNewReleaseClick != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isDark) Color.White.copy(alpha = 0.12f)
+                                else Color.Black.copy(alpha = 0.06f)
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = true),
+                                onClick = onNewReleaseClick
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.notification_on),
+                            contentDescription = stringResource(R.string.ui_text_new_releases),
+                            tint = AppleText,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    else -> {
-                        if (profileUrl != null) {
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true),
+                            onClick = onProfileClick
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (val selection = currentSelection) {
+                        is AvatarSelection.Custom -> {
                             AsyncImage(
-                                model = coil.request.ImageRequest.Builder(context)
-                                    .data(profileUrl)
-                                    .diskCachePolicy(coil.request.CachePolicy.ENABLED)
-                                    .diskCacheKey(profileUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                model = selection.uri.toUri(),
+                                contentDescription = stringResource(R.string.ui_a11y_profile),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
-                        } else {
-                            Icon(
-                                painter = painterResource(R.drawable.person),
-                                contentDescription = "Profile",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(20.dp)
+                        }
+                        is AvatarSelection.DiceBear -> {
+                            AsyncImage(
+                                model = selection.url,
+                                contentDescription = stringResource(R.string.ui_a11y_profile),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
+                        }
+                        else -> {
+                            if (profileUrl != null) {
+                                AsyncImage(
+                                    model = profileImageRequest,
+                                    contentDescription = stringResource(R.string.ui_a11y_profile),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(R.drawable.person),
+                                    contentDescription = stringResource(R.string.ui_a11y_profile),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -288,10 +332,14 @@ fun AppleScaffold(
     profileUrl: String? = null,
     isRefreshing: Boolean? = null,
     onRefresh: (() -> Unit)? = null,
+    onNewReleaseClick: (() -> Unit)? = { navController.navigate("new_release") },
+    onDeveloperNewsClick: (() -> Unit)? = { navController.navigate("settings/developer_news") },
+    floatingActionButton: (@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)? = null,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
     val lazyListState = rememberLazyListState()
     val hazeState = remember { HazeState() }
+    val isBlurDisabled = com.valora.icebeats.utils.isBlurDisabled()
     val pullRefreshState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
     
     Box(Modifier.fillMaxSize()) {
@@ -308,7 +356,7 @@ fun AppleScaffold(
                         )
                     } else modifier
                 }
-                .haze(state = hazeState)
+                .then(if (!isBlurDisabled) Modifier.haze(state = hazeState) else Modifier)
         ) {
             AppleMeshBackground()
             LazyColumn(
@@ -343,8 +391,12 @@ fun AppleScaffold(
             isAtTop = isAtTop,
             hazeState = hazeState,
             profileUrl = profileUrl,
-            onProfileClick = { navController.navigate("settings") }
+            onProfileClick = { navController.navigate("settings") },
+            onNewReleaseClick = onNewReleaseClick,
+            onDeveloperNewsClick = onDeveloperNewsClick
         )
+
+        floatingActionButton?.invoke(this)
     }
 }
 
@@ -396,6 +448,7 @@ fun AppleLocalRow(items: List<Song>, playerConnection: com.valora.icebeats.playb
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(items) { song ->
+            val localSongsQueueTitle = stringResource(R.string.filter_local)
             AppleTile(
                 title = song.title,
                 subtitle = song.artists.joinToString { it.name },
@@ -403,7 +456,7 @@ fun AppleLocalRow(items: List<Song>, playerConnection: com.valora.icebeats.playb
                 onClick = {
                     playerConnection.playQueue(
                         com.valora.icebeats.playback.queues.ListQueue(
-                            title = "Local",
+                            title = localSongsQueueTitle,
                             items = items.map { it.toMediaMetadata().toMediaItem() },
                             startIndex = items.indexOf(song)
                         )
@@ -430,7 +483,7 @@ fun AppleYtRow(items: List<YTItem>, navController: NavController, playerConnecti
                     is ArtistItem -> "Artist"
                     else -> ""
                 },
-                thumbnailUrl = item.thumbnail?.highQualityThumbnail(),
+                thumbnailUrl = item.thumbnail?.highQualityThumbnail() ?: "",
                 onClick = {
                     when (item) {
                         is SongItem -> {
@@ -464,6 +517,7 @@ fun AppleSectionTitle(title: String) {
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppleHomeScreen(
     navController: NavController,
@@ -472,62 +526,256 @@ fun AppleHomeScreen(
     val playerConnection = LocalPlayerConnection.current ?: return
     val quickPicks by viewModel.quickPicks.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
+    val keepListening by viewModel.keepListening.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by com.valora.icebeats.utils.rememberPreference(com.valora.icebeats.constants.InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in com.valora.icebeats.innertube.utils.parseCookieString(innerTubeCookie)
     }
+    LaunchedEffect(innerTubeCookie) {
+        viewModel.onAccountChanged(innerTubeCookie)
+    }
     val url = if (isLoggedIn) accountImageUrl else null
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+    val isContentEmpty = (quickPicks == null || quickPicks?.isEmpty() == true) &&
+        (accountPlaylists == null || accountPlaylists?.isEmpty() == true) &&
+        (forgottenFavorites == null || forgottenFavorites?.isEmpty() == true) &&
+        similarRecommendations.isNullOrEmpty() &&
+        homePage?.sections.isNullOrEmpty()
+
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    val hiddenSections by com.valora.icebeats.utils.rememberPreference(HiddenHomeSectionsKey, defaultValue = DefaultHiddenHomeSections)
+    fun isSectionVisible(section: MaterialHomeSection): Boolean {
+        if (isLiteMode) {
+            if (section == MaterialHomeSection.FRESH_FINDS ||
+                section == MaterialHomeSection.SPOTLIGHT ||
+                section == MaterialHomeSection.TOP_ARTISTS) {
+                return false
+            }
+        }
+        return section.id !in hiddenSections
+    }
+
+    val freshPicks = remember(quickPicks) { quickPicks?.drop(6).orEmpty().take(12) }
+    val artistTriples = remember(quickPicks) {
+        quickPicks?.mapNotNull { pick ->
+            pick.artists.firstOrNull()?.let { artist ->
+                Triple(artist, artist.thumbnailUrl, pick.song.thumbnailUrl)
+            }
+        }?.distinctBy { it.first.id }?.take(10).orEmpty()
+    }
     
     AppleScaffold(
-        title = "Listen Now",
+        title = stringResource(R.string.ui_heading_listen_now),
         navController = navController,
         profileUrl = url,
         isRefreshing = isRefreshing,
-        onRefresh = viewModel::refresh
+        onRefresh = viewModel::refresh,
+        floatingActionButton = {
+            HomeFloatingActions(
+                navController = navController
+            )
+        }
     ) {
-        quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-            item {
-                AppleSectionTitle("Made for You")
-                AppleLocalRow(picks.take(12), playerConnection)
+        if (isLoading && isContentEmpty) {
+            item(key = "apple_home_center_loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillParentMaxHeight(0.6f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
             }
         }
 
-        accountPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-            item {
-                AppleSectionTitle("Your Playlists")
-                AppleYtRow(playlists.take(12), navController, playerConnection)
+        if (isSectionVisible(MaterialHomeSection.HERO)) {
+            item(key = "apple_hero") {
+                UniversalHomeHeroBanner(
+                    title = stringResource(R.string.ui_heading_listen_now),
+                    subtitle = stringResource(R.string.ui_heading_curated_radio_tailored_to_your_musical_tastes),
+                    onPlayRadio = {
+                        com.valora.icebeats.ui.component.InfiniteRadioHelper.playShuffledRadio(
+                            playerConnection = playerConnection,
+                            currentSongId = playerConnection.mediaMetadata.value?.id,
+                            quickPicks = quickPicks,
+                            forgottenFavorites = forgottenFavorites,
+                            keepListening = keepListening,
+                            homeSongs = homePage?.sections?.flatMap { it.items }?.filterIsInstance<com.valora.icebeats.innertube.models.SongItem>()
+                        )
+                    },
+                    style = HomeThemeStyle.APPLE,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
             }
         }
 
-        forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
-            item {
-                AppleSectionTitle("Forgotten Favorites")
-                AppleLocalRow(favorites.take(12), playerConnection)
+        if (isSectionVisible(MaterialHomeSection.QUICK_TILES)) {
+            item(key = "apple_quick_tiles") {
+                UniversalQuickAccessTiles(
+                    onLikedClick = { navController.navigate("auto_playlist/liked") },
+                    onMixClick = {
+                        quickPicks?.firstOrNull()?.let {
+                            playerConnection.playQueue(YouTubeQueue.radio(it.toMediaMetadata()))
+                        }
+                    },
+                    onHistoryClick = { navController.navigate("history") },
+                    onStatsClick = { navController.navigate("stats") },
+                    style = HomeThemeStyle.APPLE,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
             }
         }
 
-        similarRecommendations?.forEach { recommendation ->
-            item {
-                AppleSectionTitle("Similar to ${recommendation.title.title}")
-                AppleYtRow(recommendation.items.take(12), navController, playerConnection)
+        if (isSectionVisible(MaterialHomeSection.TASTE_STRIP)) {
+            item(key = "apple_taste_strip") {
+                HomeTasteStrip(
+                    onTagClick = { tag ->
+                        val encoded = java.net.URLEncoder.encode(tag, "UTF-8")
+                        navController.navigate("search/$encoded")
+                    },
+                    style = HomeThemeStyle.APPLE,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.QUICK_PICKS)) {
+            quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
+                item {
+                    AppleSectionTitle("Made for You")
+                    AppleLocalRow(picks.take(12), playerConnection)
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.FRESH_FINDS)) {
+            if (freshPicks.isNotEmpty()) {
+                item(key = "apple_fresh_finds") {
+                    AppleSectionTitle("Fresh Finds")
+                    AppleLocalRow(freshPicks, playerConnection)
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.JUMP_BACK_IN)) {
+            keepListening?.filterIsInstance<Song>()?.takeIf { it.isNotEmpty() }?.let { items ->
+                item(key = "apple_jump_back_in") {
+                    AppleSectionTitle("Recently Played")
+                    AppleLocalRow(items.take(12), playerConnection)
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.MIXES)) {
+            accountPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                item {
+                    AppleSectionTitle("Your Playlists")
+                    AppleYtRow(playlists.take(12), navController, playerConnection)
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.HEAVY_ROTATION)) {
+            forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
+                item {
+                    AppleSectionTitle("Forgotten Favorites")
+                    AppleLocalRow(favorites.take(12), playerConnection)
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.SPOTLIGHT)) {
+            quickPicks?.firstOrNull()?.let { pick ->
+                val artist = pick.artists.firstOrNull()
+                if (artist != null) {
+                    item(key = "apple_spotlight") {
+                        UniversalArtistSpotlightCard(
+                            artistName = artist.name,
+                            artistId = artist.id,
+                            thumbnailUrl = artist.thumbnailUrl,
+                            fallbackThumbnail = pick.song.thumbnailUrl,
+                            onOpenArtist = {
+                                artist.id.takeIf { it.isNotBlank() }?.let { navController.navigate("artist/$it") }
+                            },
+                            onPlayRadio = {
+                                playerConnection.playQueue(YouTubeQueue.radio(pick.toMediaMetadata()))
+                            },
+                            style = HomeThemeStyle.APPLE,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.TOP_ARTISTS)) {
+            if (artistTriples.isNotEmpty()) {
+                item(key = "apple_top_artists") {
+                    AppleSectionTitle("Artists We Love")
+                    UniversalTopArtistsRow(
+                        artists = artistTriples,
+                        onArtistClick = { artistId ->
+                            artistId.takeIf { it.isNotBlank() }?.let { navController.navigate("artist/$it") }
+                        },
+                        style = HomeThemeStyle.APPLE
+                    )
+                }
+            }
+        }
+
+        if (isSectionVisible(MaterialHomeSection.BECAUSE_YOU_LISTEN_TO)) {
+            similarRecommendations?.forEach { recommendation ->
+                item {
+                    AppleSectionTitle("Similar to ${recommendation.title.title}")
+                    AppleYtRow(recommendation.items.take(12), navController, playerConnection)
+                }
             }
         }
 
         homePage?.sections?.forEach { section ->
-            item {
-                AppleSectionTitle(section.title)
-                AppleYtRow(section.items.take(12), navController, playerConnection)
+            val isNewRelease = section.title.contains("New", ignoreCase = true) || section.title.contains("Release", ignoreCase = true)
+            val isChart = section.title.contains("Chart", ignoreCase = true) || section.title.contains("Top", ignoreCase = true)
+            val isAlbum = section.title.contains("Album", ignoreCase = true)
+
+            val shouldRender = when {
+                isNewRelease -> isSectionVisible(MaterialHomeSection.NEW_RELEASES)
+                isChart -> isSectionVisible(MaterialHomeSection.CHARTS)
+                isAlbum -> isSectionVisible(MaterialHomeSection.ALBUMS)
+                else -> true
+            }
+
+            if (shouldRender) {
+                item {
+                    AppleSectionTitle(section.title)
+                    AppleYtRow(section.items.take(12), navController, playerConnection)
+                }
+            }
+        }
+
+        if (isLoading && !isContentEmpty) {
+            item(key = "apple_home_bottom_loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppleExploreScreen(
     navController: NavController,
@@ -538,10 +786,25 @@ fun AppleExploreScreen(
     val explorePage by homeViewModel.explorePage.collectAsState()
     val playerConnection = LocalPlayerConnection.current ?: return
 
+    val isExploringLoading = (explorePage == null || explorePage?.newReleaseAlbums.isNullOrEmpty()) && moodAndGenres.isNullOrEmpty()
+
     AppleScaffold(
-        title = "Browse",
+        title = stringResource(R.string.ui_sweep_browse),
         navController = navController
     ) {
+        if (isExploringLoading) {
+            item(key = "apple_explore_loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillParentMaxHeight(0.6f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+            }
+        }
+
         item {
             AppleSectionTitle("New releases")
             AppleYtRow(explorePage?.newReleaseAlbums.orEmpty(), navController, playerConnection)
@@ -613,10 +876,27 @@ fun AppleLibraryScreen(navController: NavController) {
                 )
                 items(filters) { (label, filter) ->
                     val isSelected = filterType == filter
+                    val isFrosted = com.valora.icebeats.ui.component.isFrostedGlassUiEnabled()
+                    val chipShape = RoundedCornerShape(8.dp)
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isSelected) AppleRed else AppleBg.copy(alpha = 0.3f))
+                            .clip(chipShape)
+                            .then(
+                                if (isFrosted) {
+                                    Modifier.border(
+                                        1.dp,
+                                        if (isSelected) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.15f),
+                                        chipShape
+                                    )
+                                } else Modifier
+                            )
+                            .background(
+                                if (isSelected) {
+                                    AppleRed
+                                } else {
+                                    if (isFrosted) Color.White.copy(alpha = 0.08f) else AppleBg.copy(alpha = 0.3f)
+                                }
+                            )
                             .clickable { filterType = filter }
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
@@ -658,9 +938,17 @@ fun AppleSearchScreen(
     val viewState by viewModel.viewState.collectAsState()
     val database = LocalDatabase.current
     val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val (pauseSearchHistory) = com.valora.icebeats.utils.rememberPreference(
+        key = com.valora.icebeats.constants.PauseSearchHistoryKey,
+        defaultValue = false
+    )
+    var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.valora.icebeats.ui.component.SearchTab.BROWSE_ALL) }
+    val chartsViewModel: com.valora.icebeats.viewmodels.ChartsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val appleTextColor = AppleText
+    val appleBgColor = AppleBg
 
     AppleScaffold(
-        title = "Search",
+        title = stringResource(R.string.search),
         navController = navController
     ) {
         item {
@@ -670,14 +958,14 @@ fun AppleSearchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
-                placeholder = { Text(stringResource(R.string.search_everything_placeholder), color = AppleText.copy(alpha = 0.5f)) },
-                leadingIcon = { Icon(painterResource(R.drawable.search), contentDescription = null, tint = AppleText.copy(alpha=0.5f)) },
+                placeholder = { Text(stringResource(R.string.search_everything_placeholder), color = appleTextColor.copy(alpha = 0.5f)) },
+                leadingIcon = { Icon(painterResource(R.drawable.search), contentDescription = null, tint = appleTextColor.copy(alpha=0.5f)) },
                 trailingIcon = {
                     IconButton(onClick = { navController.navigate(com.valora.icebeats.ui.screens.musicrecognition.MusicRecognitionRoute) }) {
                         Icon(
                             painter = painterResource(R.drawable.mic),
-                            contentDescription = "Music Recognition",
-                            tint = AppleText.copy(alpha = 0.5f)
+                            contentDescription = stringResource(R.string.music_recognition),
+                            tint = appleTextColor.copy(alpha = 0.5f)
                         )
                     }
                 },
@@ -686,22 +974,43 @@ fun AppleSearchScreen(
                 colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = AppleBg.copy(alpha = 0.3f),
-                    unfocusedContainerColor = AppleBg.copy(alpha = 0.3f),
-                    focusedTextColor = AppleText,
-                    unfocusedTextColor = AppleText
+                    focusedContainerColor = appleBgColor.copy(alpha = 0.3f),
+                    unfocusedContainerColor = appleBgColor.copy(alpha = 0.3f),
+                    focusedTextColor = appleTextColor,
+                    unfocusedTextColor = appleTextColor
                 ),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                     onSearch = {
                         val encoded = URLEncoder.encode(query, "UTF-8")
                         navController.navigate("search/$encoded")
                         keyboardController?.hide()
+                        val isPaused = (com.valora.icebeats.utils.dataStoreCache[com.valora.icebeats.constants.PauseSearchHistoryKey.name] as? Boolean)
+                            ?: pauseSearchHistory
+                        if (!isPaused && query.isNotBlank()) {
+                            database.query {
+                                insert(com.valora.icebeats.db.entities.SearchHistory(query = query.trim()))
+                            }
+                        }
                     }
                 ),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                     imeAction = androidx.compose.ui.text.input.ImeAction.Search
                 )
             )
+        }
+
+        if (query.isBlank()) {
+            item {
+                com.valora.icebeats.ui.component.SearchPillSwitcher(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    containerColor = appleBgColor.copy(alpha = 0.35f),
+                    selectedColor = AppleRed,
+                    selectedTextColor = Color.White,
+                    unselectedTextColor = appleTextColor.copy(alpha = 0.7f),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                )
+            }
         }
         
         if (query.isNotBlank() && (viewState.history.isNotEmpty() || viewState.suggestions.isNotEmpty())) {
@@ -733,6 +1042,13 @@ fun AppleSearchScreen(
                         val encoded = URLEncoder.encode(suggestion, "UTF-8")
                         navController.navigate("search/$encoded")
                         keyboardController?.hide()
+                        val isPaused = (com.valora.icebeats.utils.dataStoreCache[com.valora.icebeats.constants.PauseSearchHistoryKey.name] as? Boolean)
+                            ?: pauseSearchHistory
+                        if (!isPaused && suggestion.isNotBlank()) {
+                            database.query {
+                                insert(com.valora.icebeats.db.entities.SearchHistory(query = suggestion.trim()))
+                            }
+                        }
                     },
                     onFillTextField = {
                         viewModel.query.value = suggestion
@@ -741,54 +1057,75 @@ fun AppleSearchScreen(
                 )
             }
         } else {
-            item {
-                AppleSectionTitle("Browse Categories")
-                Spacer(modifier = Modifier.height(10.dp))
-                val genres = listOf(
-                    "Pop" to Color(0xFFFF4632),
-                    "Hip-Hop" to Color(0xFFBC5900),
-                    "Rock" to Color(0xFFE1118C),
-                    "Latin" to Color(0xFFE1118C),
-                    "Educational" to Color(0xFF477D95),
-                    "Documentary" to Color(0xFF509BF5),
-                    "Comedy" to Color(0xFFE13300),
-                    "Charts" to Color(0xFF8D67AB),
-                    "Dance" to Color(0xFFD84000),
-                    "Mood" to Color(0xFFE1118C),
-                    "Indie" to Color(0xFFE91429),
-                    "Workout" to Color(0xFF777777),
-                    "K-pop" to Color(0xFF148A08),
-                    "Chill" to Color(0xFFD84000),
-                    "Sleep" to Color(0xFF1E3264),
-                    "Party" to Color(0xFF537AA1),
-                    "Decades" to Color(0xFFBA5D07)
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(horizontal = 24.dp)) {
-                    genres.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            row.forEach { (chip, color) ->
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(100.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(color)
-                                        .clickable {
-                                            navController.navigate("search/${URLEncoder.encode(chip, "UTF-8")}")
+            when (selectedTab) {
+                com.valora.icebeats.ui.component.SearchTab.BROWSE_ALL -> {
+                    item {
+                        AppleSectionTitle("Browse Categories")
+                        Spacer(modifier = Modifier.height(10.dp))
+                        val genres = listOf(
+                            "Pop" to Color(0xFFFF4632),
+                            "Hip-Hop" to Color(0xFFBC5900),
+                            "Rock" to Color(0xFFE1118C),
+                            "Latin" to Color(0xFFE1118C),
+                            "Educational" to Color(0xFF477D95),
+                            "Documentary" to Color(0xFF509BF5),
+                            "Comedy" to Color(0xFFE13300),
+                            "Charts" to Color(0xFF8D67AB),
+                            "Dance" to Color(0xFFD84000),
+                            "Mood" to Color(0xFFE1118C),
+                            "Indie" to Color(0xFFE91429),
+                            "Workout" to Color(0xFF777777),
+                            "K-pop" to Color(0xFF148A08),
+                            "Chill" to Color(0xFFD84000),
+                            "Sleep" to Color(0xFF1E3264),
+                            "Party" to Color(0xFF537AA1),
+                            "Decades" to Color(0xFFBA5D07)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(horizontal = 24.dp)) {
+                            genres.chunked(2).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    row.forEach { (chip, color) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(100.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(color)
+                                                .clickable {
+                                                    navController.navigate("search/${URLEncoder.encode(chip, "UTF-8")}")
+                                                }
+                                                .padding(12.dp)
+                                        ) {
+                                            Text(
+                                                text = chip,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 18.sp
+                                            )
                                         }
-                                        .padding(12.dp)
-                                ) {
-                                    Text(
-                                        text = chip,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
+                                    }
+                                    if (row.size == 1) Spacer(Modifier.weight(1f))
                                 }
                             }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
+                }
+                com.valora.icebeats.ui.component.SearchTab.AIRBEATS_CHARTS -> {
+                    airbeatsChartsItems(
+                        navController = navController,
+                        viewModel = chartsViewModel
+                    )
+                }
+                com.valora.icebeats.ui.component.SearchTab.RECENT_SEARCHES -> {
+                    recentSearchesItems(
+                        onSearch = { queryText: String ->
+                            val encoded = URLEncoder.encode(queryText, "UTF-8")
+                            navController.navigate("search/$encoded")
+                            keyboardController?.hide()
+                        },
+                        onFillQuery = { queryText: String -> viewModel.query.value = queryText },
+                        itemTextColor = appleTextColor
+                    )
                 }
             }
         }
@@ -811,7 +1148,7 @@ fun AppleStatsScreen(
     val playerConnection = LocalPlayerConnection.current ?: return
 
     AppleScaffold(
-        title = "Stats",
+        title = stringResource(R.string.stats),
         navController = navController
     ) {
         val topUser = globalStats.board.users.firstOrNull()
@@ -895,12 +1232,16 @@ fun AppleStatsScreen(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 14.sp
                             )
-                            coil.compose.AsyncImage(
-                                model = user.profileUrl ?: R.drawable.person,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray.copy(alpha=0.3f)),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
+                            if (isCurrentUser) {
+                                AvatarDisplay(size = 32.dp)
+                            } else {
+                                coil.compose.AsyncImage(
+                                    model = user.profileUrl ?: R.drawable.person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray.copy(alpha=0.3f)),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            }
                             Spacer(Modifier.width(10.dp))
                             Text(
                                 text = user.name,

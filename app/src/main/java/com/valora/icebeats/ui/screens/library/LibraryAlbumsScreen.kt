@@ -27,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,9 +58,12 @@ import com.valora.icebeats.constants.GridThumbnailHeight
 import com.valora.icebeats.constants.LibraryViewType
 import com.valora.icebeats.constants.YtmSyncKey
 import com.valora.icebeats.ui.component.ChipsRow
+import com.valora.icebeats.ui.component.LibraryFilterRow
+import com.valora.icebeats.ui.component.CreatePlaylistDialog
 import com.valora.icebeats.ui.component.EmptyPlaceholder
 import com.valora.icebeats.ui.component.LibraryAlbumGridItem
 import com.valora.icebeats.ui.component.LibraryAlbumListItem
+import com.valora.icebeats.ui.component.LibraryFloatingActions
 import com.valora.icebeats.ui.component.LocalMenuState
 import com.valora.icebeats.ui.component.SortHeader
 import com.valora.icebeats.utils.rememberEnumPreference
@@ -92,44 +97,23 @@ fun LibraryAlbumsScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
     val filterContent = @Composable {
-        Row {
-            Spacer(Modifier.width(12.dp))
-            FilterChip(
-                label = { Text(stringResource(R.string.albums)) },
-                selected = true,
-                colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-                onClick = onDeselect,
-                shape = RoundedCornerShape(16.dp),
-                leadingIcon = {
-                    Icon(painter = painterResource(R.drawable.close), contentDescription = "")
-                },
-            )
-            ChipsRow(
-                chips =
-                    listOf(
+        LibraryFilterRow(
+            selectedLabel = stringResource(R.string.albums),
+            onDeselect = onDeselect,
+            chips = listOf(
                         AlbumFilter.LIKED to stringResource(R.string.filter_liked),
                         AlbumFilter.LIBRARY to stringResource(R.string.filter_library)
                     ),
-                currentValue = filter,
-                onValueUpdate = {
-                    filter = it
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
+            currentValue = filter,
+            onValueUpdate = { filter = it },
+        )
     }
 
-    LaunchedEffect(filter) {
-        if (ytmSync && filter == AlbumFilter.LIKED) {
-            withContext(Dispatchers.IO) {
-                viewModel.sync()
-            }
-        }
-    }
 
     val albums by viewModel.allAlbums.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
@@ -303,5 +287,20 @@ fun LibraryAlbumsScreen(
                     }
                 }
         }
+
+        LibraryFloatingActions(
+            lazyListState = lazyListState,
+            lazyGridState = lazyGridState,
+            onOpenGenerator = {
+                navController.navigate("generator")
+            },
+            onCreatePlaylist = {
+                showCreatePlaylistDialog = true
+            },
+        )
+    }
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(onDismiss = { showCreatePlaylistDialog = false })
     }
 }

@@ -14,6 +14,7 @@ import androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Timeline
+import androidx.media3.exoplayer.ExoPlayer
 import com.valora.icebeats.MusicWidget.Companion.ACTION_STATE_CHANGED
 import com.valora.icebeats.MusicWidget.Companion.ACTION_UPDATE_PROGRESS
 import com.valora.icebeats.db.MusicDatabase
@@ -21,8 +22,11 @@ import com.valora.icebeats.extensions.currentMetadata
 import com.valora.icebeats.extensions.getCurrentQueueIndex
 import com.valora.icebeats.extensions.getQueueWindows
 import com.valora.icebeats.extensions.metadata
+import com.valora.icebeats.extensions.toMediaItem
+import com.valora.icebeats.extensions.toggleRepeatMode
 import com.valora.icebeats.playback.MusicService.MusicBinder
 import com.valora.icebeats.playback.queues.Queue
+import com.valora.icebeats.utils.ListenTogetherPlaybackState
 import com.valora.icebeats.utils.ListenTogetherSync
 import com.valora.icebeats.utils.reportException
 import kotlinx.coroutines.CoroutineScope
@@ -38,17 +42,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerConnection(
-    private val context: Context,
+    context: Context,
     binder: MusicBinder,
     val database: MusicDatabase,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
 ) : Player.Listener {
+    private val context: Context = context.applicationContext
 
     companion object {
         private const val TAG = "PlayerConnection"
@@ -63,30 +69,38 @@ class PlayerConnection(
     val service = binder.service
     val player = service.player
 
-    // Estados b•sicos del reproductor
+    // Estados básicos del reproductor
     private val _playbackState = MutableStateFlow(player.playbackState)
     val playbackState: StateFlow<Int> = _playbackState.asStateFlow()
 
     private val _playWhenReady = MutableStateFlow(player.playWhenReady)
     val playWhenReady: StateFlow<Boolean> = _playWhenReady.asStateFlow()
 
-    // Estado combinado de reproducci•n
-    val isPlaying = combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
-        playWhenReady && (playbackState == STATE_READY || playbackState == Player.STATE_BUFFERING)
+    // Google Cast states exposed from MusicService
+    val isCasting = service.isCasting
+    val castDeviceName = service.castDeviceName
+
+    // Estado combinado de reproducción
+    val isPlaying = combine(playbackState, playWhenReady, service.isCasting, service.isCastPlaying) { playbackState, playWhenReady, isCasting, isCastPlaying ->
+        if (isCasting) {
+            isCastPlaying
+        } else {
+            playWhenReady && (playbackState == STATE_READY || playbackState == Player.STATE_BUFFERING)
+        }
     }.stateIn(
         scope,
         SharingStarted.Lazily,
         player.playWhenReady && player.playbackState == STATE_READY
     )
 
-    // Estados de conexi•n y salud del reproductor
+    // Estados de conexión y salud del reproductor
     private val _isConnected = MutableStateFlow(true)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
     private val _connectionState = MutableStateFlow(ConnectionState.CONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    // Metadatos y informaci•n de la canci•n actual
+    // Metadatos y información de la canción actual
     private val _mediaMetadata = MutableStateFlow(player.currentMetadata)
     val mediaMetadata: StateFlow<com.valora.icebeats.models.MediaMetadata?> =
         _mediaMetadata.asStateFlow()
@@ -103,7 +117,7 @@ class PlayerConnection(
         database.format(mediaMetadata?.id)
     }
 
-    // Estados de la cola de reproducci•n
+    // Estados de la cola de reproducción
     private val _queueTitle = MutableStateFlow<String?>(service.queueTitle)
     val queueTitle: StateFlow<String?> = _queueTitle.asStateFlow()
 
@@ -123,14 +137,14 @@ class PlayerConnection(
     private val _repeatMode = MutableStateFlow(REPEAT_MODE_OFF)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
 
-    // Estados de navegaci•n
+    // Estados de navegación
     private val _canSkipPrevious = MutableStateFlow(true)
     val canSkipPrevious: StateFlow<Boolean> = _canSkipPrevious.asStateFlow()
 
     private val _canSkipNext = MutableStateFlow(true)
     val canSkipNext: StateFlow<Boolean> = _canSkipNext.asStateFlow()
 
-    // Estados de progreso y posici•n
+    // Estados de progreso y posición
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
 
@@ -169,6 +183,17 @@ class PlayerConnection(
     private var lastMediaItemIndex: Int = player.currentMediaItemIndex
     private var lastPosition: Long = 0L
 
+    private val widgetPlayerListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            handlePlayerEvents(player, events)
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            Log.d(TAG, "Playback state changed to: $playbackState")
+            updateConnectionState(playbackState)
+        }
+    }
+
     init {
         Log.d(TAG, "Initializing PlayerConnection")
 
@@ -180,16 +205,7 @@ class PlayerConnection(
         instance = this
 
         // Listener adicional para actualizaciones del widget
-        player.addListener(object : Player.Listener {
-            override fun onEvents(player: Player, events: Player.Events) {
-                handlePlayerEvents(player, events)
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                Log.d(TAG, "Playback state changed to: $playbackState")
-                updateConnectionState(playbackState)
-            }
-        })
+        player.addListener(widgetPlayerListener)
 
         Log.d(TAG, "PlayerConnection initialized successfully")
     }
@@ -223,12 +239,16 @@ class PlayerConnection(
         }
     }
 
-
     fun refreshLikeStatus() {
         updateScope.launch(Dispatchers.IO) {
             updateLikeStatusForCurrentSong()
         }
+    }
 
+    fun setCurrentSongLikedFromService(songId: String, isLiked: Boolean) {
+        if (_mediaMetadata.value?.id != songId) return
+        _isLiked.value = isLiked
+        scheduleWidgetUpdate()
     }
 
     private fun handlePlayerEvents(player: Player, events: Player.Events) {
@@ -280,7 +300,7 @@ class PlayerConnection(
                     try {
                         updateProgressStates()
 
-                        // Programar siguiente actualizaci•n
+                        // Programar siguiente actualización
                         if (player.playWhenReady && player.playbackState == STATE_READY) {
                             progressUpdateHandler.postDelayed(this, PROGRESS_UPDATE_INTERVAL)
                         } else {
@@ -307,22 +327,22 @@ class PlayerConnection(
 
     private fun updateProgressStates() {
         try {
-            val currentPos = player.currentPosition
-            val totalDuration = player.duration
-            val buffered = player.bufferedPosition
+            val isCasting = service.isCasting.value
+            val currentPos = if (isCasting) service.castPositionMs.value else player.currentPosition
+            val totalDuration = if (isCasting && service.castDurationMs.value > 0) service.castDurationMs.value else player.duration
+            val buffered = if (isCasting) totalDuration else player.bufferedPosition
 
             // Solo actualizar si hay cambios significativos
             if (kotlin.math.abs(currentPos - lastPosition) > 500L ||
                 _duration.value != totalDuration
             ) {
-
                 _currentPosition.value = currentPos
                 _duration.value = totalDuration
                 _bufferedPosition.value = buffered
 
                 lastPosition = currentPos
 
-                // Enviar broadcast para actualizaci•n de progreso
+                // Enviar broadcast para actualización de progreso
                 sendProgressUpdateBroadcast()
             }
         } catch (e: Exception) {
@@ -331,10 +351,10 @@ class PlayerConnection(
     }
 
     private fun scheduleWidgetUpdate() {
-        // Cancelar actualizaci•n pendiente
+        // Cancelar actualización pendiente
         pendingWidgetUpdate?.let { widgetUpdateHandler.removeCallbacks(it) }
 
-        // Programar nueva actualizaci•n con debounce
+        // Programar nueva actualización con debounce
         pendingWidgetUpdate = Runnable {
             sendStateChangedBroadcast()
         }
@@ -342,8 +362,59 @@ class PlayerConnection(
         widgetUpdateHandler.postDelayed(pendingWidgetUpdate!!, WIDGET_UPDATE_DEBOUNCE)
     }
 
+    fun clearError() {
+        _error.value = null
+    }
 
     fun playQueue(queue: Queue) {
+        clearError()
+        if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+            val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true ||
+                ListenTogetherSync.session.value?.settings?.allowGuestsToAddTracks == true
+            if (!allowed) {
+                ListenTogetherSync.notifyDisallowedAction("Playing songs is disabled by the host")
+                return
+            }
+            val first = queue.preloadItem
+            if (first != null) {
+                val state = ListenTogetherPlaybackState(
+                    songId = first.id,
+                    title = first.title,
+                    artists = first.artists.map { it.name },
+                    thumbnailUrl = first.thumbnailUrl,
+                    positionMs = 0L,
+                    isPlaying = true,
+                    durationMs = (first.duration.toLong() * 1000L).coerceAtLeast(0L),
+                )
+                ListenTogetherSync.sendGuestAction("play_song", extraData = state.toJson())
+                service.playQueue(com.valora.icebeats.playback.queues.ListQueue(items = listOf(first.toMediaItem()), startIndex = 0))
+                return
+            } else {
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        val status = queue.getInitialStatus()
+                        val item = status.items.getOrNull(status.mediaItemIndex) ?: status.items.firstOrNull()
+                        val meta = item?.metadata
+                        if (meta != null) {
+                            val state = ListenTogetherPlaybackState(
+                                songId = meta.id,
+                                title = meta.title,
+                                artists = meta.artists.map { it.name },
+                                thumbnailUrl = meta.thumbnailUrl,
+                                positionMs = 0L,
+                                isPlaying = true,
+                                durationMs = (meta.duration.toLong() * 1000L).coerceAtLeast(0L),
+                            )
+                            withContext(Dispatchers.Main) {
+                                ListenTogetherSync.sendGuestAction("play_song", extraData = state.toJson())
+                                service.playQueue(com.valora.icebeats.playback.queues.ListQueue(items = listOf(meta.toMediaItem()), startIndex = 0))
+                            }
+                        }
+                    }
+                }
+                return
+            }
+        }
         service.playQueue(queue)
     }
 
@@ -351,6 +422,29 @@ class PlayerConnection(
 
     fun playNext(items: List<MediaItem>) {
         try {
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToAddTracks == true ||
+                    ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Adding songs is disabled by the host")
+                    return
+                }
+                val first = items.firstOrNull()?.metadata
+                if (first != null) {
+                    val state = ListenTogetherPlaybackState(
+                        songId = first.id,
+                        title = first.title,
+                        artists = first.artists.map { it.name },
+                        thumbnailUrl = first.thumbnailUrl,
+                        positionMs = 0L,
+                        isPlaying = true,
+                        durationMs = (first.duration.toLong() * 1000L).coerceAtLeast(0L),
+                    )
+                    ListenTogetherSync.sendGuestAction("play_next", extraData = state.toJson())
+                    service.playNext(items)
+                }
+                return
+            }
             Log.d(TAG, "Adding ${items.size} items to play next")
             service.playNext(items)
         } catch (e: Exception) {
@@ -363,10 +457,218 @@ class PlayerConnection(
 
     fun addToQueue(items: List<MediaItem>) {
         try {
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToAddTracks == true ||
+                    ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Adding songs is disabled by the host")
+                    return
+                }
+                val first = items.firstOrNull()?.metadata
+                if (first != null) {
+                    val state = ListenTogetherPlaybackState(
+                        songId = first.id,
+                        title = first.title,
+                        artists = first.artists.map { it.name },
+                        thumbnailUrl = first.thumbnailUrl,
+                        positionMs = 0L,
+                        isPlaying = true,
+                        durationMs = (first.duration.toLong() * 1000L).coerceAtLeast(0L),
+                    )
+                    ListenTogetherSync.sendGuestAction("add_track", extraData = state.toJson())
+                    service.addToQueue(items)
+                }
+                return
+            }
             Log.d(TAG, "Adding ${items.size} items to queue")
             service.addToQueue(items)
         } catch (e: Exception) {
             Log.e(TAG, "Error adding items to queue", e)
+            reportException(e)
+        }
+    }
+
+    fun removeSongFromQueue(songId: String) {
+        try {
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToAddTracks == true ||
+                    ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Removing songs is disabled by the host")
+                    return
+                }
+                val data = org.json.JSONObject().put("songId", songId)
+                ListenTogetherSync.sendGuestAction("remove_track", extraData = data)
+                service.removeSongFromQueue(songId)
+                return
+            }
+            service.removeSongFromQueue(songId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing song from queue: $songId", e)
+            reportException(e)
+        }
+    }
+
+    fun removeQueueItem(index: Int, songId: String? = null) {
+        try {
+            if (!songId.isNullOrBlank()) {
+                ListenTogetherSync.removeLocalSharedQueueItem(index, songId)
+            }
+
+            val targetInTimeline = if (!songId.isNullOrBlank()) {
+                val cur = player.currentMediaItemIndex
+                if (index in 0 until player.mediaItemCount && player.getMediaItemAt(index).mediaId == songId) {
+                    index
+                } else if (cur >= 0 && cur + 1 + index < player.mediaItemCount && player.getMediaItemAt(cur + 1 + index).mediaId == songId) {
+                    cur + 1 + index
+                } else {
+                    var match = -1
+                    for (i in (cur + 1).coerceAtLeast(0) until player.mediaItemCount) {
+                        if (player.getMediaItemAt(i).mediaId == songId) {
+                            match = i
+                            break
+                        }
+                    }
+                    if (match < 0) {
+                        for (i in 0 until player.mediaItemCount) {
+                            if (player.getMediaItemAt(i).mediaId == songId) {
+                                match = i
+                                break
+                            }
+                        }
+                    }
+                    match
+                }
+            } else {
+                if (index in 0 until player.mediaItemCount) index else -1
+            }
+
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToAddTracks == true ||
+                    ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Removing songs is disabled by the host")
+                    return
+                }
+                val data = org.json.JSONObject().apply {
+                    put("index", index)
+                    if (!songId.isNullOrBlank()) put("songId", songId)
+                }
+                ListenTogetherSync.sendGuestAction("remove_track", extraData = data)
+                if (targetInTimeline >= 0) {
+                    player.removeMediaItem(targetInTimeline)
+                }
+                return
+            }
+
+            if (targetInTimeline >= 0) {
+                player.removeMediaItem(targetInTimeline)
+                if (ListenTogetherSync.session.value != null && ListenTogetherSync.isHost.value) {
+                    ListenTogetherSync.publishNow()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing queue item at index: $index", e)
+            reportException(e)
+        }
+    }
+
+    fun playQueueIndex(index: Int, songId: String? = null) {
+        try {
+            val targetInTimeline = if (!songId.isNullOrBlank()) {
+                val cur = player.currentMediaItemIndex
+                if (index in 0 until player.mediaItemCount && player.getMediaItemAt(index).mediaId == songId) {
+                    index
+                } else if (cur >= 0 && cur + 1 + index < player.mediaItemCount && player.getMediaItemAt(cur + 1 + index).mediaId == songId) {
+                    cur + 1 + index
+                } else {
+                    var match = -1
+                    for (i in (cur + 1).coerceAtLeast(0) until player.mediaItemCount) {
+                        if (player.getMediaItemAt(i).mediaId == songId) {
+                            match = i
+                            break
+                        }
+                    }
+                    if (match < 0) {
+                        for (i in 0 until player.mediaItemCount) {
+                            if (player.getMediaItemAt(i).mediaId == songId) {
+                                match = i
+                                break
+                            }
+                        }
+                    }
+                    match
+                }
+            } else {
+                if (index in 0 until player.mediaItemCount) index else -1
+            }
+
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                    return
+                }
+                val data = org.json.JSONObject().apply {
+                    put("index", index)
+                    if (!songId.isNullOrBlank()) put("songId", songId)
+                }
+                ListenTogetherSync.sendGuestAction("play_index", extraData = data)
+                if (targetInTimeline >= 0) {
+                    player.seekToDefaultPosition(targetInTimeline)
+                    player.play()
+                }
+                return
+            }
+
+            if (targetInTimeline >= 0) {
+                player.seekToDefaultPosition(targetInTimeline)
+                player.play()
+                if (ListenTogetherSync.session.value != null && ListenTogetherSync.isHost.value) {
+                    ListenTogetherSync.publishNow()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing queue item at index: $index", e)
+            reportException(e)
+        }
+    }
+
+    fun moveQueueItem(from: Int, to: Int, songId: String? = null) {
+        try {
+            ListenTogetherSync.moveLocalSharedQueueItem(from, to)
+
+            val cur = player.currentMediaItemIndex
+            val realFrom = if (from in 0 until player.mediaItemCount) from else if (cur >= 0 && cur + 1 + from < player.mediaItemCount) cur + 1 + from else from
+            val realTo = if (to in 0 until player.mediaItemCount) to else if (cur >= 0 && cur + 1 + to < player.mediaItemCount) cur + 1 + to else to
+
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToAddTracks == true ||
+                    ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Reordering queue is disabled by the host")
+                    return
+                }
+                val data = org.json.JSONObject().apply {
+                    put("from", from)
+                    put("to", to)
+                    if (!songId.isNullOrBlank()) put("songId", songId)
+                }
+                ListenTogetherSync.sendGuestAction("move_track", extraData = data)
+                if (realFrom in 0 until player.mediaItemCount && realTo in 0 until player.mediaItemCount && realFrom != realTo) {
+                    player.moveMediaItem(realFrom, realTo)
+                }
+                return
+            }
+
+            if (realFrom in 0 until player.mediaItemCount && realTo in 0 until player.mediaItemCount && realFrom != realTo) {
+                player.moveMediaItem(realFrom, realTo)
+                if (ListenTogetherSync.session.value != null && ListenTogetherSync.isHost.value) {
+                    ListenTogetherSync.publishNow()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error moving queue item from $from to $to", e)
             reportException(e)
         }
     }
@@ -391,20 +693,51 @@ class PlayerConnection(
         }
     }
 
-
     fun isCurrentSongLiked(): Boolean {
         return _isLiked.value
     }
 
     fun seekToNext() {
         try {
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                    return
+                }
+                if (player.hasNextMediaItem()) {
+                    val nextItem = player.getMediaItemAt(player.currentMediaItemIndex + 1)
+                    val data = org.json.JSONObject().apply {
+                        put("songId", nextItem.mediaId)
+                    }
+                    ListenTogetherSync.sendGuestAction("skip_next", extraData = data)
+                    player.seekToNext()
+                    player.play()
+                } else {
+                    ListenTogetherSync.sendGuestAction("skip_next")
+                }
+                return
+            }
             Log.d(TAG, "Seeking to next track")
             if (player.hasNextMediaItem()) {
                 player.seekToNext()
-                if (player.playbackState == Player.STATE_IDLE) {
-                    player.prepare()
-                }
+                player.prepare()
                 player.playWhenReady = true
+            } else if (player.mediaItemCount > 0) {
+                if (player.repeatMode == Player.REPEAT_MODE_ALL || player.shuffleModeEnabled) {
+                    player.seekToDefaultPosition(0)
+                    player.prepare()
+                    player.playWhenReady = true
+                } else if (player.repeatMode == Player.REPEAT_MODE_ONE) {
+                    player.seekTo(0)
+                    player.prepare()
+                    player.playWhenReady = true
+                } else {
+                    val seedId = player.currentMediaItem?.mediaId
+                    if (!seedId.isNullOrBlank()) {
+                        service.extendInfiniteQueue(seedId, autoPlayIfEnded = true)
+                    }
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error seeking to next", e)
@@ -414,12 +747,43 @@ class PlayerConnection(
 
     fun seekToPrevious() {
         try {
-            Log.d(TAG, "Seeking to previous track")
-            if (player.hasPreviousMediaItem() || player.currentPosition > 3000) {
-                player.seekToPrevious()
-                if (player.playbackState == Player.STATE_IDLE) {
-                    player.prepare()
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                    return
                 }
+                if (player.hasPreviousMediaItem() && player.currentPosition < 3000) {
+                    val prevItem = player.getMediaItemAt(player.currentMediaItemIndex - 1)
+                    val data = org.json.JSONObject().apply {
+                        put("songId", prevItem.mediaId)
+                    }
+                    ListenTogetherSync.sendGuestAction("skip_previous", extraData = data)
+                    player.seekToPreviousMediaItem()
+                    player.play()
+                } else {
+                    ListenTogetherSync.sendGuestAction("skip_previous")
+                    player.seekTo(0)
+                    player.play()
+                }
+                return
+            }
+            Log.d(TAG, "Seeking to previous track")
+            if (player.hasPreviousMediaItem() && player.currentPosition < 3000) {
+                player.seekToPreviousMediaItem()
+                player.prepare()
+                player.playWhenReady = true
+            } else if (player.currentPosition > 3000) {
+                player.seekTo(0)
+                player.prepare()
+                player.playWhenReady = true
+            } else if (player.repeatMode == Player.REPEAT_MODE_ALL && player.mediaItemCount > 0) {
+                player.seekToDefaultPosition(player.mediaItemCount - 1)
+                player.prepare()
+                player.playWhenReady = true
+            } else {
+                player.seekTo(0)
+                player.prepare()
                 player.playWhenReady = true
             }
         } catch (e: Exception) {
@@ -430,6 +794,21 @@ class PlayerConnection(
 
     fun togglePlayPause() {
         try {
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                    return
+                }
+                val nextPlay = !player.playWhenReady
+                ListenTogetherSync.sendGuestAction("toggle_play_pause")
+                player.playWhenReady = nextPlay
+                return
+            }
+            if (service.isCasting.value) {
+                service.toggleCastPlayPause()
+                return
+            }
             val newPlayWhenReady = !player.playWhenReady
             Log.d(TAG, "Toggling play/pause to: $newPlayWhenReady")
             player.playWhenReady = newPlayWhenReady
@@ -444,8 +823,20 @@ class PlayerConnection(
             val newShuffleMode = !player.shuffleModeEnabled
             Log.d(TAG, "Toggling shuffle to: $newShuffleMode")
             player.shuffleModeEnabled = newShuffleMode
+            _shuffleModeEnabled.value = newShuffleMode
         } catch (e: Exception) {
             Log.e(TAG, "Error toggling shuffle", e)
+            reportException(e)
+        }
+    }
+
+    fun toggleRepeatMode() {
+        try {
+            val newRepeatMode = player.toggleRepeatMode()
+            _repeatMode.value = newRepeatMode
+            Log.d(TAG, "Toggling repeat mode to: $newRepeatMode")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error toggling repeat mode", e)
             reportException(e)
         }
     }
@@ -457,8 +848,9 @@ class PlayerConnection(
             } else {
                 Player.REPEAT_MODE_ONE
             }
-            Log.d(TAG, "Toggling repeat mode to: $newRepeatMode")
+            Log.d(TAG, "Toggling replay mode to: $newRepeatMode")
             player.repeatMode = newRepeatMode
+            _repeatMode.value = newRepeatMode
         } catch (e: Exception) {
             Log.e(TAG, "Error toggling repeat mode", e)
             reportException(e)
@@ -467,8 +859,32 @@ class PlayerConnection(
 
     fun seekTo(positionMs: Long) {
         try {
+            val safeDuration = player.duration.coerceAtLeast(0L)
+            val targetPosition = if (safeDuration > 0L) positionMs.coerceIn(0L, safeDuration) else positionMs.coerceAtLeast(0L)
+
+            if (ListenTogetherSync.session.value != null && !ListenTogetherSync.isHost.value) {
+                val allowed = ListenTogetherSync.session.value?.settings?.allowGuestsToControlPlayback == true
+                if (!allowed) {
+                    ListenTogetherSync.notifyDisallowedAction("Playback controls are disabled by the host")
+                    return
+                }
+                player.seekTo(targetPosition)
+                _currentPosition.value = targetPosition
+                ListenTogetherSync.sendGuestAction("seek", targetPosition)
+                return
+            }
+
             Log.d(TAG, "Seeking to position: ${positionMs}ms")
-            player.seekTo(positionMs.coerceIn(0, player.duration))
+            if (service.isCasting.value) {
+                service.seekCastTo(positionMs)
+                _currentPosition.value = positionMs
+                return
+            }
+            player.seekTo(targetPosition)
+            _currentPosition.value = targetPosition
+            if (ListenTogetherSync.session.value != null && ListenTogetherSync.isHost.value) {
+                ListenTogetherSync.publishNow()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error seeking to position", e)
             reportException(e)
@@ -535,8 +951,14 @@ class PlayerConnection(
         _mediaMetadata.value = mediaItem?.metadata
         _currentMediaItemIndex.value = player.currentMediaItemIndex
         _currentWindowIndex.value = player.getCurrentQueueIndex()
+        _currentPosition.value = 0L
+        val dur = mediaItem?.metadata?.duration?.times(1000L) ?: 0L
+        if (dur > 0) {
+            _duration.value = dur
+        }
+        lastPosition = 0L
 
-        // Actualizar estado de like cuando cambia la canci•n
+        // Actualizar estado de like cuando cambia la canción
         CoroutineScope(Dispatchers.IO).launch {
             updateLikeStatusForCurrentSong()
         }
@@ -546,14 +968,40 @@ class PlayerConnection(
             updateCanSkipPreviousAndNext()
             scheduleWidgetUpdate()
         }
+
+        if (ListenTogetherSync.session.value != null) {
+            if (ListenTogetherSync.isHost.value) {
+                ListenTogetherSync.publishNow()
+            } else {
+                ListenTogetherSync.onMediaItemTransitioned(mediaItem?.mediaId)
+            }
+        }
+    }
+
+    override fun onPositionDiscontinuity(
+        oldPosition: Player.PositionInfo,
+        newPosition: Player.PositionInfo,
+        reason: Int,
+    ) {
+        if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+            val session = ListenTogetherSync.session.value
+            if (session != null) {
+                if (ListenTogetherSync.isHost.value) {
+                    ListenTogetherSync.publishNow()
+                } else {
+                    val allowed = session.settings.allowGuestsToControlPlayback
+                    if (allowed) {
+                        ListenTogetherSync.sendGuestAction("seek", newPosition.positionMs)
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun updateLikeStatusForCurrentSong() {
         try {
             val currentSongId = withContext(Dispatchers.Main) { player.currentMediaItem?.mediaId }
             if (currentSongId != null) {
-                // Consultar la base de datos para obtener el estado actual del like
-                // Similar a como lo hace Player.kt con currentSong?.song?.liked
                 val songWithInfo = database.song(currentSongId).first()
                 _isLiked.value = songWithInfo?.song?.liked ?: false
                 Timber.tag(TAG).d("Like status updated for song $currentSongId: ${_isLiked.value}")
@@ -566,6 +1014,7 @@ class PlayerConnection(
             _isLiked.value = false
         }
     }
+
     override fun onTimelineChanged(timeline: Timeline, reason: Int) {
         Log.d(TAG, "Timeline changed (reason: $reason)")
         _queueWindows.value = player.getQueueWindows()
@@ -676,7 +1125,7 @@ class PlayerConnection(
         Log.d(TAG, "PlayerConnection disposed")
     }
 
-    // Estados de conexi•n
+    // Estados de conexión
     enum class ConnectionState {
         IDLE,
         CONNECTING,

@@ -3,7 +3,6 @@
     <string name="home">Rumah</string>
     <string name="songs">Lagu</string>
     <string name="artists">Seniman</string>
-    <string name="artist">Artis</string>
     <string name="albums">Album</string>
     <string name="playlists">Daftar putar</string>
 
@@ -379,7 +378,7 @@
     <string name="restore_failed">Gagal mengembalikan cadangan</string>
 
     <string name="discord_integration">Integrasi Perselisihan</string>
-    <string name="discord_information">icebeats menggunakan pustaka Kizzyrpc untuk mengatur status akun perselisihan Anda. Ini melibatkan penggunaan koneksi gateway Discord, yang dapat dianggap sebagai pelanggaran tos perselisihan. Namun, tidak ada kasus akun pengguna yang diketahui yang ditangguhkan karena alasan ini. Gunakan dengan risiko Anda sendiri.  OpenTunne hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara lokal.</string>
+    <string name="discord_information">IceBeats menggunakan pustaka Kizzyrpc untuk mengatur status akun perselisihan Anda. Ini melibatkan penggunaan koneksi gateway Discord, yang dapat dianggap sebagai pelanggaran tos perselisihan. Namun, tidak ada kasus akun pengguna yang diketahui yang ditangguhkan karena alasan ini. Gunakan dengan risiko Anda sendiri.  OpenTunne hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara lokal.</string>
     <string name="dismiss">Membubarkan</string>
     <string name="options">Opsi</string>
     <string name="preview">Pratinjau</string>

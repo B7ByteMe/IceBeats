@@ -78,7 +78,7 @@ import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import com.valora.icebeats.LocalPlayerConnection
 import com.valora.icebeats.R
 import com.valora.icebeats.innertube.models.AlbumItem
-import com.valora.icebeats.viewmodels.AlbumReleaseType
+import com.valora.icebeats.innertube.models.AlbumReleaseType
 import com.valora.icebeats.models.MediaMetadata
 import com.valora.icebeats.ui.component.IconButton
 import com.valora.icebeats.ui.component.LocalMenuState
@@ -576,7 +576,7 @@ private fun FeaturedCarousel(
                 }
             }
             Text(
-                text = "Featured Releases",
+                text = stringResource(R.string.ui_text_featured_releases),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -741,7 +741,7 @@ private fun FeaturedCarouselCard(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = "?",
+                    text = "★",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -1095,7 +1095,7 @@ private fun ErrorState(
                 modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Retry")
+            Text(stringResource(R.string.retry))
         }
     }
 }
@@ -1125,7 +1125,7 @@ private fun EmptyState(
             }
         }
         Text(
-            text = "No releases found",
+            text = stringResource(R.string.ui_text_no_releases_found),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
@@ -1145,7 +1145,7 @@ private fun EmptyState(
                 modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Refresh")
+            Text(stringResource(R.string.ui_text_refresh))
         }
     }
 }

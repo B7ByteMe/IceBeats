@@ -54,7 +54,10 @@ import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.extensions.togglePlayPause
 import com.valora.icebeats.playback.queues.ListQueue
 import com.valora.icebeats.ui.component.ChipsRow
+import com.valora.icebeats.ui.component.LibraryFilterRow
+import com.valora.icebeats.ui.component.CreatePlaylistDialog
 import com.valora.icebeats.ui.component.HideOnScrollFAB
+import com.valora.icebeats.ui.component.LibraryFloatingActions
 import com.valora.icebeats.ui.component.LocalMenuState
 import com.valora.icebeats.ui.component.SongListItem
 import com.valora.icebeats.ui.component.SortHeader
@@ -89,18 +92,10 @@ fun LibrarySongsScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
     val songs by viewModel.allSongs.collectAsState()
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
     var filter by rememberEnumPreference(SongFilterKey, SongFilter.LIKED)
 
-    LaunchedEffect(Unit) {
-        if (ytmSync) {
-            when (filter) {
-                SongFilter.LIKED -> viewModel.syncLikedSongs()
-                SongFilter.LIBRARY -> viewModel.syncLibrarySongs()
-                else -> return@LaunchedEffect
-            }
-        }
-    }
 
     val wrappedSongs = songs.map { item -> ItemWrapper(item) }.toMutableList()
     var selection by remember {
@@ -137,35 +132,17 @@ fun LibrarySongsScreen(
                 key = "filter",
                 contentType = CONTENT_TYPE_HEADER,
             ) {
-                Row {
-                    Spacer(Modifier.width(12.dp))
-                    FilterChip(
-                        label = { Text(stringResource(R.string.songs)) },
-                        selected = true,
-                        colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-                        onClick = onDeselect,
-                        shape = RoundedCornerShape(16.dp),
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = ""
-                            )
-                        },
-                    )
-                    ChipsRow(
-                        chips =
-                            listOf(
+                LibraryFilterRow(
+                    selectedLabel = stringResource(R.string.songs),
+                    onDeselect = onDeselect,
+                    chips = listOf(
                                 SongFilter.LIKED to stringResource(R.string.filter_liked),
                                 SongFilter.LIBRARY to stringResource(R.string.filter_library),
                                 SongFilter.DOWNLOADED to stringResource(R.string.filter_downloaded),
                             ),
-                        currentValue = filter,
-                        onValueUpdate = {
-                            filter = it
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                    currentValue = filter,
+                    onValueUpdate = { filter = it },
+                )
             }
 
             item(
@@ -325,18 +302,18 @@ fun LibrarySongsScreen(
         }
         }
 
-        HideOnScrollFAB(
-            visible = songs.isNotEmpty() == true,
+        LibraryFloatingActions(
             lazyListState = lazyListState,
-            icon = R.drawable.shuffle,
-            onClick = {
-                playerConnection.playQueue(
-                    ListQueue(
-                        title = context.getString(R.string.queue_all_songs),
-                        items = songs.shuffled().map { it.toMediaItem() },
-                    ),
-                )
+            onOpenGenerator = {
+                navController.navigate("generator")
+            },
+            onCreatePlaylist = {
+                showCreatePlaylistDialog = true
             },
         )
+    }
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(onDismiss = { showCreatePlaylistDialog = false })
     }
 }

@@ -4,14 +4,24 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.valora.icebeats.LocalRingtoneViewModel
+import com.valora.icebeats.ui.player.DeviceSelectionBottomSheet
+import com.valora.icebeats.ui.player.getAvailableDevices
+import com.valora.icebeats.ui.player.getActiveDevice
+import com.valora.icebeats.ui.player.isBluetoothOutput
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,6 +88,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import kotlin.math.roundToInt
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -84,6 +98,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.mediarouter.app.MediaRouteButton
+import com.valora.icebeats.ui.component.createCastRouteButton
+import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
+import com.valora.icebeats.ui.component.LocalBackdrop
+import com.valora.icebeats.ui.component.drawBackdropCustomShape
+import com.valora.icebeats.constants.LiquidGlassKey
+import com.valora.icebeats.constants.EqualizerPresetKey
+import com.valora.icebeats.playback.DeviceCodecs
+import com.valora.icebeats.utils.rememberPreference
+import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
@@ -106,6 +135,7 @@ import com.valora.icebeats.models.MediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.playback.queues.YouTubeQueue
 import com.valora.icebeats.ui.component.BottomSheetState
+import com.valora.icebeats.ui.component.DownloadQualityDialog
 import com.valora.icebeats.ui.component.ListDialog
 import com.valora.icebeats.ui.component.ListItem
 import com.valora.icebeats.utils.ListenTogetherClient
@@ -118,11 +148,18 @@ import com.valora.icebeats.utils.makeTimeString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
+
+enum class PlayerMenuSection {
+    MAIN,
+    AUDIO_EFFECTS,
+    TOOLS
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,6 +177,7 @@ fun PlayerMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
     val librarySong by database.song(mediaMetadata.id).collectAsState(initial = null)
+    val isExcluded by database.isRecommendationExcluded(mediaMetadata.id).collectAsState(initial = false)
     val coroutineScope = rememberCoroutineScope()
 
 
@@ -266,6 +304,31 @@ fun PlayerMenu(
     var showPitchTempoDialog by rememberSaveable {
         mutableStateOf(false)
     }
+    var showSleepTimerDialog by rememberSaveable { mutableStateOf(false) }
+    var showSnippetStudioDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showSnippetStudioDialog) {
+        com.valora.icebeats.ui.component.SongSnippetStudioDialog(
+            mediaMetadata = mediaMetadata,
+            onDismiss = { showSnippetStudioDialog = false }
+        )
+    }
+
+    if (showSleepTimerDialog) {
+        com.valora.icebeats.ui.player.SleepTimerDialog(
+            onDismiss = { showSleepTimerDialog = false },
+            onConfirm = { minutes ->
+                playerConnection.service.sleepTimer.start(minutes)
+                showSleepTimerDialog = false
+                onDismiss()
+            },
+            onEndOfSong = {
+                playerConnection.service.sleepTimer.start(-1)
+                showSleepTimerDialog = false
+                onDismiss()
+            },
+        )
+    }
 
     if (showPitchTempoDialog) {
         TempoPitchDialog(
@@ -276,383 +339,968 @@ fun PlayerMenu(
     var isMuted by remember { mutableStateOf(false) }
     var previousVolume by remember { mutableFloatStateOf(playerVolume.value) }
     var showEqualizerSheet by rememberSaveable { mutableStateOf(false) }
+    var showAudioFxSheet by rememberSaveable { mutableStateOf(false) }
+    var showDolbyAtmosSheet by rememberSaveable { mutableStateOf(false) }
+    var showEightDAudioSheet by rememberSaveable { mutableStateOf(false) }
     var showListenTogetherSheet by rememberSaveable { mutableStateOf(false) }
+    var showOutputDeviceSheet by rememberSaveable { mutableStateOf(false) }
+
+    val availableAudioDevices by playerConnection.service.availableAudioDevices.collectAsState()
+    val preferredAudioDevice by playerConnection.service.preferredAudioDevice.collectAsState()
+
+    val fallbackDevices = remember { getAvailableDevices(context) }
+    val displayDevices = if (availableAudioDevices.isNotEmpty()) availableAudioDevices else fallbackDevices
+    val activeDevice = preferredAudioDevice ?: remember(displayDevices) { getActiveDevice(displayDevices) }
+    val isBluetooth = activeDevice?.let { with(it) { isBluetoothOutput() } } ?: false
+    val isCasting by playerConnection.service.isCasting.collectAsState()
+    val castDeviceName by playerConnection.service.castDeviceName.collectAsState()
+
+    val hasBluetoothPermission = remember(context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+    var bluetoothPermissionGranted by remember { mutableStateOf(hasBluetoothPermission) }
+
+    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        bluetoothPermissionGranted = isGranted
+        playerConnection.service.refreshAudioOutputDevices()
+        showOutputDeviceSheet = true
+    }
+
+    val ringtoneViewModel = LocalRingtoneViewModel.current
+
+    if (showOutputDeviceSheet) {
+        DeviceSelectionBottomSheet(
+            onDismiss = { showOutputDeviceSheet = false },
+            availableDevices = displayDevices,
+            activeDevice = activeDevice,
+            preferredDevice = preferredAudioDevice,
+            onSelectDevice = { device ->
+                playerConnection.service.setPreferredOutputDevice(device)
+            },
+            hasBluetoothPermission = bluetoothPermissionGranted,
+            onRequestBluetoothPermission = {
+                bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+        )
+    }
+
+    val savingToastMsg = stringResource(R.string.saving_song)
+    val permReqMsg = stringResource(R.string.storage_permission_required)
+
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
+            com.valora.icebeats.utils.SaveToStorageUtil.saveToMusicFolderAsync(
+                context = context,
+                mediaMetadata = mediaMetadata,
+            )
+            onDismiss()
+        } else {
+            Toast.makeText(context, permReqMsg, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val mediaRouteButtonRef = remember { mutableStateOf<MediaRouteButton?>(null) }
+    var currentMenuSection by rememberSaveable { mutableStateOf(PlayerMenuSection.MAIN) }
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+
+    BackHandler(enabled = currentMenuSection != PlayerMenuSection.MAIN) {
+        currentMenuSection = PlayerMenuSection.MAIN
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
         contentPadding = PaddingValues(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp),
     ) {
-        item {
-                PlayerMenuHeader(mediaMetadata = mediaMetadata)
+        when (currentMenuSection) {
+            PlayerMenuSection.MAIN -> {
+                item {
+                    PlayerMenuHeader(mediaMetadata = mediaMetadata)
 
-                Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.volume),
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = if (isMuted) "0%" else "${(playerVolume.value * 100).toInt()}%",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    id = if (isMuted) R.drawable.volume_off else R.drawable.volume_up
-                                ),
-                                contentDescription = stringResource(
-                                    if (isMuted) R.string.unmute else R.string.mute
-                                ),
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        isMuted = !isMuted
-                                        if (isMuted) {
-                                            previousVolume = playerVolume.value
-                                            playerConnection.setVolume(0f)
-                                            playerConnection.service.playerVolume.value = 0f
-                                        } else {
-                                            playerConnection.setVolume(previousVolume)
-                                            playerConnection.service.playerVolume.value = previousVolume
-                                        }
-                                    }
-                                    .padding(8.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-
-                            Slider(
-                                value = if (isMuted) 0f else playerVolume.value,
-                                onValueChange = { newVolume ->
-                                    if (!isMuted) {
-                                        playerConnection.setVolume(newVolume)
-                                        playerConnection.service.playerVolume.value = newVolume
-                                        previousVolume = newVolume
-                                    }
-                                },
-                                valueRange = 0f..1f,
-                                modifier = Modifier.weight(1f),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MaterialTheme.colorScheme.primary,
-                                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.volume),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.weight(1f)
                                 )
-                            )
+                                Text(
+                                    text = if (isMuted) "0%" else "${(playerVolume.value * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (isMuted) R.drawable.volume_off else R.drawable.volume_up
+                                    ),
+                                    contentDescription = stringResource(
+                                        if (isMuted) R.string.unmute else R.string.mute
+                                    ),
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            isMuted = !isMuted
+                                            if (isMuted) {
+                                                previousVolume = playerVolume.value
+                                                playerConnection.setVolume(0f)
+                                                playerConnection.service.playerVolume.value = 0f
+                                            } else {
+                                                playerConnection.setVolume(previousVolume)
+                                                playerConnection.service.playerVolume.value = previousVolume
+                                            }
+                                        }
+                                        .padding(8.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+
+                                Slider(
+                                    value = if (isMuted) 0f else playerVolume.value,
+                                    onValueChange = { newVolume ->
+                                        if (!isMuted) {
+                                            playerConnection.setVolume(newVolume)
+                                            playerConnection.service.playerVolume.value = newVolume
+                                            previousVolume = newVolume
+                                        }
+                                    },
+                                    valueRange = 0f..1f,
+                                    modifier = Modifier.weight(1f),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = MaterialTheme.colorScheme.primary,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
+                            }
                         }
                     }
                 }
 
-        }
-        item {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                item {
+                    var showQualityDialog by remember { mutableStateOf(false) }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        PlayerMenuActionTile(
+                            icon = R.drawable.radio,
+                            title = R.string.start_radio,
+                            modifier = Modifier.weight(1f).height(76.dp),
                         ) {
-                            PlayerMenuActionTile(
-                                icon = R.drawable.radio,
-                                title = R.string.start_radio,
-                                modifier = Modifier.weight(1f).height(76.dp),
-                            ) {
-                                playerConnection.playQueue(
-                                    YouTubeQueue(
-                                        WatchEndpoint(videoId = mediaMetadata.id),
-                                        mediaMetadata
-                                    )
+                            playerConnection.playQueue(
+                                YouTubeQueue(
+                                    WatchEndpoint(videoId = mediaMetadata.id),
+                                    mediaMetadata
                                 )
-                                onDismiss()
-                            }
-                            
-                            PlayerMenuActionTile(
-                                icon = R.drawable.playlist_add,
-                                title = R.string.add_to_playlist,
-                                modifier = Modifier.weight(1f).height(76.dp),
-                            ) {
-                                showChoosePlaylistDialog = true
-                            }
-                            
-                            PlayerMenuActionTile(
-                                icon = if (download?.state == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download,
-                                title = if (download?.state == Download.STATE_COMPLETED) R.string.remove_download else R.string.download,
-                                modifier = Modifier.weight(1f).height(76.dp),
-                            ) {
-                                if (download?.state == Download.STATE_COMPLETED) {
-                                    DownloadService.sendRemoveDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        mediaMetadata.id,
-                                        false,
-                                    )
-                                } else {
-                                    database.transaction {
-                                        insert(mediaMetadata)
-                                    }
-                                    val downloadRequest =
-                                        DownloadRequest
-                                            .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
-                                            .setCustomCacheKey(mediaMetadata.id)
-                                            .setData(mediaMetadata.title.toByteArray())
-                                            .build()
-                                    DownloadService.sendAddDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        downloadRequest,
-                                        false,
-                                    )
-                                }
-                                onDismiss()
-                            }
+                            )
+                            onDismiss()
                         }
-                    }
 
-                    item {
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
+                        PlayerMenuActionTile(
+                            icon = R.drawable.playlist_add,
+                            title = R.string.add_to_playlist,
+                            modifier = Modifier.weight(1f).height(76.dp),
+                        ) {
+                            showChoosePlaylistDialog = true
+                        }
 
-                    item {
-                        val savingToastMsg = stringResource(R.string.saving_song)
-                        val savedToastMsg = stringResource(R.string.song_saved_successfully)
-                        val failedToastMsg = stringResource(R.string.song_save_failed)
-                        val permReqMsg = stringResource(R.string.storage_permission_required)
-
-                        val permissionLauncher = rememberLauncherForActivityResult(
-                            contract = ActivityResultContracts.RequestPermission()
-                        ) { isGranted ->
-                            if (isGranted) {
-                                Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
-                                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO).launch {
-                                    com.valora.icebeats.utils.SaveToStorageUtil
-                                        .saveToMusicFolder(context, mediaMetadata)
-                                        .onSuccess {
-                                            launch(Dispatchers.Main) {
-                                                Toast.makeText(context, savedToastMsg, Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                        .onFailure { e ->
-                                            launch(Dispatchers.Main) {
-                                                Toast.makeText(context, "$failedToastMsg: ${e.message}", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                }
+                        PlayerMenuActionTile(
+                            icon = if (download?.state == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download,
+                            title = if (download?.state == Download.STATE_COMPLETED) R.string.remove_download else R.string.download,
+                            modifier = Modifier.weight(1f).height(76.dp),
+                        ) {
+                            if (download?.state == Download.STATE_COMPLETED) {
+                                DownloadService.sendRemoveDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    mediaMetadata.id,
+                                    false,
+                                )
                                 onDismiss()
                             } else {
-                                Toast.makeText(context, permReqMsg, Toast.LENGTH_LONG).show()
+                                showQualityDialog = true
                             }
                         }
-
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.save_to_local)) },
-                            leadingContent = { Icon(painterResource(R.drawable.save_to_storage), contentDescription = null) },
-                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
-                                val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    true
-                                } else {
-                                    ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                }
-
-                                if (hasPermission) {
-                                    Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
-                                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO).launch {
-                                        com.valora.icebeats.utils.SaveToStorageUtil
-                                            .saveToMusicFolder(context, mediaMetadata)
-                                            .onSuccess {
-                                                launch(Dispatchers.Main) {
-                                                    Toast.makeText(context, savedToastMsg, Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                            .onFailure { e ->
-                                                launch(Dispatchers.Main) {
-                                                    Toast.makeText(context, "$failedToastMsg: ${e.message}", Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                    }
-                                    onDismiss()
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                }
-                            }
-                        )
                     }
 
+                    if (showQualityDialog) {
+                        DownloadQualityDialog(
+                            onDismiss = { showQualityDialog = false },
+                            onQualitySelected = {
+                                showQualityDialog = false
+                                database.transaction {
+                                    insert(mediaMetadata)
+                                }
+                                val downloadRequest =
+                                    DownloadRequest
+                                        .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
+                                        .setCustomCacheKey(mediaMetadata.id)
+                                        .setData(mediaMetadata.title.toByteArray())
+                                        .build()
+                                DownloadService.sendAddDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    downloadRequest,
+                                    false,
+                                )
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+
+                // SECTION 1: SONG & LIBRARY
+                item {
+                    Text(
+                        text = "SONG & LIBRARY",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 12.dp, top = 16.dp, bottom = 4.dp)
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = {
+                            Text(
+                                stringResource(
+                                    if (librarySong?.song?.inLibrary != null) R.string.remove_from_library else R.string.add_to_library
+                                )
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painterResource(
+                                    if (librarySong?.song?.inLibrary != null) R.drawable.library_add_check else R.drawable.library_add
+                                ),
+                                contentDescription = null
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            if (librarySong?.song?.inLibrary != null) {
+                                database.query {
+                                    inLibrary(mediaMetadata.id, null)
+                                }
+                            } else {
+                                database.transaction {
+                                    insert(mediaMetadata)
+                                    inLibrary(mediaMetadata.id, LocalDateTime.now())
+                                }
+                            }
+                            onDismiss()
+                        }
+                    )
+                }
+
+                if (artists.isNotEmpty()) {
                     item {
                         androidx.compose.material3.ListItem(
-                            headlineContent = {
-                                Text(
-                                    stringResource(
-                                        if (librarySong?.song?.inLibrary != null) R.string.remove_from_library else R.string.add_to_library
-                                    )
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    painterResource(
-                                        if (librarySong?.song?.inLibrary != null) R.drawable.library_add_check else R.drawable.library_add
-                                    ),
-                                    contentDescription = null
-                                )
-                            },
+                            headlineContent = { Text(stringResource(R.string.view_artist)) },
+                            leadingContent = { Icon(painterResource(R.drawable.artist), contentDescription = null) },
                             colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
                             modifier = Modifier.clickable {
-                                if (librarySong?.song?.inLibrary != null) {
-                                    database.query {
-                                        inLibrary(mediaMetadata.id, null)
-                                    }
-                                } else {
-                                    database.transaction {
-                                        insert(mediaMetadata)
-                                        inLibrary(mediaMetadata.id, LocalDateTime.now())
-                                    }
-                                }
-                                onDismiss()
-                            }
-                        )
-                    }
-
-                    if (artists.isNotEmpty()) {
-                        item {
-                            androidx.compose.material3.ListItem(
-                                headlineContent = { Text(stringResource(R.string.view_artist)) },
-                                leadingContent = { Icon(painterResource(R.drawable.artist), contentDescription = null) },
-                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                                modifier = Modifier.clickable {
-                                    if (mediaMetadata.artists.size == 1) {
-                                        navController.navigate("artist/${mediaMetadata.artists[0].id}")
-                                        playerBottomSheetState.collapseSoft()
-                                        onDismiss()
-                                    } else {
-                                        showSelectArtistDialog = true
-                                    }
-                                }
-                            )
-                        }
-                    }
-
-                    if (mediaMetadata.album != null) {
-                        item {
-                            androidx.compose.material3.ListItem(
-                                headlineContent = { Text(stringResource(R.string.view_album)) },
-                                leadingContent = { Icon(painterResource(R.drawable.album), contentDescription = null) },
-                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                                modifier = Modifier.clickable {
-                                    navController.navigate("album/${mediaMetadata.album.id}")
+                                if (mediaMetadata.artists.size == 1) {
+                                    navController.navigate("artist/${mediaMetadata.artists[0].id}")
                                     playerBottomSheetState.collapseSoft()
                                     onDismiss()
+                                } else {
+                                    showSelectArtistDialog = true
                                 }
-                            )
-                        }
-                    }
-
-                    item {
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.share)) },
-                            leadingContent = { Icon(painterResource(R.drawable.share), contentDescription = null) },
-                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
-                                val intent =
-                                    Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "https://icebeats.pages.dev/song?id=${mediaMetadata.id}"
-                                        )
-                                    }
-                                context.startActivity(Intent.createChooser(intent, null))
-                                onDismiss()
                             }
                         )
                     }
+                }
 
+                if (mediaMetadata.album != null) {
                     item {
                         androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.details)) },
-                            leadingContent = { Icon(painterResource(R.drawable.info), contentDescription = null) },
+                            headlineContent = { Text(stringResource(R.string.view_album)) },
+                            leadingContent = { Icon(painterResource(R.drawable.album), contentDescription = null) },
                             colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
                             modifier = Modifier.clickable {
-                                onShowDetailsDialog()
-                                onDismiss()
-                            }
-                        )
-                    }
-
-                    item {
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.always_on_display)) },
-                            leadingContent = { Icon(painterResource(R.drawable.dark_mode), contentDescription = null) },
-                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
-                                navController.navigate("always_on_display")
+                                navController.navigate("album/${mediaMetadata.album.id}")
                                 playerBottomSheetState.collapseSoft()
                                 onDismiss()
                             }
                         )
                     }
+                }
 
-                    item {
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.equalizer)) },
-                            leadingContent = { Icon(painterResource(R.drawable.equalizer), contentDescription = null) },
-                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
-                                showEqualizerSheet = true
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.share)) },
+                        leadingContent = { Icon(painterResource(R.drawable.share), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            val intent =
+                                Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        com.valora.icebeats.utils.RemoteConfigManager.getSongShareUrl(mediaMetadata.id)
+                                    )
+                                }
+                            context.startActivity(Intent.createChooser(intent, null))
+                            onDismiss()
+                        }
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = {
+                            Text(
+                                stringResource(
+                                    if (isExcluded) R.string.allow_recommendations
+                                    else R.string.dont_recommend_again
+                                )
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painterResource(R.drawable.block),
+                                contentDescription = null
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            val wasExcluded = isExcluded
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (wasExcluded) {
+                                    database.removeRecommendationExclusion(mediaMetadata.id)
+                                } else {
+                                    database.insert(
+                                        com.valora.icebeats.db.entities.RecommendationExclusionEntity(
+                                            songId = mediaMetadata.id,
+                                            title = mediaMetadata.title,
+                                            artist = mediaMetadata.artists.joinToString { it.name },
+                                            thumbnailUrl = mediaMetadata.thumbnailUrl
+                                        )
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        playerConnection.removeSongFromQueue(mediaMetadata.id)
+                                    }
+                                }
                             }
-                        )
+                            if (!wasExcluded) {
+                                onDismiss()
+                            }
+                            Toast.makeText(
+                                context,
+                                if (wasExcluded) R.string.recommendation_restored else R.string.dont_recommend_applied,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.listen_together)) },
+                        leadingContent = { Icon(painterResource(R.drawable.group), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            navController.navigate("listen_together")
+                            playerBottomSheetState.collapseSoft()
+                            onDismiss()
+                        }
+                    )
+                }
+
+                // SECTION 2: SOUND & TOOLS
+                item {
+                    Text(
+                        text = "SOUND & TOOLS",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 12.dp, top = 18.dp, bottom = 4.dp)
+                    )
+                }
+
+                if (!isLiteMode) {
+                    // Audio Effects Navigation Entry Button
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            androidx.compose.material3.ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = "Audio Effects",
+                                        fontWeight = FontWeight.SemiBold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        text = "Equalizer, Dolby Atmos, 8D Audio, DJ Studio, Speed",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                leadingContent = {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(42.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.equalizer),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                trailingContent = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                                modifier = Modifier.clickable {
+                                    currentMenuSection = PlayerMenuSection.AUDIO_EFFECTS
+                                }
+                            )
+                        }
                     }
 
+                    // Tools Navigation Entry Button
                     item {
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.listen_together)) },
-                            leadingContent = { Icon(painterResource(R.drawable.group), contentDescription = null) },
-                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
-                                showListenTogetherSheet = true
-                            }
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            androidx.compose.material3.ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = "Tools",
+                                        fontWeight = FontWeight.SemiBold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        text = "Sleep Timer, Ringtone, Cast, Output Device, Details",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                leadingContent = {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(42.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.tune),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                trailingContent = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                                modifier = Modifier.clickable {
+                                    currentMenuSection = PlayerMenuSection.TOOLS
+                                }
+                            )
+                        }
                     }
-
-                    item {
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(stringResource(R.string.advanced)) },
-                            leadingContent = { Icon(painterResource(R.drawable.tune), contentDescription = null) },
-                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
-                                showPitchTempoDialog = true
-                            }
-                        )
-                    }
+                }
             }
+
+            PlayerMenuSection.AUDIO_EFFECTS -> {
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        IconButton(onClick = { currentMenuSection = PlayerMenuSection.MAIN }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back)
+                            )
+                        }
+                        Text(
+                            text = "Audio Effects",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.equalizer)) },
+                        supportingContent = { Text("5-Band graphic EQ and sound profiles") },
+                        leadingContent = { Icon(painterResource(R.drawable.equalizer), contentDescription = null) },
+                        trailingContent = { Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            showEqualizerSheet = true
+                        }
+                    )
+                }
+
+                item {
+                    val service = playerConnection.service
+                    val audioBoostEnabled by service.audioBoostEnabled.collectAsState()
+                    val audioBoostPercent by service.audioBoostPercent.collectAsState()
+
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.ui_remaining_audio_fx_dj_studio)) },
+                        supportingContent = {
+                            Text(
+                                text = if (audioBoostEnabled) "${audioBoostPercent}% Boost Active • Tap for DJ Studio" else "Tap to open DJ Studio console",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (audioBoostEnabled) Color(0xFFFF2A6D) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_dj_console),
+                                contentDescription = null,
+                                tint = if (audioBoostEnabled) Color(0xFFFF2A6D) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = audioBoostEnabled,
+                                onCheckedChange = { enabled ->
+                                    service.setAudioBoostEnabled(enabled)
+                                    if (enabled && audioBoostPercent <= 100) {
+                                        service.setAudioBoostPercent(150)
+                                    }
+                                },
+                                colors = androidx.compose.material3.SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFFFF2A6D)
+                                )
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            showAudioFxSheet = true
+                        }
+                    )
+                }
+
+                item {
+                    val dolbyAtmosEnabled by playerConnection.service.dolbyAtmosEnabled.collectAsState()
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.dolby_atmos)) },
+                        supportingContent = {
+                            Text(
+                                text = if (dolbyAtmosEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (dolbyAtmosEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_dolby_atmos),
+                                contentDescription = null,
+                                tint = if (dolbyAtmosEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = dolbyAtmosEnabled,
+                                onCheckedChange = { playerConnection.service.setDolbyAtmosEnabled(it) }
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            showDolbyAtmosSheet = true
+                        }
+                    )
+                }
+
+                item {
+                    val eightDAudioEnabled by playerConnection.service.eightDAudioEnabled.collectAsState()
+                    val eightDAudioLevel by playerConnection.service.eightDAudioLevel.collectAsState()
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.ui_remaining_8d_audio)) },
+                        supportingContent = {
+                            Text(
+                                text = if (eightDAudioEnabled) "${eightDAudioLevel}D Spatial Orbit Active" else stringResource(R.string.disabled),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (eightDAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.graphic_eq),
+                                contentDescription = null,
+                                tint = if (eightDAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = eightDAudioEnabled,
+                                onCheckedChange = { playerConnection.service.setEightDAudioEnabled(it) }
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            showEightDAudioSheet = true
+                        }
+                    )
+                }
+
+                item {
+                    val spatialAudioEnabled by playerConnection.service.spatialAudioEnabled.collectAsState()
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.spatial_audio)) },
+                        supportingContent = {
+                            Text(
+                                text = if (spatialAudioEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (spatialAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.graphic_eq),
+                                contentDescription = null,
+                                tint = if (spatialAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = spatialAudioEnabled,
+                                onCheckedChange = { playerConnection.service.setSpatialAudioEnabled(it) }
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
+
+                item {
+                    val automixEnabled by playerConnection.service.automixEnabled.collectAsState()
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.automix)) },
+                        supportingContent = {
+                            Text(
+                                text = if (automixEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (automixEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.auto_awesome),
+                                contentDescription = null,
+                                tint = if (automixEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = automixEnabled,
+                                onCheckedChange = { playerConnection.service.setAutomixEnabled(it) }
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.advanced)) },
+                        supportingContent = { Text("Pitch, tempo, and playback speed") },
+                        leadingContent = { Icon(painterResource(R.drawable.tune), contentDescription = null) },
+                        trailingContent = { Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            showPitchTempoDialog = true
+                        }
+                    )
+                }
+            }
+
+            PlayerMenuSection.TOOLS -> {
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        IconButton(onClick = { currentMenuSection = PlayerMenuSection.MAIN }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back)
+                            )
+                        }
+                        Text(
+                            text = "Tools",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.sleep_timer)) },
+                        supportingContent = { Text("Automatically pause playback") },
+                        leadingContent = { Icon(painterResource(R.drawable.schedule), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable { showSleepTimerDialog = true }
+                    )
+                }
+
+                item {
+                    val deviceName = when {
+                        isCasting -> castDeviceName ?: "Cast device"
+                        activeDevice != null -> activeDevice.productName.toString()
+                        else -> "Phone Speaker"
+                    }
+                    val deviceIcon = when {
+                        isCasting -> R.drawable.ic_cast_connected
+                        isBluetooth -> R.drawable.ic_bluetooth
+                        else -> R.drawable.airplay
+                    }
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.output_audio_device)) },
+                        supportingContent = { Text(deviceName) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(deviceIcon),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            showOutputDeviceSheet = true
+                        }
+                    )
+                }
+
+                item {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        AndroidView(
+                            factory = { ctx ->
+                                createCastRouteButton(ctx)?.also { mediaRouteButtonRef.value = it }
+                                    ?: android.widget.FrameLayout(ctx)
+                            },
+                            modifier = Modifier.size(1.dp).alpha(0f)
+                        )
+
+                        androidx.compose.material3.ListItem(
+                            headlineContent = {
+                                Text(if (isCasting && !castDeviceName.isNullOrBlank()) "Casting to $castDeviceName" else "Google Cast / Chromecast")
+                            },
+                            supportingContent = {
+                                Text(if (isCasting) "Tap to manage or disconnect" else "Stream audio to Chromecast or Smart TV")
+                            },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(if (isCasting) R.drawable.ic_cast_connected else R.drawable.ic_cast),
+                                    contentDescription = stringResource(R.string.ui_a11y_cast),
+                                    tint = if (isCasting) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                            modifier = Modifier.clickable {
+                                runCatching {
+                                    mediaRouteButtonRef.value?.performClick()
+                                }.onFailure { e ->
+                                    timber.log.Timber.w(e, "Failed to launch MediaRouteButton chooser")
+                                }
+                            }
+                        )
+                    }
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.set_as_ringtone)) },
+                        supportingContent = { Text("Trim and set as phone ringtone") },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.notification),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            if (ringtoneViewModel.hasSettingsPermission(context)) {
+                                ringtoneViewModel.showTrimmer(
+                                    mediaMetadata.id,
+                                    mediaMetadata.title,
+                                    mediaMetadata.artists.joinToString { it.name },
+                                    mediaMetadata.duration.toLong()
+                                )
+                            } else {
+                                ringtoneViewModel.requestSettingsPermission(context)
+                            }
+                            onDismiss()
+                        }
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.ringtone_studio)) },
+                        supportingContent = { Text(stringResource(R.string.ringtone_studio_desc)) },
+                        leadingContent = { Icon(painterResource(R.drawable.content_cut), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable { showSnippetStudioDialog = true }
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.always_on_display)) },
+                        supportingContent = { Text("OLED lockscreen music visualizer") },
+                        leadingContent = { Icon(painterResource(R.drawable.dark_mode), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            navController.navigate("always_on_display")
+                            playerBottomSheetState.collapseSoft()
+                            onDismiss()
+                        }
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.save_to_local)) },
+                        supportingContent = { Text("Export track to device Music folder") },
+                        leadingContent = { Icon(painterResource(R.drawable.save_to_storage), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                true
+                            } else {
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                ) == PackageManager.PERMISSION_GRANTED
+                            }
+
+                            if (hasPermission) {
+                                Toast.makeText(context, savingToastMsg, Toast.LENGTH_SHORT).show()
+                                com.valora.icebeats.utils.SaveToStorageUtil.saveToMusicFolderAsync(
+                                    context = context,
+                                    mediaMetadata = mediaMetadata,
+                                )
+                                onDismiss()
+                            } else {
+                                storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            }
+                        }
+                    )
+                }
+
+                item {
+                    androidx.compose.material3.ListItem(
+                        headlineContent = { Text(stringResource(R.string.details)) },
+                        supportingContent = { Text("View technical metadata and codecs") },
+                        leadingContent = { Icon(painterResource(R.drawable.info), contentDescription = null) },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            onShowDetailsDialog()
+                            onDismiss()
+                        }
+                    )
+                }
+            }
+        }
+    }
 
         if (showEqualizerSheet) {
             InAppEqualizerSheet(
                 onDismiss = {
                     showEqualizerSheet = false
+                }
+            )
+        }
+
+        if (showAudioFxSheet) {
+            InAppAudioFxSheet(
+                onDismiss = {
+                    showAudioFxSheet = false
+                }
+            )
+        }
+
+        if (showDolbyAtmosSheet) {
+            InAppDolbyAtmosSheet(
+                onDismiss = {
+                    showDolbyAtmosSheet = false
+                }
+            )
+        }
+
+        if (showEightDAudioSheet) {
+            InAppEightDAudioSheet(
+                onDismiss = {
+                    showEightDAudioSheet = false
                 }
             )
         }
@@ -980,6 +1628,15 @@ private fun ListenTogetherStatusCard(
 internal fun InAppEqualizerSheet(onDismiss: () -> Unit) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val equalizerState by playerConnection.service.equalizerState.collectAsState()
+    val bypassAllAudioEffects by playerConnection.service.bypassAllAudioEffects.collectAsState()
+    val (equalizerPreset, onEqualizerPresetChange) = rememberPreference(EqualizerPresetKey, "Flat")
+    val (enableLiquidGlass) = rememberPreference(LiquidGlassKey, false)
+    val isFrosted = isFrostedGlassUiEnabled()
+    val backdrop = LocalBackdrop.current
+    val layer = rememberGraphicsLayer()
+    val luminanceAnimation = remember { Animatable(0.3f) }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
     LaunchedEffect(Unit) {
         playerConnection.service.ensureEqualizer()
@@ -988,7 +1645,26 @@ internal fun InAppEqualizerSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = if (enableLiquidGlass && !isFrosted && backdrop != null) {
+            Color.Transparent
+        } else if (isFrosted) {
+            if (isDark) Color(0xFF141414).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        shape = sheetShape,
+        modifier = Modifier.then(
+            if (enableLiquidGlass && !isFrosted && backdrop != null) {
+                Modifier.drawBackdropCustomShape(backdrop = backdrop, layer = layer, luminanceAnimation = luminanceAnimation.value, shape = sheetShape)
+            } else if (isFrosted) {
+                Modifier.border(
+                    BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
+                    sheetShape
+                )
+            } else {
+                Modifier
+            }
+        ),
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -1008,6 +1684,34 @@ internal fun InAppEqualizerSheet(onDismiss: () -> Unit) {
                 .padding(horizontal = 20.dp)
                 .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 18.dp)
         ) {
+            if (bypassAllAudioEffects) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.auto_awesome),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.ui_sweep_pure_audio_bypass_is_active_equalizer_is_locked_for_bit_exact_sou),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -1029,18 +1733,20 @@ internal fun InAppEqualizerSheet(onDismiss: () -> Unit) {
                     )
                 }
                 Switch(
-                    checked = equalizerState.enabled,
-                    enabled = equalizerState.isAvailable,
+                    checked = if (bypassAllAudioEffects) false else equalizerState.enabled,
+                    enabled = equalizerState.isAvailable && !bypassAllAudioEffects,
                     onCheckedChange = playerConnection.service::setEqualizerEnabled,
                 )
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            if (equalizerState.isAvailable) {
+            if (equalizerState.isAvailable && !bypassAllAudioEffects) {
                 AudioEffectPresets(
+                    selectedPreset = equalizerPreset,
                     onPresetSelected = { preset ->
                         playerConnection.service.setEqualizerEnabled(true)
+                        onEqualizerPresetChange(preset.name)
                         preset.levels.forEachIndexed { index, level ->
                             if (index in equalizerState.bandLevels.indices) {
                                 playerConnection.service.setEqualizerBandLevel(index, level.toShort())
@@ -1059,13 +1765,17 @@ internal fun InAppEqualizerSheet(onDismiss: () -> Unit) {
                         maxLevel = equalizerState.maxBandLevel,
                         enabled = equalizerState.enabled,
                         onLevelChange = { newLevel ->
+                            onEqualizerPresetChange("Custom")
                             playerConnection.service.setEqualizerBandLevel(index, newLevel)
                         }
                     )
                 }
 
                 TextButton(
-                    onClick = playerConnection.service::resetEqualizer,
+                    onClick = {
+                        onEqualizerPresetChange("Flat")
+                        playerConnection.service.resetEqualizer()
+                    },
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text(stringResource(R.string.reset))
@@ -1076,7 +1786,10 @@ internal fun InAppEqualizerSheet(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun AudioEffectPresets(onPresetSelected: (AudioEffectPreset) -> Unit) {
+private fun AudioEffectPresets(
+    selectedPreset: String?,
+    onPresetSelected: (AudioEffectPreset) -> Unit,
+) {
     Text(
         text = stringResource(R.string.audio_effects),
         style = MaterialTheme.typography.titleSmall,
@@ -1091,13 +1804,22 @@ private fun AudioEffectPresets(onPresetSelected: (AudioEffectPreset) -> Unit) {
     ) {
         items(AudioEffectPreset.presets.size) { index ->
             val preset = AudioEffectPreset.presets[index]
+            val isSelected = preset.name.equals(selectedPreset, ignoreCase = true)
             Surface(
                 onClick = { onPresetSelected(preset) },
                 shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.48f),
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.48f)
+                },
                 border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    width = if (isSelected) 1.5.dp else 1.dp,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    }
                 ),
                 modifier = Modifier.height(50.dp)
             ) {
@@ -1107,7 +1829,10 @@ private fun AudioEffectPresets(onPresetSelected: (AudioEffectPreset) -> Unit) {
                 ) {
                     Text(
                         text = preset.name,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        ),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -1117,7 +1842,7 @@ private fun AudioEffectPresets(onPresetSelected: (AudioEffectPreset) -> Unit) {
     }
 }
 
-private data class AudioEffectPreset(
+internal data class AudioEffectPreset(
     val name: String,
     val levels: List<Int>,
 ) {
@@ -1310,3 +2035,552 @@ fun <T> ValueAdjuster(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun InAppDolbyAtmosSheet(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val dolbyAtmosEnabled by playerConnection.service.dolbyAtmosEnabled.collectAsState()
+    val isTrackDolbyAtmos by playerConnection.service.isTrackDolbyAtmos.collectAsState()
+    val spatialAudioEnabled by playerConnection.service.spatialAudioEnabled.collectAsState()
+    val bypassAllAudioEffects by playerConnection.service.bypassAllAudioEffects.collectAsState()
+    val dolbyAtmosSupported = remember { DeviceCodecs.playsDolbyAtmos }
+    val (enableLiquidGlass) = rememberPreference(LiquidGlassKey, false)
+    val isFrosted = isFrostedGlassUiEnabled()
+    val backdrop = LocalBackdrop.current
+    val layer = rememberGraphicsLayer()
+    val luminanceAnimation = remember { Animatable(0.3f) }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = if (enableLiquidGlass && !isFrosted && backdrop != null) {
+            Color.Transparent
+        } else if (isFrosted) {
+            if (isDark) Color(0xFF141414).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        shape = sheetShape,
+        modifier = Modifier.then(
+            if (enableLiquidGlass && !isFrosted && backdrop != null) {
+                Modifier.drawBackdropCustomShape(backdrop = backdrop, layer = layer, luminanceAnimation = luminanceAnimation.value, shape = sheetShape)
+            } else if (isFrosted) {
+                Modifier.border(
+                    BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
+                    sheetShape
+                )
+            } else {
+                Modifier
+            }
+        ),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 6.dp)
+                    .width(34.dp)
+                    .height(4.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.36f),
+                        shape = RoundedCornerShape(50)
+                    )
+            )
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp)
+        ) {
+            if (bypassAllAudioEffects) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.auto_awesome),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.ui_sweep_pure_audio_bypass_is_active_dolby_atmos_spatial_virtualizer_are_l),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_dolby_atmos),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.dolby_atmos),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = if (dolbyAtmosEnabled) {
+                            if (isTrackDolbyAtmos) "Native Multichannel Dolby Stream Active" else "Spatial Virtual Surround Active"
+                        } else {
+                            stringResource(R.string.disabled)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Switch(
+                    checked = if (bypassAllAudioEffects) false else dolbyAtmosEnabled,
+                    enabled = !bypassAllAudioEffects,
+                    onCheckedChange = playerConnection.service::setDolbyAtmosEnabled,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.graphic_eq),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.ui_text_acoustic_spatial_processing),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.ui_sweep_expands_the_stereo_soundstage_into_a_multi_dimensional_listening_),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ui_sweep_hardware_e_ac_3_decoder),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (dolbyAtmosSupported) "Supported" else "Emulated",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (dolbyAtmosSupported) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ui_text_soundstage_enhancement),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (dolbyAtmosEnabled || spatialAudioEnabled) "2.5x Wide Stereo" else "Standard",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (dolbyAtmosEnabled || spatialAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.spatial_audio),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = stringResource(R.string.spatial_audio_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = if (bypassAllAudioEffects) false else spatialAudioEnabled,
+                            enabled = !bypassAllAudioEffects,
+                            onCheckedChange = playerConnection.service::setSpatialAudioEnabled
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            androidx.compose.material3.Button(
+                onClick = {
+                    val opened = DeviceCodecs.openDolbyAtmosSettings(
+                        context,
+                        playerConnection.player.audioSessionId
+                    )
+                    if (!opened) {
+                        android.widget.Toast.makeText(context, context.getString(R.string.no_dolby_atmos), android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.tune),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(R.string.dolby_atmos_system_panel))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun InAppEightDAudioSheet(onDismiss: () -> Unit) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val eightDAudioEnabled by playerConnection.service.eightDAudioEnabled.collectAsState()
+    val eightDAudioLevel by playerConnection.service.eightDAudioLevel.collectAsState()
+    val bypassAllAudioEffects by playerConnection.service.bypassAllAudioEffects.collectAsState()
+    val (enableLiquidGlass) = rememberPreference(LiquidGlassKey, false)
+    val isFrosted = isFrostedGlassUiEnabled()
+    val backdrop = LocalBackdrop.current
+    val layer = rememberGraphicsLayer()
+    val luminanceAnimation = remember { Animatable(0.3f) }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    val haptic = LocalHapticFeedback.current
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = if (enableLiquidGlass && !isFrosted && backdrop != null) {
+            Color.Transparent
+        } else if (isFrosted) {
+            if (isDark) Color(0xFF141414).copy(alpha = 0.88f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        shape = sheetShape,
+        modifier = Modifier.then(
+            if (enableLiquidGlass && !isFrosted && backdrop != null) {
+                Modifier.drawBackdropCustomShape(backdrop = backdrop, layer = layer, luminanceAnimation = luminanceAnimation.value, shape = sheetShape)
+            } else if (isFrosted) {
+                Modifier.border(
+                    BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
+                    sheetShape
+                )
+            } else {
+                Modifier
+            }
+        ),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 6.dp)
+                    .width(34.dp)
+                    .height(4.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.36f),
+                        shape = RoundedCornerShape(50)
+                    )
+            )
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp)
+        ) {
+            if (bypassAllAudioEffects) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.auto_awesome),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.ui_sweep_pure_audio_bypass_is_active_8d_audio_is_locked_for_bit_exact_soun),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            // Header Row with Icon, Title, and Switch
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.graphic_eq),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.ui_remaining_8d_audio),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = if (eightDAudioEnabled) "${eightDAudioLevel}D Spatial Orbit Active" else stringResource(R.string.disabled),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (eightDAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Switch(
+                    checked = if (bypassAllAudioEffects) false else eightDAudioEnabled,
+                    enabled = !bypassAllAudioEffects,
+                    onCheckedChange = playerConnection.service::setEightDAudioEnabled,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Explanation & Info Card
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.discover_tune),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.ui_sweep_360_binaural_spatial_orbit),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.ui_sweep_music_and_vocals_orbit_360_through_your_head_using_acoustic_inter),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Intensity row & badge
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = stringResource(R.string.ui_text_effect_intensity),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                ) {
+                                    Text(
+                                        text = "${eightDAudioLevel}D",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = when {
+                                    eightDAudioLevel <= 3 -> "Gentle & Slow Orbit (~25s per circle)"
+                                    eightDAudioLevel <= 7 -> "Moderate Spatial Rotation (~14s per circle)"
+                                    eightDAudioLevel == 8 -> "Classic 8D Orbit (~9s per circle)"
+                                    eightDAudioLevel <= 12 -> "Fast Dynamic Orbit (~6s per circle)"
+                                    else -> "Extreme Rapid 16D Orbit (~3.5s per circle)"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 1D to 16D Slider
+                    Slider(
+                        value = eightDAudioLevel.toFloat(),
+                        onValueChange = { newLevel ->
+                            val intLevel = newLevel.roundToInt().coerceIn(1, 16)
+                            if (intLevel != eightDAudioLevel) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                playerConnection.service.setEightDAudioLevel(intLevel)
+                            }
+                        },
+                        valueRange = 1f..16f,
+                        steps = 14,
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ui_sweep_1d_subtle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                        Text(
+                            text = stringResource(R.string.ui_sweep_8d_classic),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                        Text(
+                            text = stringResource(R.string.ui_sweep_16d_extreme),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Quick preset chips (1D, 4D, 8D, 12D, 16D)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    1 to "1D",
+                    4 to "4D",
+                    8 to "8D",
+                    12 to "12D",
+                    16 to "16D"
+                ).forEach { (presetLevel, presetLabel) ->
+                    val isSelected = eightDAudioLevel == presetLevel
+                    Surface(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            playerConnection.service.setEightDAudioLevel(presetLevel)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = presetLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+

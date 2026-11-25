@@ -56,6 +56,7 @@ import com.valora.icebeats.constants.ListItemHeight
 import com.valora.icebeats.constants.ListThumbnailSize
 import com.valora.icebeats.db.entities.Song
 import com.valora.icebeats.extensions.toMediaItem
+import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.playback.queues.YouTubeAlbumRadio
 import com.valora.icebeats.ui.component.DownloadGridMenu
@@ -323,6 +324,34 @@ fun YouTubeAlbumMenu(
                 }
             },
         )
+        val albumSongs = album?.songs.orEmpty()
+        if (albumSongs.isNotEmpty()) {
+            GridMenuItem(
+                icon = R.drawable.save_to_storage,
+                title = R.string.save_playlist_to_storage,
+            ) {
+                val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    true
+                } else {
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+
+                if (hasPermission) {
+                    val albumTitle = albumItem.title
+                    val savingToastMsg = context.getString(R.string.saving_playlist_to_storage, albumTitle)
+                    android.widget.Toast.makeText(context, savingToastMsg, android.widget.Toast.LENGTH_SHORT).show()
+                    com.valora.icebeats.utils.SaveToStorageUtil.savePlaylistToMusicFolderAsync(
+                        context = context,
+                        playlistName = albumTitle,
+                        mediaList = albumSongs.map { it.toMediaMetadata() }
+                    )
+                    onDismiss()
+                }
+            }
+        }
         albumItem.artists?.let { artists ->
             GridMenuItem(
                 icon = R.drawable.artist,

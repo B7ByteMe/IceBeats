@@ -51,7 +51,6 @@ import kotlin.math.pow
 
 /**
  * Bottom Sheet
- * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
  */
 @Composable
 fun BottomSheet(
@@ -351,9 +350,7 @@ fun Modifier.bottomSheetDraggable(
 ): Modifier {
     val playerConnection = com.valora.icebeats.LocalPlayerConnection.current
     val actualOnDismiss: () -> Unit = onDismiss ?: {
-        playerConnection?.service?.clearAutomix()
-        playerConnection?.player?.stop()
-        playerConnection?.player?.clearMediaItems()
+        playerConnection?.service?.stopPlayback()
     }
     return this.pointerInput(state) {
         val velocityTracker = VelocityTracker()

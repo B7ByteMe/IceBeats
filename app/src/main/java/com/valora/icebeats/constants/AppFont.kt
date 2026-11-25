@@ -10,12 +10,9 @@ enum class AppFont(val title: String, val key: String) {
     LINOTTE("Linotte", "linotte"),
     POPPINS("Poppins", "poppins"),
     SF_PRO("SF Pro Display", "sf_pro"),
-    ANYBODY("Anybody", "anybody"),
-    GREAT_VIBES("Great Vibes", "great_vibes"),
     SANS_SERIF("Sans-Serif", "sans_serif"),
     SERIF("Serif", "serif"),
-    MONOSPACE("Monospace", "monospace"),
-    CURSIVE("Cursive", "cursive");
+    MONOSPACE("Monospace", "monospace");
 
     fun getFontFamily(): FontFamily {
         return when (this) {
@@ -27,12 +24,9 @@ enum class AppFont(val title: String, val key: String) {
                 Font(R.font.poppins_bold, FontWeight.Bold)
             )
             SF_PRO -> FontFamily(Font(R.font.sfprodisplaybold, FontWeight.Bold))
-            ANYBODY -> FontFamily(Font(R.font.anybody))
-            GREAT_VIBES -> FontFamily(Font(R.font.great_vibes))
             SANS_SERIF -> FontFamily.SansSerif
             SERIF -> FontFamily.Serif
             MONOSPACE -> FontFamily.Monospace
-            CURSIVE -> FontFamily.Cursive
         }
     }
 

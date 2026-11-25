@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -365,7 +365,7 @@
     <string name="backup_create_failed">"Konnte keine Sicherung erstellen"</string>
     <string name="restore_failed">"Wiederherstellung der Sicherung fehlgeschlagen"</string>
     <string name="discord_integration">"Discors-Integration"</string>
-    <string name="discord_information">"icebeats verwendet die KizzyRPC-Bibliothek, um den Status deines Discord-Kontos zu setzen. Dabei wird die Discord-Gateway-Verbindung verwendet, was als Verstoß gegen die AGB von Discord angesehen werden kann. Es sind jedoch keine Fälle bekannt, in denen Benutzerkonten aus diesem Grund gesperrt wurden. Die Verwendung erfolgt auf eigene Gefahr. icebeats extrahiert nur dein Token, alles andere wird lokal gespeichert."</string>
+    <string name="discord_information">"IceBeats verwendet die KizzyRPC-Bibliothek, um den Status deines Discord-Kontos zu setzen. Dabei wird die Discord-Gateway-Verbindung verwendet, was als Verstoß gegen die AGB von Discord angesehen werden kann. Es sind jedoch keine Fälle bekannt, in denen Benutzerkonten aus diesem Grund gesperrt wurden. Die Verwendung erfolgt auf eigene Gefahr. IceBeats extrahiert nur dein Token, alles andere wird lokal gespeichert."</string>
     <string name="dismiss">"Ignorieren"</string>
     <string name="options">"Optionen"</string>
     <string name="preview">"Vorschau"</string>

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Bottom navigation -->
     <string name="home">Kezdőlap</string>
@@ -345,7 +345,7 @@
     <string name="backup_create_failed">Mentés sikertelen</string>
     <string name="restore_failed">Mentés visszaállítása sikertelen</string>
     <string name="discord_integration">Discord integráció</string>
-    <string name="discord_information">Az icebeats a KizzyRPC könyvtárat használja a Discord fiók státusz megváltoztatásához. Ehhez szorosan hozzájárul a Discord Gateway kapcsolat, amely szigorúan véve a Discord felhasználási feltételek megszegéseként fogható fel. Habár nincs ismert fiók tiltási eset ilyen okból kifolyólag, csak saját felelősségre ajánlott. Az OpenTunne csak a tokenjét fogja kinyerni, minden más helyileg kerül tárolásra.</string>
+    <string name="discord_information">Az IceBeats a KizzyRPC könyvtárat használja a Discord fiók státusz megváltoztatásához. Ehhez szorosan hozzájárul a Discord Gateway kapcsolat, amely szigorúan véve a Discord felhasználási feltételek megszegéseként fogható fel. Habár nincs ismert fiók tiltási eset ilyen okból kifolyólag, csak saját felelősségre ajánlott. Az OpenTunne csak a tokenjét fogja kinyerni, minden más helyileg kerül tárolásra.</string>
     <string name="dismiss">Elrejt</string>
     <string name="options">Opciók</string>
     <string name="preview">Előnézet</string>

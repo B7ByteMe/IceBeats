@@ -40,12 +40,13 @@ object GlobalLog {
     }
 }
 
-/** Timber Tree that forwards logs to GlobalLog */
+/** Timber Tree that forwards logs to GlobalLog and Android Logcat */
 class GlobalLogTree : Timber.Tree() {
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
         try {
-            val final = if (t != null) "$message\n$t" else message
+            val final = if (t != null) "$message\n$t\n${android.util.Log.getStackTraceString(t)}" else message
             GlobalLog.append(priority, tag, final)
+            android.util.Log.println(priority, tag ?: "IceBeats", final)
         } catch (_: Exception) {
             // swallow
         }

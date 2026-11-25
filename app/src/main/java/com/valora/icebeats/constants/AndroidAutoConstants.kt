@@ -1,4 +1,4 @@
-﻿/*
+/*
  * IceBeats Project (2026)
  * Arturo254 (github.com/Arturo254)
  * Licensed under GPL-3.0 | see git history for contributors

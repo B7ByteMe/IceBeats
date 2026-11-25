@@ -1,8 +1,14 @@
 package com.valora.icebeats.ui.screens
 
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.wrapContentHeight
+import com.valora.icebeats.ui.screens.search.airbeatsChartsItems
+import com.valora.icebeats.ui.screens.search.recentSearchesItems
 import androidx.compose.animation.togetherWith
 import kotlinx.coroutines.launch
 import com.valentinilk.shimmer.shimmer
@@ -23,6 +29,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
@@ -38,7 +45,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -51,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
@@ -95,6 +104,16 @@ import com.valora.icebeats.viewmodels.MoodAndGenresViewModel
 import java.net.URLEncoder
 import com.valora.icebeats.ui.screens.settings.DarkMode
 import com.valora.icebeats.constants.DarkModeKey
+import com.valora.icebeats.constants.DefaultHiddenHomeSections
+import com.valora.icebeats.constants.HiddenHomeSectionsKey
+import com.valora.icebeats.constants.InnerTubeCookieKey
+import com.valora.icebeats.constants.MaterialHomeSection
+import com.valora.icebeats.ui.component.HomeFloatingActions
+import com.valora.icebeats.ui.component.HomeTasteStrip
+import com.valora.icebeats.ui.component.UniversalHomeHeroBanner
+import com.valora.icebeats.ui.component.UniversalArtistSpotlightCard
+import com.valora.icebeats.ui.component.UniversalTopArtistsRow
+import com.valora.icebeats.ui.component.HomeThemeStyle
 import com.valora.icebeats.utils.rememberEnumPreference
 
 @Composable
@@ -102,7 +121,7 @@ fun isAppInDarkTheme(): Boolean {
     val isSystemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     return androidx.compose.runtime.remember(darkTheme, isSystemInDarkTheme) {
-        true
+        if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 }
 
@@ -112,7 +131,61 @@ private val SpotifyCard @Composable get() = if (isAppInDarkTheme()) Color(0xFF18
 private val SpotifyPill @Composable get() = if (isAppInDarkTheme()) Color(0xFF2A2A2A) else Color(0xFFE5E5E5)
 private val SpotifyText @Composable get() = if (isAppInDarkTheme()) Color.White else Color.Black
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class, dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi::class)
+@Composable
+fun SpotifyHeaderActions(navController: NavController) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    var isSettingsOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    val currentRoute = backStackEntry?.destination?.route
+    androidx.compose.runtime.LaunchedEffect(currentRoute) {
+        if (currentRoute == Screens.Home.route || currentRoute == "home") {
+            isSettingsOpen = false
+        }
+    }
+    val gearRotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isSettingsOpen) 360f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
+        label = "spotifySettingsGearRotation"
+    )
+
+    androidx.compose.material3.IconButton(onClick = { navController.navigate("settings/developer_news") }) {
+        androidx.compose.material3.Icon(
+            painter = androidx.compose.ui.res.painterResource(R.drawable.newspaper),
+            contentDescription = stringResource(R.string.ui_a11y_news_from_developer),
+            tint = SpotifyText,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+    androidx.compose.material3.IconButton(onClick = { navController.navigate("new_release") }) {
+        androidx.compose.material3.Icon(
+            painter = androidx.compose.ui.res.painterResource(R.drawable.notification_on),
+            contentDescription = stringResource(R.string.ui_text_new_releases),
+            tint = SpotifyText,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+    androidx.compose.material3.IconButton(onClick = {
+        isSettingsOpen = true
+        navController.navigate("settings")
+    }) {
+        androidx.compose.material3.Icon(
+            painter = androidx.compose.ui.res.painterResource(R.drawable.settings),
+            contentDescription = stringResource(R.string.settings),
+            tint = SpotifyText,
+            modifier = Modifier
+                .size(24.dp)
+                .graphicsLayer { rotationZ = gearRotation }
+        )
+    }
+}
+
+@OptIn(
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi::class,
+    ExperimentalMaterial3ExpressiveApi::class
+)
 @Composable
 fun SpotifyHomeScreen(
     navController: NavController,
@@ -131,6 +204,11 @@ fun SpotifyHomeScreen(
     val accountName = rawUserName.takeIf { it.isNotBlank() } ?: "Guest"
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val innerTubeCookie by com.valora.icebeats.utils.rememberPreference(InnerTubeCookieKey, "")
+    LaunchedEffect(innerTubeCookie) {
+        viewModel.onAccountChanged(innerTubeCookie)
+    }
     val pullRefreshState = rememberPullToRefreshState()
     val lazyListState = rememberLazyListState()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -143,30 +221,59 @@ fun SpotifyHomeScreen(
         }
     }
 
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    val isBlurDisabled = com.valora.icebeats.utils.isBlurDisabled()
     val hazeState = androidx.compose.runtime.remember { dev.chrisbanes.haze.HazeState() }
+    val hiddenSections by com.valora.icebeats.utils.rememberPreference(HiddenHomeSectionsKey, defaultValue = DefaultHiddenHomeSections)
+    fun isSectionVisible(section: MaterialHomeSection): Boolean {
+        if (isLiteMode) {
+            if (section == MaterialHomeSection.FRESH_FINDS ||
+                section == MaterialHomeSection.SPOTLIGHT ||
+                section == MaterialHomeSection.TOP_ARTISTS) {
+                return false
+            }
+        }
+        return section.id !in hiddenSections
+    }
+
+    // Measured header height (status bar + title + chips) so list content never sits under it,
+    // regardless of font scale / display size.
+    var headerHeightPx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val headerTopPadding = if (headerHeightPx > 0) with(density) { headerHeightPx.toDp() } + 8.dp
+        else WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 145.dp
 
     Box(Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(SpotifyBg)
-                .haze(state = hazeState)
+                .then(if (!isBlurDisabled) Modifier.haze(state = hazeState) else Modifier)
         ) {
-            SimpMusicMeshBackground()
+            IceBeatsMeshBackground()
 
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                .pullToRefresh(
-                    state = pullRefreshState,
-                    isRefreshing = isRefreshing,
-                    onRefresh = viewModel::refresh,
-                ),
-        ) {
-            LazyColumn(
+                    .pullToRefresh(
+                        state = pullRefreshState,
+                        isRefreshing = isRefreshing,
+                        onRefresh = viewModel::refresh,
+                    )
+            ) {
+                val freshPicks = remember(quickPicks) { quickPicks?.drop(6).orEmpty().take(12) }
+                val artistTriples = remember(quickPicks) {
+                    quickPicks?.mapNotNull { pick ->
+                        pick.artists.firstOrNull()?.let { artist ->
+                            Triple(artist, artist.thumbnailUrl, pick.song.thumbnailUrl)
+                        }
+                    }?.distinctBy { it.first.id }?.take(10).orEmpty()
+                }
+
+                LazyColumn(
                 state = lazyListState,
                 contentPadding = PaddingValues(
-                    top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 145.dp,
+                    top = headerTopPadding,
                     bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
                     start = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateStartPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
                     end = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
@@ -175,55 +282,160 @@ fun SpotifyHomeScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                    item {
-                        NavigationTitle(title = "Quick picks")
-                        SpotifyLocalRow(picks.take(12), playerConnection)
+                if (isSectionVisible(MaterialHomeSection.HERO)) {
+                    item(key = "spotify_hero") {
+                        UniversalHomeHeroBanner(
+                            title = stringResource(R.string.smart_radio),
+                            subtitle = stringResource(R.string.smart_radio_desc),
+                            onPlayRadio = {
+                                com.valora.icebeats.ui.component.InfiniteRadioHelper.playShuffledRadio(
+                                    playerConnection = playerConnection,
+                                    currentSongId = playerConnection.mediaMetadata.value?.id,
+                                    quickPicks = quickPicks,
+                                    forgottenFavorites = forgottenFavorites,
+                                    keepListening = keepListening,
+                                    homeSongs = homePage?.sections?.flatMap { it.items }?.filterIsInstance<com.valora.icebeats.innertube.models.SongItem>()
+                                )
+                            },
+                            style = HomeThemeStyle.SPOTIFY,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
                     }
                 }
 
-                keepListening?.filterIsInstance<Song>()?.takeIf { it.isNotEmpty() }?.let { items ->
-                    item {
-                        NavigationTitle(title = "Keep listening")
-                        SpotifyLocalRow(items.take(12), playerConnection)
+                if (isSectionVisible(MaterialHomeSection.TASTE_STRIP)) {
+                    item(key = "spotify_taste_strip") {
+                        HomeTasteStrip(
+                            onTagClick = { tag ->
+                                val encoded = java.net.URLEncoder.encode(tag, "UTF-8")
+                                navController.navigate("search/$encoded")
+                            },
+                            style = HomeThemeStyle.SPOTIFY,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
                     }
                 }
 
-                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                    item {
-                        NavigationTitle(title = "$accountName's playlists")
-                        SpotifyYtRow(playlists.take(12), navController, playerConnection)
+                if (isSectionVisible(MaterialHomeSection.QUICK_PICKS)) {
+                    quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
+                        item {
+                            NavigationTitle(title = stringResource(R.string.quick_picks))
+                            SpotifyLocalRow(picks.take(12), playerConnection)
+                        }
                     }
                 }
 
-                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
-                    item {
-                        NavigationTitle(title = "Forgotten favorites")
-                        SpotifyLocalRow(favorites.take(12), playerConnection)
+                if (isSectionVisible(MaterialHomeSection.FRESH_FINDS)) {
+                    if (freshPicks.isNotEmpty()) {
+                        item(key = "spotify_fresh_finds") {
+                            NavigationTitle(title = stringResource(R.string.fresh_finds), label = stringResource(R.string.new_badge))
+                            SpotifyLocalRow(freshPicks, playerConnection)
+                        }
                     }
                 }
 
-                similarRecommendations?.forEach { recommendation ->
-                    item {
-                        NavigationTitle(title = "Similar to ${recommendation.title.title}")
-                        SpotifyYtRow(recommendation.items.take(12), navController, playerConnection)
+                if (isSectionVisible(MaterialHomeSection.JUMP_BACK_IN)) {
+                    keepListening?.filterIsInstance<Song>()?.takeIf { it.isNotEmpty() }?.let { items ->
+                        item {
+                            NavigationTitle(title = stringResource(R.string.keep_listening))
+                            SpotifyLocalRow(items.take(12), playerConnection)
+                        }
+                    }
+                }
+
+                if (isSectionVisible(MaterialHomeSection.MIXES)) {
+                    accountPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                        item {
+                            NavigationTitle(title = stringResource(R.string.account_playlists, accountName))
+                            SpotifyYtRow(playlists.take(12), navController, playerConnection)
+                        }
+                    }
+                }
+
+                if (isSectionVisible(MaterialHomeSection.HEAVY_ROTATION)) {
+                    forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
+                        item {
+                            NavigationTitle(title = stringResource(R.string.forgotten_favorites))
+                            SpotifyLocalRow(favorites.take(12), playerConnection)
+                        }
+                    }
+                }
+
+                if (isSectionVisible(MaterialHomeSection.SPOTLIGHT)) {
+                    quickPicks?.firstOrNull()?.let { pick ->
+                        val artist = pick.artists.firstOrNull()
+                        if (artist != null) {
+                            item(key = "spotify_spotlight") {
+                                UniversalArtistSpotlightCard(
+                                    artistName = artist.name,
+                                    artistId = artist.id,
+                                    thumbnailUrl = artist.thumbnailUrl,
+                                    fallbackThumbnail = pick.song.thumbnailUrl,
+                                    onOpenArtist = {
+                                        artist.id.takeIf { it.isNotBlank() }?.let { navController.navigate("artist/$it") }
+                                    },
+                                    onPlayRadio = {
+                                        playerConnection.playQueue(YouTubeQueue.radio(pick.toMediaMetadata()))
+                                    },
+                                    style = HomeThemeStyle.SPOTIFY,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (isSectionVisible(MaterialHomeSection.TOP_ARTISTS)) {
+                    if (artistTriples.isNotEmpty()) {
+                        item(key = "spotify_top_artists") {
+                            NavigationTitle(title = stringResource(R.string.your_top_artists))
+                            UniversalTopArtistsRow(
+                                artists = artistTriples,
+                                onArtistClick = { artistId ->
+                                    artistId.takeIf { it.isNotBlank() }?.let { navController.navigate("artist/$it") }
+                                },
+                                style = HomeThemeStyle.SPOTIFY
+                            )
+                        }
+                    }
+                }
+
+                if (isSectionVisible(MaterialHomeSection.BECAUSE_YOU_LISTEN_TO)) {
+                    similarRecommendations?.forEach { recommendation ->
+                        item {
+                            NavigationTitle(title = "Similar to ${recommendation.title.title}")
+                            SpotifyYtRow(recommendation.items.take(12), navController, playerConnection)
+                        }
                     }
                 }
 
                 homePage?.sections?.forEach { section ->
-                    item {
-                        NavigationTitle(
-                            title = section.title,
-                            label = section.label,
-                            onClick = section.endpoint?.let {
-                                {
-                                    navController.navigate(
-                                        "youtube_browse/${it.browseId}?params=${it.params.orEmpty()}",
-                                    )
-                                }
-                            },
-                        )
-                        SpotifyYtRow(section.items.take(12), navController, playerConnection)
+                    val isNewRelease = section.title.contains("New", ignoreCase = true) || section.title.contains("Release", ignoreCase = true)
+                    val isChart = section.title.contains("Chart", ignoreCase = true) || section.title.contains("Top", ignoreCase = true)
+                    val isAlbum = section.title.contains("Album", ignoreCase = true)
+
+                    val shouldRender = when {
+                        isNewRelease -> isSectionVisible(MaterialHomeSection.NEW_RELEASES)
+                        isChart -> isSectionVisible(MaterialHomeSection.CHARTS)
+                        isAlbum -> isSectionVisible(MaterialHomeSection.ALBUMS)
+                        else -> true
+                    }
+
+                    if (shouldRender) {
+                        item {
+                            NavigationTitle(
+                                title = section.title,
+                                label = section.label,
+                                onClick = section.endpoint?.let {
+                                    {
+                                        navController.navigate(
+                                            "youtube_browse/${it.browseId}?params=${it.params.orEmpty()}",
+                                        )
+                                    }
+                                },
+                            )
+                            SpotifyYtRow(section.items.take(12), navController, playerConnection)
+                        }
                     }
                 }
 
@@ -232,14 +444,14 @@ fun SpotifyHomeScreen(
                 }
             }
 
-            Indicator(
+            PullToRefreshDefaults.LoadingIndicator(
                 isRefreshing = isRefreshing,
                 state = pullRefreshState,
-                containerColor = Color(0xFFEAEAEA),
-                color = Color(0xFF333333),
+                containerColor = SpotifyCard,
+                color = SpotifyGreen,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 145.dp),
+                    .padding(top = headerTopPadding),
             )
         } // Close BoxWithConstraints
         } // Close hazeSource Box
@@ -257,62 +469,64 @@ fun SpotifyHomeScreen(
         }
 
         SpotifyHeader(
-            title = "icebeats",
+            title = stringResource(R.string.ui_text_airbeats),
             subtitle = greeting(accountName),
             isAtTop = isAtTop,
             hazeState = hazeState,
-            modifier = Modifier.align(Alignment.TopCenter),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .onSizeChanged { headerHeightPx = it.height },
             bottomContent = {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val chipItems = listOf(
-                        "history" to context.getString(R.string.history),
-                        "liked" to context.getString(R.string.liked),
-                        "offline" to context.getString(R.string.offline),
-                        "stats" to context.getString(R.string.stats),
-                        "search" to context.getString(R.string.search)
-                    )
-                    items(chipItems) { (route, label) ->
-                        androidx.compose.material3.ElevatedFilterChip(
-                            selected = false,
-                            onClick = {
-                                when (route) {
-                                    "history" -> navController.navigate("history")
-                                    "liked" -> navController.navigate("auto_playlist/liked")
-                                    "offline" -> navController.navigate("auto_playlist/downloaded")
-                                    "stats" -> navController.navigate("stats")
-                                    "search" -> navController.navigate(Screens.Search.route)
-                                }
-                            },
-                            label = { Text(label, maxLines = 1) },
-                            shape = CircleShape,
-                            colors = androidx.compose.material3.FilterChipDefaults.elevatedFilterChipColors(
-                                containerColor = Color.Transparent,
-                                labelColor = Color.LightGray,
-                            ),
-                            border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = false,
-                                borderColor = Color.Gray.copy(alpha = 0.8f),
-                            ),
+                if (isSectionVisible(MaterialHomeSection.QUICK_TILES)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val chipItems = listOf(
+                            "history" to context.getString(R.string.history),
+                            "liked" to context.getString(R.string.liked),
+                            "offline" to context.getString(R.string.offline),
+                            "stats" to context.getString(R.string.stats),
+                            "search" to context.getString(R.string.search)
                         )
+                        items(chipItems) { (route, label) ->
+                            androidx.compose.material3.ElevatedFilterChip(
+                                selected = false,
+                                onClick = {
+                                    when (route) {
+                                        "history" -> navController.navigate("history")
+                                        "liked" -> navController.navigate("auto_playlist/liked")
+                                        "offline" -> navController.navigate("auto_playlist/downloaded")
+                                        "stats" -> navController.navigate("stats")
+                                        "search" -> navController.navigate(Screens.Search.route)
+                                    }
+                                },
+                                label = { Text(label, maxLines = 1) },
+                                shape = CircleShape,
+                                colors = androidx.compose.material3.FilterChipDefaults.elevatedFilterChipColors(
+                                    containerColor = SpotifyText.copy(alpha = 0.06f),
+                                    labelColor = SpotifyText.copy(alpha = 0.9f),
+                                ),
+                                border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = false,
+                                    borderColor = SpotifyText.copy(alpha = 0.28f),
+                                ),
+                            )
+                        }
                     }
                 }
             }
         ) {
-            androidx.compose.material3.IconButton(onClick = { navController.navigate("new_release") }) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.notification_on), contentDescription = null, tint = SpotifyText, modifier = Modifier.size(24.dp))
-            }
-            androidx.compose.material3.IconButton(onClick = { navController.navigate("history") }) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.history), contentDescription = null, tint = SpotifyText, modifier = Modifier.size(24.dp))
-            }
-            androidx.compose.material3.IconButton(onClick = { navController.navigate("settings") }) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.settings), contentDescription = null, tint = SpotifyText, modifier = Modifier.size(24.dp))
-            }
+            SpotifyHeaderActions(navController)
         }
+
+        // Floating 3-dot FAB
+        HomeFloatingActions(
+            navController = navController,
+            lazyListState = lazyListState
+        )
     }
 }
 
@@ -325,11 +539,19 @@ fun SpotifySearchScreen(
     val viewState by viewModel.viewState.collectAsState()
     val database = com.valora.icebeats.LocalDatabase.current
     val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val (pauseSearchHistory) = com.valora.icebeats.utils.rememberPreference(
+        key = com.valora.icebeats.constants.PauseSearchHistoryKey,
+        defaultValue = false
+    )
+    var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.valora.icebeats.ui.component.SearchTab.BROWSE_ALL) }
+    val chartsViewModel: com.valora.icebeats.viewmodels.ChartsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 
     SpotifyScaffold(
         title = stringResource(R.string.search),
-        subtitle = "Find your favorite music",
-        actions = {}
+        subtitle = stringResource(R.string.find_favorite_music),
+        actions = {
+            SpotifyHeaderActions(navController)
+        }
     ) {
         item {
             SpotifySearchInput(
@@ -338,11 +560,27 @@ fun SpotifySearchScreen(
                 onSearch = { q ->
                     val encoded = URLEncoder.encode(q, "UTF-8")
                     navController.navigate("search/$encoded")
+                    val isPaused = (com.valora.icebeats.utils.dataStoreCache[com.valora.icebeats.constants.PauseSearchHistoryKey.name] as? Boolean)
+                        ?: pauseSearchHistory
+                    if (!isPaused && q.isNotBlank()) {
+                        database.query {
+                            insert(com.valora.icebeats.db.entities.SearchHistory(query = q.trim()))
+                        }
+                    }
                 },
                 onMicClick = {
                     navController.navigate(com.valora.icebeats.ui.screens.musicrecognition.MusicRecognitionRoute)
                 }
             )
+        }
+
+        if (query.isBlank()) {
+            item {
+                com.valora.icebeats.ui.component.SearchPillSwitcher(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it }
+                )
+            }
         }
         
         if (query.isNotBlank() && (viewState.history.isNotEmpty() || viewState.suggestions.isNotEmpty())) {
@@ -374,6 +612,13 @@ fun SpotifySearchScreen(
                         val encoded = URLEncoder.encode(suggestion, "UTF-8")
                         navController.navigate("search/$encoded")
                         keyboardController?.hide()
+                        val isPaused = (com.valora.icebeats.utils.dataStoreCache[com.valora.icebeats.constants.PauseSearchHistoryKey.name] as? Boolean)
+                            ?: pauseSearchHistory
+                        if (!isPaused && suggestion.isNotBlank()) {
+                            database.query {
+                                insert(com.valora.icebeats.db.entities.SearchHistory(query = suggestion.trim()))
+                            }
+                        }
                     },
                     onFillTextField = {
                         viewModel.query.value = suggestion
@@ -382,55 +627,76 @@ fun SpotifySearchScreen(
                 )
             }
         } else {
-            item {
-                SpotifySectionTitle("Browse all")
-                Spacer(modifier = Modifier.height(10.dp))
-                val genres = listOf(
-                    "Pop" to Color(0xFFFF4632),
-                    "Hip-Hop" to Color(0xFFBC5900),
-                    "Rock" to Color(0xFFE1118C),
-                    "Latin" to Color(0xFFE1118C),
-                    "Educational" to Color(0xFF477D95),
-                    "Documentary" to Color(0xFF509BF5),
-                    "Comedy" to Color(0xFFE13300),
-                    "Charts" to Color(0xFF8D67AB),
-                    "Dance/Electronic" to Color(0xFFD84000),
-                    "Mood" to Color(0xFFE1118C),
-                    "Indie" to Color(0xFFE91429),
-                    "Workout" to Color(0xFF777777),
-                    "K-pop" to Color(0xFF148A08),
-                    "Chill" to Color(0xFFD84000),
-                    "Sleep" to Color(0xFF1E3264),
-                    "Party" to Color(0xFF537AA1),
-                    "At Home" to Color(0xFF5179A1),
-                    "Decades" to Color(0xFFBA5D07)
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
-                    genres.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            row.forEach { (chip, color) ->
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(100.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(color)
-                                        .clickable {
-                                            navController.navigate("search/${URLEncoder.encode(chip, "UTF-8")}")
+            when (selectedTab) {
+                com.valora.icebeats.ui.component.SearchTab.BROWSE_ALL -> {
+                    item {
+                        SpotifySectionTitle(stringResource(R.string.browse_all))
+                        Spacer(modifier = Modifier.height(10.dp))
+                        val genres = listOf(
+                            "Pop" to Color(0xFFFF4632),
+                            "Hip-Hop" to Color(0xFFBC5900),
+                            "Rock" to Color(0xFFE1118C),
+                            "Latin" to Color(0xFFE1118C),
+                            "Educational" to Color(0xFF477D95),
+                            "Documentary" to Color(0xFF509BF5),
+                            "Comedy" to Color(0xFFE13300),
+                            "Charts" to Color(0xFF8D67AB),
+                            "Dance/Electronic" to Color(0xFFD84000),
+                            "Mood" to Color(0xFFE1118C),
+                            "Indie" to Color(0xFFE91429),
+                            "Workout" to Color(0xFF777777),
+                            "K-pop" to Color(0xFF148A08),
+                            "Chill" to Color(0xFFD84000),
+                            "Sleep" to Color(0xFF1E3264),
+                            "Party" to Color(0xFF537AA1),
+                            "At Home" to Color(0xFF5179A1),
+                            "Decades" to Color(0xFFBA5D07)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
+                            genres.chunked(2).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    row.forEach { (chip, color) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(100.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(color)
+                                                .clickable {
+                                                    navController.navigate("search/${URLEncoder.encode(chip, "UTF-8")}")
+                                                }
+                                                .padding(12.dp)
+                                        ) {
+                                            Text(
+                                                text = chip,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 18.sp
+                                            )
                                         }
-                                        .padding(12.dp)
-                                ) {
-                                    Text(
-                                        text = chip,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
+                                    }
+                                    if (row.size == 1) Spacer(Modifier.weight(1f))
                                 }
                             }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
+                }
+                com.valora.icebeats.ui.component.SearchTab.AIRBEATS_CHARTS -> {
+                    airbeatsChartsItems(
+                        navController = navController,
+                        viewModel = chartsViewModel
+                    )
+                }
+                com.valora.icebeats.ui.component.SearchTab.RECENT_SEARCHES -> {
+                    recentSearchesItems(
+                        onSearch = { queryText: String ->
+                            val encoded = URLEncoder.encode(queryText, "UTF-8")
+                            navController.navigate("search/$encoded")
+                            keyboardController?.hide()
+                        },
+                        onFillQuery = { queryText: String -> viewModel.query.value = queryText },
+                        itemTextColor = Color.White
+                    )
                 }
             }
         }
@@ -452,11 +718,9 @@ fun SpotifyExploreScreen(
 
     SpotifyScaffold(
         title = stringResource(R.string.explore),
-        subtitle = "Fresh music and moods",
+        subtitle = stringResource(R.string.fresh_music_moods),
         actions = {
-            androidx.compose.material3.IconButton(onClick = { navController.navigate(Screens.Search.route) }) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.search), contentDescription = null, tint = SpotifyText, modifier = Modifier.size(24.dp))
-            }
+            SpotifyHeaderActions(navController)
         }
     ) {
         item {
@@ -497,86 +761,105 @@ fun SpotifyExploreScreen(
 @Composable
 fun SpotifyLibraryScreen(navController: NavController) {
     var filterType by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.valora.icebeats.constants.LibraryFilter.PLAYLISTS) }
+    val playerInsets = LocalPlayerAwareWindowInsets.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val contentInsets = androidx.compose.foundation.layout.WindowInsets(
+        playerInsets.getLeft(density, layoutDirection),
+        0,
+        playerInsets.getRight(density, layoutDirection),
+        // Keep the player-aware bottom inset for child lists and their FABs.
+        // The top inset is intentionally supplied by this screen's own header spacing.
+        playerInsets.getBottom(density),
+    )
 
-    SpotifyScaffold(
-        title = stringResource(R.string.library),
-        subtitle = "Saved music in icebeats",
-        actions = {
-            androidx.compose.material3.IconButton(onClick = { navController.navigate(Screens.Search.route) }) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.search), contentDescription = null, tint = SpotifyText, modifier = Modifier.size(24.dp))
-            }
-            androidx.compose.material3.IconButton(onClick = { navController.navigate("settings") }) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.settings), contentDescription = null, tint = SpotifyText, modifier = Modifier.size(24.dp))
-            }
-        }
-    ) {
-        item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 8.dp)
-            ) {
-                item {
-                    SpotifyChip(text = stringResource(R.string.playlists), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.PLAYLISTS) {
-                        filterType = com.valora.icebeats.constants.LibraryFilter.PLAYLISTS
-                    }
-                }
-                item {
-                    SpotifyChip(text = stringResource(R.string.songs), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.SONGS) {
-                        filterType = com.valora.icebeats.constants.LibraryFilter.SONGS
-                    }
-                }
-                item {
-                    SpotifyChip(text = stringResource(R.string.albums), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.ALBUMS) {
-                        filterType = com.valora.icebeats.constants.LibraryFilter.ALBUMS
-                    }
-                }
-                item {
-                    SpotifyChip(text = stringResource(R.string.artists), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.ARTISTS) {
-                        filterType = com.valora.icebeats.constants.LibraryFilter.ARTISTS
-                    }
-                }
-                item {
-                    SpotifyChip(text = stringResource(R.string.local_files), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.LOCAL) {
-                        filterType = com.valora.icebeats.constants.LibraryFilter.LOCAL
-                    }
-                }
-                item {
-                    SpotifyChip(text = stringResource(R.string.history), isSelected = false) {
-                        navController.navigate("history")
-                    }
-                }
-            }
-        }
-        item {
-            val insets = com.valora.icebeats.LocalPlayerAwareWindowInsets.current
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
-            val bottom = insets.getBottom(density)
-            val left = insets.getLeft(density, layoutDirection)
-            val right = insets.getRight(density, layoutDirection)
-            val customInsets = androidx.compose.foundation.layout.WindowInsets(left, 0, right, 0)
-            
+    // Measure header + chip row so nothing overlaps at any font scale / display size.
+    var headerHeightPx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var chipsHeightPx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val headerDp = if (headerHeightPx > 0) with(density) { headerHeightPx.toDp() }
+        else WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 76.dp
+    val chipsDp = if (chipsHeightPx > 0) with(density) { chipsHeightPx.toDp() } else 44.dp
+
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SpotifyBg)
+                .then(if (!com.valora.icebeats.utils.isBlurDisabled()) Modifier.haze(state = androidx.compose.runtime.remember { dev.chrisbanes.haze.HazeState() }) else Modifier),
+        ) {
+            IceBeatsMeshBackground()
             androidx.compose.runtime.CompositionLocalProvider(
-                com.valora.icebeats.LocalPlayerAwareWindowInsets provides customInsets
+                LocalPlayerAwareWindowInsets provides contentInsets,
             ) {
-                Box(Modifier.fillParentMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = headerDp + chipsDp + 8.dp),
+                ) {
                     when (filterType) {
                         com.valora.icebeats.constants.LibraryFilter.PLAYLISTS ->
-                            com.valora.icebeats.ui.screens.library.LibraryPlaylistsScreen(navController = navController, filterContent = {}, onLocalClick = { filterType = com.valora.icebeats.constants.LibraryFilter.LOCAL })
+                            com.valora.icebeats.ui.screens.library.LibraryPlaylistsScreen(navController = navController, filterContent = {})
                         com.valora.icebeats.constants.LibraryFilter.SONGS ->
                             com.valora.icebeats.ui.screens.library.LibrarySongsScreen(navController = navController, onDeselect = { filterType = com.valora.icebeats.constants.LibraryFilter.PLAYLISTS })
                         com.valora.icebeats.constants.LibraryFilter.ALBUMS ->
                             com.valora.icebeats.ui.screens.library.LibraryAlbumsScreen(navController = navController, onDeselect = { filterType = com.valora.icebeats.constants.LibraryFilter.PLAYLISTS })
                         com.valora.icebeats.constants.LibraryFilter.ARTISTS ->
                             com.valora.icebeats.ui.screens.library.LibraryArtistsScreen(navController = navController, onDeselect = { filterType = com.valora.icebeats.constants.LibraryFilter.PLAYLISTS })
-                        com.valora.icebeats.constants.LibraryFilter.LOCAL ->
-                            com.valora.icebeats.ui.screens.library.LocalSongsScreen(navController = navController)
-                        else -> {}
+                        else -> Unit
                     }
                 }
             }
         }
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = headerDp)
+                .padding(bottom = 4.dp)
+                .onSizeChanged { chipsHeightPx = it.height },
+        ) {
+            item {
+                SpotifyChip(text = stringResource(R.string.playlists), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.PLAYLISTS) {
+                    filterType = com.valora.icebeats.constants.LibraryFilter.PLAYLISTS
+                }
+            }
+            item {
+                SpotifyChip(text = stringResource(R.string.songs), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.SONGS) {
+                    filterType = com.valora.icebeats.constants.LibraryFilter.SONGS
+                }
+            }
+            item {
+                SpotifyChip(text = stringResource(R.string.albums), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.ALBUMS) {
+                    filterType = com.valora.icebeats.constants.LibraryFilter.ALBUMS
+                }
+            }
+            item {
+                SpotifyChip(text = stringResource(R.string.artists), isSelected = filterType == com.valora.icebeats.constants.LibraryFilter.ARTISTS) {
+                    filterType = com.valora.icebeats.constants.LibraryFilter.ARTISTS
+                }
+            }
+            item {
+                SpotifyChip(text = stringResource(R.string.local_files), isSelected = false) {
+                    navController.navigate("local_songs")
+                }
+            }
+            item {
+                SpotifyChip(text = stringResource(R.string.history), isSelected = false) {
+                    navController.navigate("history")
+                }
+            }
+        }
+
+        SpotifyHeader(
+            title = stringResource(R.string.library),
+            subtitle = stringResource(R.string.saved_music_airbeats),
+            modifier = Modifier.align(Alignment.TopCenter).onSizeChanged { headerHeightPx = it.height },
+            actions = {
+                SpotifyHeaderActions(navController)
+            },
+        )
     }
 }
 
@@ -584,25 +867,35 @@ fun SpotifyLibraryScreen(navController: NavController) {
 private fun SpotifyScaffold(
     title: String,
     subtitle: String,
+    reservePlayerInset: Boolean = true,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val hazeState = androidx.compose.runtime.remember { dev.chrisbanes.haze.HazeState() }
-    
+    val isBlurDisabled = com.valora.icebeats.utils.isBlurDisabled()
+    var headerHeightPx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val headerTopPadding = if (headerHeightPx > 0) with(density) { headerHeightPx.toDp() } + 8.dp
+        else WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 90.dp
+
     Box(Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(SpotifyBg)
-                .haze(state = hazeState)
+                .then(if (!isBlurDisabled) Modifier.haze(state = hazeState) else Modifier)
         ) {
-            SimpMusicMeshBackground()
+            IceBeatsMeshBackground()
             LazyColumn(
             state = lazyListState,
             contentPadding = PaddingValues(
-                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + 90.dp,
-                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
+                top = headerTopPadding,
+                bottom = if (reservePlayerInset) {
+                    LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                } else {
+                    0.dp
+                },
                 start = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateStartPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
                 end = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
             ),
@@ -619,7 +912,7 @@ private fun SpotifyScaffold(
         SpotifyHeader(
             title = title,
             subtitle = subtitle,
-            modifier = Modifier.align(Alignment.TopCenter),
+            modifier = Modifier.align(Alignment.TopCenter).onSizeChanged { headerHeightPx = it.height },
             isAtTop = isAtTop,
             actions = actions
         )
@@ -627,62 +920,12 @@ private fun SpotifyScaffold(
 }
 
 @Composable
-private fun SimpMusicMeshBackground() {
-    val color1 = MaterialTheme.colorScheme.primary
-    val color2 = MaterialTheme.colorScheme.secondary
-    val color3 = MaterialTheme.colorScheme.tertiary
-    val color4 = MaterialTheme.colorScheme.primaryContainer
-    val color5 = MaterialTheme.colorScheme.secondaryContainer
-    val surfaceColor = SpotifyBg
+private fun IceBeatsMeshBackground() {
+    val playerConnection = LocalPlayerConnection.current
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxSize(0.7f)
-            .drawWithCache {
-                val width = size.width
-                val height = size.height
-
-                val brush1 = Brush.radialGradient(
-                    colors = listOf(color1.copy(alpha = 0.38f), color1.copy(alpha = 0.24f), color1.copy(alpha = 0.14f), color1.copy(alpha = 0.06f), Color.Transparent),
-                    center = Offset(width * 0.15f, height * 0.1f),
-                    radius = width * 0.55f,
-                )
-                val brush2 = Brush.radialGradient(
-                    colors = listOf(color2.copy(alpha = 0.34f), color2.copy(alpha = 0.2f), color2.copy(alpha = 0.11f), color2.copy(alpha = 0.05f), Color.Transparent),
-                    center = Offset(width * 0.85f, height * 0.2f),
-                    radius = width * 0.65f,
-                )
-                val brush3 = Brush.radialGradient(
-                    colors = listOf(color3.copy(alpha = 0.3f), color3.copy(alpha = 0.17f), color3.copy(alpha = 0.09f), color3.copy(alpha = 0.04f), Color.Transparent),
-                    center = Offset(width * 0.3f, height * 0.45f),
-                    radius = width * 0.6f,
-                )
-                val brush4 = Brush.radialGradient(
-                    colors = listOf(color4.copy(alpha = 0.26f), color4.copy(alpha = 0.14f), color4.copy(alpha = 0.08f), color4.copy(alpha = 0.03f), Color.Transparent),
-                    center = Offset(width * 0.7f, height * 0.5f),
-                    radius = width * 0.7f,
-                )
-                val brush5 = Brush.radialGradient(
-                    colors = listOf(color5.copy(alpha = 0.22f), color5.copy(alpha = 0.12f), color5.copy(alpha = 0.06f), color5.copy(alpha = 0.02f), Color.Transparent),
-                    center = Offset(width * 0.5f, height * 0.75f),
-                    radius = width * 0.8f,
-                )
-                val overlayBrush = Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = 0.22f), surfaceColor.copy(alpha = 0.55f), surfaceColor),
-                    startY = height * 0.4f,
-                    endY = height,
-                )
-
-                onDrawBehind {
-                    drawRect(brush1)
-                    drawRect(brush2)
-                    drawRect(brush3)
-                    drawRect(brush4)
-                    drawRect(brush5)
-                    drawRect(overlayBrush)
-                }
-            },
+    com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+        artworkUrl = mediaMetadata?.thumbnailUrl
     )
 }
 
@@ -697,29 +940,31 @@ private fun SpotifyHeader(
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {}
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
-        androidx.compose.animation.AnimatedContent(
-            targetState = isAtTop,
-            transitionSpec = {
-                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)).togetherWith(androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(300)))
-            },
-            modifier = Modifier.matchParentSize()
-        ) { isAtTop ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (isAtTop) {
-                            Modifier.background(Color.Transparent)
-                        } else if (hazeState != null) {
-                            Modifier.hazeChild(
-                                state = hazeState,
-                                style = dev.chrisbanes.haze.materials.HazeMaterials.ultraThin()
-                            )
-                        } else {
-                            Modifier.background(SpotifyBg.copy(alpha = 0.95f))
-                        }
-                    )
+        val blurAlpha by androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (isAtTop) 0f else 1f,
+            animationSpec = androidx.compose.animation.core.tween(300),
+            label = "SpotifyHeaderBlurAlpha"
+        )
+        if (hazeState != null && !com.valora.icebeats.utils.isBlurDisabled()) {
+            val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val headerContentHeight = if (title == "IceBeats") 118.dp else 64.dp
+            com.valora.icebeats.ui.component.TopFadeBlur(
+                hazeState = hazeState,
+                pageColor = Color.Transparent,
+                scrimColor = Color.Transparent,
+                height = statusBarPadding + headerContentHeight + com.valora.icebeats.ui.component.FADE_RUN,
+                alpha = blurAlpha,
+                modifier = Modifier.align(Alignment.TopCenter)
             )
+        } else {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !isAtTop,
+                enter = androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.fadeOut(),
+                modifier = Modifier.matchParentSize()
+            ) {
+                Box(modifier = Modifier.fillMaxSize().background(SpotifyBg))
+            }
         }
 
         Column(
@@ -736,6 +981,7 @@ private fun SpotifyHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
+                    val isIceBeatsHome = title == "IceBeats"
                     androidx.compose.material3.Text(title, color = SpotifyText, fontSize = 22.sp, fontWeight = FontWeight.Black)
                     if (subtitle.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -749,7 +995,7 @@ private fun SpotifyHeader(
                                 color = SpotifyText.copy(alpha = 0.7f), 
                                 fontSize = 14.sp, 
                                 maxLines = 1,
-                                modifier = if (subtitle.startsWith("Good ")) Modifier.clickable { showNameDialog = true } else Modifier
+                                modifier = if (isIceBeatsHome) Modifier.clickable { showNameDialog = true } else Modifier
                             )
                             
                             if (showNameDialog) {
@@ -759,7 +1005,7 @@ private fun SpotifyHeader(
                                             coroutineScope.launch {
                                                 namePrefMgr.saveUserName(newName)
                                                 try {
-                                                    com.valora.icebeats.utils.icebeatsStatsCloudSync.syncDaily(
+                                                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.syncDaily(
                                                         context = com.valora.icebeats.App.instance,
                                                         database = com.valora.icebeats.App.instance.database,
                                                         namePreferenceManager = namePrefMgr,
@@ -775,23 +1021,17 @@ private fun SpotifyHeader(
                                     }
                                 )
                             }
-                            if (subtitle.startsWith("Good ")) {
+                            if (isIceBeatsHome) {
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 val statsViewModel = com.valora.icebeats.ui.utils.safeHiltViewModel<com.valora.icebeats.viewmodels.StatsViewModel>()
                                 val totalHours by (statsViewModel?.totalListenHours ?: kotlinx.coroutines.flow.flowOf(0.0)).collectAsState(initial = 0.0)
                                 val currentRank = androidx.compose.runtime.remember(totalHours) {
-                                    if (totalHours >= 1.0) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours.toInt()) else null
+                                    if (totalHours >= 1.0) com.valora.icebeats.ui.component.IceBeatsRank.fromHours(totalHours.toInt()) else null
                                 }
                                 val rankPrefMgr = androidx.compose.runtime.remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
                                 val displayedRank by rankPrefMgr.displayedRank.collectAsState(initial = null)
-                                val highestEarnedRank by rankPrefMgr.highestEarnedRank.collectAsState(initial = null)
 
-                                val actualEarnedRank = androidx.compose.runtime.remember(currentRank, highestEarnedRank) {
-                                    listOfNotNull(currentRank, highestEarnedRank).maxByOrNull { it.ordinal }
-                                }
-
-                                val effectiveRank = displayedRank ?: actualEarnedRank ?: currentRank
-                                effectiveRank?.let { rank ->
+                                currentRank?.let { rank ->
                                     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
                                     var showBadgeSelector by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -802,7 +1042,7 @@ private fun SpotifyHeader(
                                         modifier = Modifier.clickable { showBadgeSelector = true }
                                     )
                                     if (showBadgeSelector) {
-                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours, actualEarnedRank)
+                                        val unlocked = com.valora.icebeats.ui.component.unlockedRanksFromHours(totalHours)
                                         com.valora.icebeats.ui.component.BadgeSelector(
                                             unlockedRanks = unlocked,
                                             currentDisplayed = displayedRank,
@@ -864,9 +1104,13 @@ private fun SpotifySearchInput(
         singleLine = true,
         placeholder = { 
             Text(
-                text = "What do you want to listen to?", 
+                text = stringResource(R.string.ui_sweep_what_do_you_want_to_listen_to),
                 color = Color.Black.copy(alpha = 0.6f),
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                maxLines = 1,
+                softWrap = false,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             ) 
         },
         leadingIcon = { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.Black) },
@@ -874,7 +1118,7 @@ private fun SpotifySearchInput(
             androidx.compose.material3.IconButton(onClick = onMicClick) {
                 Icon(
                     painter = painterResource(R.drawable.mic),
-                    contentDescription = "Music Recognition",
+                    contentDescription = stringResource(R.string.music_recognition),
                     tint = Color.Black
                 )
             }
@@ -980,10 +1224,27 @@ private fun SpotifyChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val isFrosted = com.valora.icebeats.ui.component.isFrostedGlassUiEnabled()
+    val shape = RoundedCornerShape(32.dp)
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(32.dp))
-            .background(if (isSelected) SpotifyGreen else SpotifyText.copy(alpha = 0.12f))
+            .clip(shape)
+            .then(
+                if (isFrosted) {
+                    Modifier.border(
+                        1.dp,
+                        if (isSelected) SpotifyGreen.copy(alpha = 0.5f) else SpotifyText.copy(alpha = 0.18f),
+                        shape
+                    )
+                } else Modifier
+            )
+            .background(
+                if (isSelected) {
+                    SpotifyGreen
+                } else {
+                    if (isFrosted) SpotifyText.copy(alpha = 0.08f) else SpotifyText.copy(alpha = 0.12f)
+                }
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
@@ -1003,8 +1264,20 @@ private fun SpotifyBrowseTile(
     @androidx.annotation.DrawableRes icon: Int? = null,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
+        ),
+        label = "spotifyBrowseTilePressScale",
+    )
+
     Box(
         modifier = modifier
+            .scale(pressScale)
             .height(82.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(SpotifyText.copy(alpha = 0.12f))
@@ -1157,14 +1430,16 @@ private fun SpotifyPlaylistShimmer() {
     }
 }
 
+@Composable
 private fun greeting(name: String): String {
-    val cleanName = name.takeIf { it.isNotBlank() } ?: "there"
     val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
     val greetingText = when (hour) {
-        in 5..11 -> "Good Morning"
-        in 12..16 -> "Good Afternoon"
-        in 17..20 -> "Good Evening"
-        else -> "Good Night"
+        in 5..11 -> stringResource(R.string.greeting_morning)
+        in 12..16 -> stringResource(R.string.greeting_afternoon)
+        in 17..20 -> stringResource(R.string.greeting_evening)
+        else -> stringResource(R.string.greeting_night)
     }
-    return "$greetingText $cleanName"
+    return name.takeIf { it.isNotBlank() }?.let {
+        stringResource(R.string.greeting_with_name, greetingText, it)
+    } ?: greetingText
 }

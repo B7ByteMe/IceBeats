@@ -34,6 +34,7 @@ import com.valora.icebeats.db.entities.Playlist
 import com.valora.icebeats.db.entities.PlaylistEntity
 import com.valora.icebeats.db.entities.PlaylistSong
 import com.valora.icebeats.db.entities.PlaylistSongMap
+import com.valora.icebeats.db.entities.RecommendationExclusionEntity
 import com.valora.icebeats.db.entities.RelatedSongMap
 import com.valora.icebeats.db.entities.SearchHistory
 import com.valora.icebeats.db.entities.SetVideoIdEntity
@@ -64,6 +65,10 @@ private fun <T> List<T>.sortedWithCollator(selector: (T) -> String): List<T> {
 
 @Dao
 interface DatabaseDao {
+    @Transaction
+    @Query("SELECT * FROM song WHERE title LIKE '%' || :query || '%' OR albumName LIKE '%' || :query || '%' ORDER BY rowId DESC")
+    fun searchLocalSongs(query: String): Flow<List<Song>>
+
     @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY rowId")
     fun songsByRowIdAsc(): Flow<List<Song>>
@@ -262,11 +267,12 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-             SELECT song.id, song.title, song.thumbnailUrl,
-               (SELECT COUNT(1)
-                FROM event
-                WHERE songId = song.id
-                  AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) AS songCountListened,
+             SELECT song.id, song.title, COALESCE(song.thumbnailUrl, '') AS thumbnailUrl,
+               CASE 
+                 WHEN song.duration > 0 AND (SELECT SUM(event.playTime) FROM event WHERE songId = song.id AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) > 0
+                 THEN MAX(1, CAST(ROUND((SELECT SUM(event.playTime) FROM event WHERE songId = song.id AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) * 1.0 / (song.duration * 1000)) AS INTEGER))
+                 ELSE (SELECT COUNT(1) FROM event WHERE songId = song.id AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp)
+               END AS songCountListened,
                (SELECT SUM(event.playTime)
                 FROM event
                 WHERE songId = song.id
@@ -288,17 +294,18 @@ interface DatabaseDao {
         fromTimeStamp: Long,
         limit: Int = 6,
         offset: Int = 0,
-        toTimeStamp: Long? = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
+        toTimeStamp: Long = Long.MAX_VALUE,
     ): Flow<List<SongWithStats>>
 
     @Transaction
     @Query(
         """
         SELECT song.*,
-               (SELECT COUNT(1)
-                FROM event
-                WHERE songId = song.id
-                  AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) AS songCountListened,
+               CASE 
+                 WHEN song.duration > 0 AND (SELECT SUM(event.playTime) FROM event WHERE songId = song.id AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) > 0
+                 THEN MAX(1, CAST(ROUND((SELECT SUM(event.playTime) FROM event WHERE songId = song.id AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) * 1.0 / (song.duration * 1000)) AS INTEGER))
+                 ELSE (SELECT COUNT(1) FROM event WHERE songId = song.id AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp)
+               END AS songCountListened,
                (SELECT SUM(event.playTime)
                 FROM event
                 WHERE songId = song.id
@@ -320,7 +327,7 @@ interface DatabaseDao {
         fromTimeStamp: Long,
         limit: Int = 6,
         offset: Int = 0,
-        toTimeStamp: Long? = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
+        toTimeStamp: Long = Long.MAX_VALUE,
     ): Flow<List<Song>>
 
     @Transaction
@@ -357,7 +364,7 @@ interface DatabaseDao {
         fromTimeStamp: Long,
         limit: Int = 6,
         offset: Int = 0,
-        toTimeStamp: Long? = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
+        toTimeStamp: Long = Long.MAX_VALUE,
     ): Flow<List<Artist>>
 
     @Transaction
@@ -365,12 +372,11 @@ interface DatabaseDao {
         """
     SELECT album.*,
            COUNT(DISTINCT song_album_map.songId) as downloadCount,
-           (SELECT COUNT(1)
-            FROM song_album_map
-                     JOIN event e ON song_album_map.songId = e.songId
-            WHERE albumId = album.id
-              AND e.timestamp > :fromTimeStamp 
-              AND e.timestamp <= :toTimeStamp) AS songCountListened,
+            CASE
+              WHEN (SELECT AVG(sam_song.duration) FROM song_album_map sam_inner JOIN song sam_song ON sam_song.id = sam_inner.songId WHERE sam_inner.albumId = album.id AND sam_song.duration > 0) > 0
+              THEN MAX(1, CAST(ROUND((SELECT SUM(e.playTime) FROM song_album_map JOIN event e ON song_album_map.songId = e.songId WHERE albumId = album.id AND e.timestamp > :fromTimeStamp AND e.timestamp <= :toTimeStamp) * 1.0 / ((SELECT AVG(sam_song2.duration) FROM song_album_map sam_inner2 JOIN song sam_song2 ON sam_song2.id = sam_inner2.songId WHERE sam_inner2.albumId = album.id AND sam_song2.duration > 0) * 1000)) AS INTEGER))
+              ELSE (SELECT COUNT(1) FROM song_album_map JOIN event e ON song_album_map.songId = e.songId WHERE albumId = album.id AND e.timestamp > :fromTimeStamp AND e.timestamp <= :toTimeStamp)
+            END AS songCountListened,
            (SELECT SUM(e.playTime)
             FROM song_album_map
                      JOIN event e ON song_album_map.songId = e.songId
@@ -397,7 +403,7 @@ interface DatabaseDao {
         fromTimeStamp: Long,
         limit: Int = 6,
         offset: Int = 0,
-        toTimeStamp: Long? = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
+        toTimeStamp: Long = Long.MAX_VALUE,
     ): Flow<List<Album>>
 
     @Query("SELECT sum(count) from playCount WHERE song = :songId")
@@ -887,12 +893,6 @@ interface DatabaseDao {
                 )
             )
         }
-        update(
-            playlist.playlist.copy(
-                lastUpdateTime = java.time.LocalDateTime.now(),
-                bookmarkedAt = playlist.playlist.bookmarkedAt ?: java.time.LocalDateTime.now()
-            )
-        )
     }
 
     @Transaction
@@ -940,6 +940,14 @@ interface DatabaseDao {
     @Transaction
     @Query("DELETE FROM event")
     fun clearListenHistory()
+
+    @Transaction
+    @Query("DELETE FROM event WHERE timestamp >= :fromTimestamp")
+    fun clearHistorySince(fromTimestamp: LocalDateTime)
+
+    @Transaction
+    @Query("DELETE FROM event WHERE id = :eventId")
+    fun deleteEvent(eventId: Long)
 
     @Transaction
     @Query("SELECT * FROM search_history WHERE `query` LIKE :query || '%' ORDER BY id DESC")
@@ -1025,8 +1033,31 @@ interface DatabaseDao {
     fun clearPlaylist(playlistId: String)
 
     @Transaction
-    @Query("SELECT * FROM artist WHERE name = :name")
+    @Query("SELECT * FROM artist WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1")
     fun artistByName(name: String): ArtistEntity?
+
+    @Transaction
+    @Query("SELECT * FROM album WHERE LOWER(TRIM(title)) = LOWER(TRIM(:title)) LIMIT 1")
+    fun albumByName(title: String): AlbumEntity?
+
+    @Transaction
+    @Query("""
+        SELECT song.* FROM song
+        JOIN song_artist_map sam ON song.id = sam.songId
+        JOIN artist ON sam.artistId = artist.id
+        WHERE LOWER(TRIM(song.title)) = LOWER(TRIM(:title))
+          AND LOWER(TRIM(artist.name)) = LOWER(TRIM(:artistName))
+        LIMIT 1
+    """)
+    fun findSongByTitleAndArtist(title: String, artistName: String): Song?
+
+    @Transaction
+    @Query("""
+        SELECT song.* FROM song
+        WHERE LOWER(TRIM(song.title)) = LOWER(TRIM(:title))
+        LIMIT 1
+    """)
+    fun findSongByTitle(title: String): Song?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(song: SongEntity): Long
@@ -1328,7 +1359,7 @@ interface DatabaseDao {
     fun raw(supportSQLiteQuery: SupportSQLiteQuery): Int
 
     fun checkpoint() {
-        raw("PRAGMA wal_checkpoint(FULL)".toSQLiteQuery())
+        raw("PRAGMA wal_checkpoint(TRUNCATE)".toSQLiteQuery())
     }
 
     @Transaction
@@ -1341,7 +1372,7 @@ interface DatabaseDao {
     @Query(
         """
         SELECT album.*, 
-               (SELECT COUNT(1) FROM song_album_map JOIN song ON song_album_map.albumId = album.id AND song.inLibrary IS NOT NULL) AS songCount
+               (SELECT COUNT(1) FROM song_album_map JOIN song ON song_album_map.songId = song.id WHERE song_album_map.albumId = album.id AND song.inLibrary IS NOT NULL) AS songCount
         FROM album
         JOIN song_album_map ON album.id = song_album_map.albumId
         JOIN event ON song_album_map.songId = event.songId
@@ -1353,29 +1384,39 @@ interface DatabaseDao {
     fun recentAlbums(limit: Int, offset: Int = 0): Flow<List<Album>>
 
     @Transaction
-    @Query("DELETE FROM event")
-    fun clearAllEvents()
+    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL OR dateDownload IS NOT NULL")
+    fun getAllLibrarySongs(): Flow<List<Song>>
 
     @Transaction
-    @Query("UPDATE song SET liked = 0")
-    fun clearAllLikes()
+    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL OR dateDownload IS NOT NULL")
+    suspend fun getAllLibrarySongsSync(): List<Song>
 
-    @Transaction
-    @Query("DELETE FROM playlist WHERE isEditable = 1")
-    fun clearUserPlaylists()
+    // ==================== Recommendation Exclusions ("Don't recommend again") ====================
 
-    @Transaction
-    @Query("DELETE FROM playlist_song_map")
-    fun clearAllPlaylistSongs()
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(exclusion: RecommendationExclusionEntity): Long
 
-    @Transaction
-    @Query("UPDATE artist SET bookmarkedAt = NULL")
-    fun clearAllArtistBookmarks()
+    @Query("DELETE FROM recommendation_exclusions WHERE songId = :songId")
+    fun removeRecommendationExclusion(songId: String): Int
 
-    @Transaction
-    @Query("UPDATE album SET bookmarkedAt = NULL")
-    fun clearAllAlbumBookmarks()
+    @Query("SELECT * FROM recommendation_exclusions ORDER BY excludedAt DESC")
+    fun getAllRecommendationExclusions(): List<RecommendationExclusionEntity>
 
-    @Query("SELECT * FROM event ORDER BY timestamp DESC LIMIT :limit")
-    fun recentEvents(limit: Int = 500): Flow<List<Event>>
+    @Query("SELECT * FROM recommendation_exclusions ORDER BY excludedAt DESC")
+    fun observeRecommendationExclusions(): Flow<List<RecommendationExclusionEntity>>
+
+    @Query("SELECT COUNT(*) FROM recommendation_exclusions")
+    fun getRecommendationExclusionsCount(): Flow<Int>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM recommendation_exclusions WHERE songId = :songId)")
+    fun isRecommendationExcluded(songId: String): Flow<Boolean>
+
+    @Query("SELECT songId FROM recommendation_exclusions")
+    fun getExcludedSongIds(): List<String>
+
+    @Query("SELECT songId FROM recommendation_exclusions")
+    fun observeExcludedSongIds(): Flow<List<String>>
+
+    @Query("DELETE FROM recommendation_exclusions")
+    fun clearRecommendationExclusions(): Int
 }

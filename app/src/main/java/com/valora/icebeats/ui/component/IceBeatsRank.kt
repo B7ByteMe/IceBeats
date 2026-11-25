@@ -6,7 +6,7 @@ package com.valora.icebeats.ui.component
  * Each rank has an associated threshold in hours; the user attains the rank
  * when their total listening time meets or exceeds that threshold.
  */
-enum class icebeatsRank(val thresholdHours: Int) {
+enum class IceBeatsRank(val thresholdHours: Int) {
     Echo(1),
     Pulse(5),
     Bronze(10),
@@ -30,8 +30,11 @@ enum class icebeatsRank(val thresholdHours: Int) {
         /**
          * Returns the highest rank for which the given total listening hours meet the threshold.
          */
-        fun fromHours(hours: Int): icebeatsRank {
+        fun fromHours(hours: Int): IceBeatsRank {
             return values().lastOrNull { it.thresholdHours <= hours } ?: Echo
         }
     }
 }
+
+/** Alias for backward compatibility with legacy Supabase integration */
+typealias icebeatsRank = IceBeatsRank

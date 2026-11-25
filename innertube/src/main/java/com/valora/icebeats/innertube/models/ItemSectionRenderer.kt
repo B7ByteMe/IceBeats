@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.innertube.models
+package com.valora.icebeats.innertube.models
 
 import kotlinx.serialization.Serializable
 

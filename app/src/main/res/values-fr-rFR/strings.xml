@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -376,7 +376,7 @@
     <string name="backup_create_failed">"Impossible de créer une sauvegarde"</string>
     <string name="restore_failed">"Échec de la restauration de la sauvegarde"</string>
     <string name="discord_integration">"Intégration de Discord"</string>
-    <string name="discord_information">"icebeats utilise la bibliothèque KizzyRPC pour définir le statut de votre compte Discord. Cela implique l'utilisation de la connexion Discord Gateway, ce qui peut être considéré comme une violation des conditions d'utilisation de Discord. Cependant, aucun compte utilisateur n'a été suspendu pour cette raison. Utilisez-le à vos risques et périls. icebeats extraira uniquement votre jeton, le reste étant stocké localement."</string>
+    <string name="discord_information">"IceBeats utilise la bibliothèque KizzyRPC pour définir le statut de votre compte Discord. Cela implique l'utilisation de la connexion Discord Gateway, ce qui peut être considéré comme une violation des conditions d'utilisation de Discord. Cependant, aucun compte utilisateur n'a été suspendu pour cette raison. Utilisez-le à vos risques et périls. IceBeats extraira uniquement votre jeton, le reste étant stocké localement."</string>
     <string name="dismiss">"Rejeter"</string>
     <string name="options">"Options"</string>
     <string name="preview">"Aperçu"</string>

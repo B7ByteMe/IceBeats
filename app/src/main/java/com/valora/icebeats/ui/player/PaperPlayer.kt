@@ -1,5 +1,7 @@
 package com.valora.icebeats.ui.player
 
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -90,7 +92,7 @@ fun PaperPlayer(
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkMode by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
-    val dark = true
+    val dark = if (darkMode == DarkMode.AUTO) systemDark else darkMode == DarkMode.ON
     
     // Neumorphic colors for full screen
     val paper = if (dark) Color(0xFF20201D) else Color(0xFFFFFFFF)
@@ -149,7 +151,7 @@ fun PaperPlayer(
                 ) {
                     Icon(painterResource(R.drawable.arrow_back), null, tint = ink, modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Back", color = ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.back), color = ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
                 IconButton(onClick = onOpenMenu) {
                     Icon(painterResource(R.drawable.menu), null, tint = ink, modifier = Modifier.size(28.dp))
@@ -160,7 +162,7 @@ fun PaperPlayer(
 
             // Text
             Text(
-                text = mediaMetadata?.artists?.joinToString { it.name }.orEmpty().ifBlank { "icebeats" },
+                text = mediaMetadata?.artists?.joinToString { it.name }.orEmpty().ifBlank { "IceBeats" },
                 color = ink,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
@@ -420,7 +422,11 @@ fun PaperPlayer(
                 NeumorphicSmallButton(R.drawable.lyrics, paper, paperLow, ink, false, onOpenLyrics)
                 NeumorphicSmallButton(R.drawable.queue_music, paper, paperLow, ink, false, onOpenQueue)
                 NeumorphicSmallButton(
-                    if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat,
+                    when (repeatMode) {
+                        Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                        Player.REPEAT_MODE_ALL -> R.drawable.repeat_on
+                        else -> R.drawable.repeat
+                    },
                     paper, paperLow, ink, repeatMode != Player.REPEAT_MODE_OFF, onRepeat
                 )
             }

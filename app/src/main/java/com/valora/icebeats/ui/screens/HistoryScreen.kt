@@ -1,15 +1,7 @@
-/*
- * icebeats History Screen
- * Redesigned & Updated
- */
-
-
-
 package com.valora.icebeats.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -23,14 +15,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,21 +38,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.valora.icebeats.innertube.utils.parseCookieString
-import com.valora.icebeats.LocalDatabase
 import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import com.valora.icebeats.LocalPlayerConnection
 import com.valora.icebeats.R
@@ -65,14 +61,15 @@ import com.valora.icebeats.db.entities.EventWithSong
 import com.valora.icebeats.extensions.metadata
 import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.extensions.togglePlayPause
+import com.valora.icebeats.innertube.utils.parseCookieString
 import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.queues.ListQueue
 import com.valora.icebeats.playback.queues.YouTubeQueue
 import com.valora.icebeats.ui.component.ChipsRow
 import com.valora.icebeats.ui.component.HideOnScrollFAB
-import com.valora.icebeats.ui.component.IconButton
 import com.valora.icebeats.ui.component.LocalMenuState
 import com.valora.icebeats.ui.component.NavigationTitle
+import com.valora.icebeats.ui.component.ScreenAdaptiveBackground
 import com.valora.icebeats.ui.component.SongListItem
 import com.valora.icebeats.ui.component.YouTubeListItem
 import com.valora.icebeats.ui.menu.SelectionMediaMetadataMenu
@@ -81,8 +78,10 @@ import com.valora.icebeats.ui.menu.YouTubeSongMenu
 import com.valora.icebeats.ui.utils.backToMain
 import com.valora.icebeats.utils.rememberPreference
 import com.valora.icebeats.viewmodels.DateAgo
+import com.valora.icebeats.viewmodels.HistoryCategory
 import com.valora.icebeats.viewmodels.HistoryViewModel
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -91,27 +90,45 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val database = LocalDatabase.current
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    var selection by remember {
-        mutableStateOf(false)
+    var selection by remember { mutableStateOf(false) }
+    var isSearching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    val focusRequester = remember { FocusRequester() }
+
+    var showClearTodayDialog by remember { mutableStateOf(false) }
+    var showClearAllDialog by remember { mutableStateOf(false) }
+    var showTopMenu by remember { mutableStateOf(false) }
+
+    val historySource by viewModel.historySource.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val events by viewModel.events.collectAsState()
+    val historyPage by viewModel.historyPage
+
+    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val isLoggedIn = remember(innerTubeCookie) {
+        "SAPISID" in parseCookieString(innerTubeCookie)
     }
 
-    var isSearching by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(TextFieldValue())
+    // Logged in: show the account's YouTube Music history and keep it fresh (plays are pushed in real time).
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            viewModel.historySource.value = HistorySource.REMOTE
+            viewModel.fetchRemoteHistory()
+        }
     }
-    val focusRequester = remember { FocusRequester() }
+
     LaunchedEffect(isSearching) {
         if (isSearching) {
             focusRequester.requestFocus()
         }
     }
+
     if (isSearching) {
         BackHandler {
             isSearching = false
@@ -123,22 +140,13 @@ fun HistoryScreen(
         }
     }
 
-    val historySource by viewModel.historySource.collectAsState()
-    val events by viewModel.events.collectAsState()
-    val historyPage by viewModel.historyPage
-
-    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
-    }
-
     fun dateAgoToString(dateAgo: DateAgo): String {
         return when (dateAgo) {
             DateAgo.Today -> context.getString(R.string.today)
             DateAgo.Yesterday -> context.getString(R.string.yesterday)
             DateAgo.ThisWeek -> context.getString(R.string.this_week)
             DateAgo.LastWeek -> context.getString(R.string.last_week)
-            is DateAgo.Other -> dateAgo.date.format(DateTimeFormatter.ofPattern("yyyy/MM"))
+            is DateAgo.Other -> dateAgo.date.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
         }
     }
 
@@ -146,19 +154,25 @@ fun HistoryScreen(
         var isSelected by mutableStateOf(false)
     }
 
-    val filteredEvents = remember(events, query) {
+    val filteredEvents = remember(events, query, selectedCategory) {
+        val base = when (selectedCategory) {
+            HistoryCategory.ALL, HistoryCategory.SONGS -> events
+            HistoryCategory.ALBUMS -> events.mapValues { (_, songList) ->
+                songList.filter { it.song.album != null }.distinctBy { it.song.album?.id }
+            }.filterValues { it.isNotEmpty() }
+            HistoryCategory.ARTISTS -> events.mapValues { (_, songList) ->
+                songList.filter { it.song.artists.isNotEmpty() }.distinctBy { it.song.artists.firstOrNull()?.id }
+            }.filterValues { it.isNotEmpty() }
+        }
+
         if (query.text.isEmpty()) {
-            events
+            base
         } else {
-            events.mapValues { (_, songs) ->
+            base.mapValues { (_, songs) ->
                 songs.filter { event ->
                     event.song.song.title.contains(query.text, ignoreCase = true) ||
-                            event.song.artists.any {
-                                it.name.contains(
-                                    query.text,
-                                    ignoreCase = true
-                                )
-                            }
+                            event.song.artists.any { it.name.contains(query.text, ignoreCase = true) } ||
+                            (event.song.album?.title?.contains(query.text, ignoreCase = true) == true)
                 }
             }.filterValues { it.isNotEmpty() }
         }
@@ -191,43 +205,111 @@ fun HistoryScreen(
 
     val lazyListState = rememberLazyListState()
 
-    Box(Modifier.fillMaxSize()) {
+    // Confirm Clear Today Dialog
+    if (showClearTodayDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearTodayDialog = false },
+            title = { Text(stringResource(R.string.ui_remaining_clear_today_s_history), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.ui_remaining_this_will_remove_listening_events_from_today_your_total_play_stat)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearToday()
+                        showClearTodayDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.clear), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearTodayDialog = false }) {
+                    Text(stringResource(R.string.visitor_data_reset_cancel))
+                }
+            }
+        )
+    }
+
+    // Confirm Clear All Dialog
+    if (showClearAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearAllDialog = false },
+            title = { Text(stringResource(R.string.ui_remaining_clear_all_history), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.ui_remaining_are_you_sure_you_want_to_clear_your_entire_listening_history_this)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearAll()
+                        showClearAllDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.ui_text_clear_all), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearAllDialog = false }) {
+                    Text(stringResource(R.string.visitor_data_reset_cancel))
+                }
+            }
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Adaptive background matching StatsScreen: blurred song thumbnail when playing, Library mesh when idle
+        ScreenAdaptiveBackground(
+            artworkUrl = mediaMetadata?.thumbnailUrl
+        )
+
         LazyColumn(
             state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+            contentPadding = LocalPlayerAwareWindowInsets.current
+                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                 .asPaddingValues(),
             modifier = Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
+                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
-            item {
-                ChipsRow(
-                    chips = if (isLoggedIn) listOf(
-                        HistorySource.LOCAL to stringResource(R.string.local_history),
-                        HistorySource.REMOTE to stringResource(R.string.remote_history),
-                    ) else {
-                        listOf(HistorySource.LOCAL to stringResource(R.string.local_history))
-                    },
-                    currentValue = historySource,
-                    onValueUpdate = {
-                        viewModel.historySource.value = it
-                        if (it == HistorySource.REMOTE){
-                            viewModel.fetchRemoteHistory()
+            // Source Selector (Local vs Remote) when logged in
+            if (isLoggedIn) {
+                item(key = "history_source_chips") {
+                    ChipsRow(
+                        chips = listOf(
+                            HistorySource.LOCAL to stringResource(R.string.local_history),
+                            HistorySource.REMOTE to stringResource(R.string.remote_history),
+                        ),
+                        currentValue = historySource,
+                        onValueUpdate = {
+                            viewModel.historySource.value = it
+                            if (it == HistorySource.REMOTE) {
+                                viewModel.fetchRemoteHistory()
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
 
+            // Category Filter Chips (All, Songs, Albums, Artists)
+            if (historySource == HistorySource.LOCAL) {
+                item(key = "history_category_chips") {
+                    ChipsRow(
+                        chips = listOf(
+                            HistoryCategory.ALL to "All",
+                            HistoryCategory.SONGS to "Songs",
+                            HistoryCategory.ALBUMS to "Albums",
+                            HistoryCategory.ARTISTS to "Artists",
+                        ),
+                        currentValue = selectedCategory,
+                        onValueUpdate = { viewModel.setCategory(it) }
+                    )
+                }
+            }
+
+            // Remote Content Handling
             if (historySource == HistorySource.REMOTE && isLoggedIn) {
                 filteredRemoteContent?.forEach { section ->
                     stickyHeader {
                         NavigationTitle(
                             title = section.title,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
@@ -284,42 +366,40 @@ fun HistoryScreen(
                     }
                 }
             } else {
-                filteredEvents.forEach { (dateAgo, events) ->
+                // Local Grouped History
+                filteredEvents.forEach { (dateAgo, _) ->
                     stickyHeader {
                         NavigationTitle(
                             title = dateAgoToString(dateAgo),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
                     val currentDateWrappedItems = wrappedItemsMap[dateAgo] ?: emptyList()
-                    
+
                     itemsIndexed(
                         items = currentDateWrappedItems,
                         key = { index, wrappedItem -> "${dateAgo}_${wrappedItem.item.event.id}_$index" }
                     ) { index, wrappedItem ->
                         val event = wrappedItem.item
+
                         SongListItem(
                             song = event.song,
-                            isActive = event.song.id == mediaMetadata?.id,
-                            isPlaying = isPlaying,
-                            showInLibraryIcon = true,
+                            albumIndex = null,
+                            showLikedIcon = true,
+                            showInLibraryIcon = false,
+                            showDownloadIcon = true,
                             isSelected = wrappedItem.isSelected && selection,
-
                             trailingContent = {
                                 IconButton(
                                     onClick = {
-                                        if (!selection) {
-                                            menuState.show {
-                                                SongMenu(
-                                                    originalSong = event.song,
-                                                    event = event.event,
-                                                    navController = navController,
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
+                                        menuState.show {
+                                            SongMenu(
+                                                originalSong = event.song,
+                                                event = event.event,
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss
+                                            )
                                         }
                                     }
                                 ) {
@@ -365,6 +445,7 @@ fun HistoryScreen(
             }
         }
 
+        // Shuffle FAB
         HideOnScrollFAB(
             visible = if (historySource == HistorySource.REMOTE) {
                 filteredRemoteContent?.any { it.songs.isNotEmpty() } == true
@@ -394,124 +475,163 @@ fun HistoryScreen(
                 }
             }
         )
-    }
 
-    TopAppBar(
-        title = {
-            if (selection) {
-                val count = allWrappedItems.count { it.isSelected }
-                Text(
-                    text = pluralStringResource(R.plurals.n_song, count, count),
-                    style = MaterialTheme.typography.titleLarge
-                )
-            } else if (isSearching) {
-                TextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = {
-                        Text(
-                            text = stringResource(R.string.search),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.titleLarge,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                )
-            } else {
-                Text(stringResource(R.string.history))
-            }
-        },
-        navigationIcon = {
-            IconButton(
-                onClick = {
-                    when {
-                        isSearching -> {
-                            isSearching = false
-                            query = TextFieldValue()
-                        }
-
-                        selection -> {
-                            selection = false
-                        }
-
-                        else -> {
-                            navController.navigateUp()
-                        }
-                    }
-                },
-                onLongClick = {
-                    if (!isSearching && !selection) {
-                        navController.backToMain()
-                    }
+        // TopAppBar identical in styling to StatsScreen
+        TopAppBar(
+            title = {
+                if (selection) {
+                    val count = allWrappedItems.count { it.isSelected }
+                    Text(
+                        text = pluralStringResource(R.plurals.n_song, count, count),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                } else if (isSearching) {
+                    TextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.search),
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                    )
+                } else {
+                    Text(stringResource(R.string.history))
                 }
-            ) {
-                Icon(
-                    painter = painterResource(
-                        if (selection) R.drawable.close else R.drawable.arrow_back
-                    ),
-                    contentDescription = null
-                )
-            }
-        },
-        actions = {
-            if (selection) {
-                val count = allWrappedItems.count { it.isSelected }
-                IconButton(
+            },
+            navigationIcon = {
+                com.valora.icebeats.ui.component.IconButton(
                     onClick = {
-                        if (count == allWrappedItems.size) {
-                            allWrappedItems.forEach { it.isSelected = false }
-                        } else {
-                            allWrappedItems.forEach { it.isSelected = true }
+                        when {
+                            isSearching -> {
+                                isSearching = false
+                                query = TextFieldValue()
+                            }
+                            selection -> {
+                                selection = false
+                            }
+                            else -> {
+                                navController.navigateUp()
+                            }
+                        }
+                    },
+                    onLongClick = {
+                        if (!isSearching && !selection) {
+                            navController.backToMain()
                         }
                     }
                 ) {
                     Icon(
                         painter = painterResource(
-                            if (count == allWrappedItems.size) R.drawable.deselect else R.drawable.select_all
+                            if (selection) R.drawable.close else R.drawable.arrow_back
                         ),
                         contentDescription = null
                     )
                 }
-                IconButton(
-                    onClick = {
-                        menuState.show {
-                            SelectionMediaMetadataMenu(
-                                songSelection = allWrappedItems
-                                    .filter { it.isSelected }
-                                    .map { it.item.song.toMediaItem().metadata!! },
-                                onDismiss = menuState::dismiss,
-                                clearAction = { selection = false },
-                                currentItems = emptyList()
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent
+            ),
+            actions = {
+                if (selection) {
+                    val count = allWrappedItems.count { it.isSelected }
+                    IconButton(
+                        onClick = {
+                            if (count == allWrappedItems.size) {
+                                allWrappedItems.forEach { it.isSelected = false }
+                            } else {
+                                allWrappedItems.forEach { it.isSelected = true }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                if (count == allWrappedItems.size) R.drawable.deselect else R.drawable.select_all
+                            ),
+                            contentDescription = null
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            menuState.show {
+                                SelectionMediaMetadataMenu(
+                                    songSelection = allWrappedItems
+                                        .filter { it.isSelected }
+                                        .map { it.item.song.toMediaItem().metadata!! },
+                                    onDismiss = menuState::dismiss,
+                                    clearAction = { selection = false },
+                                    currentItems = emptyList()
+                                )
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.more_vert),
+                            contentDescription = null
+                        )
+                    }
+                } else if (!isSearching) {
+                    IconButton(
+                        onClick = { isSearching = true }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.search),
+                            contentDescription = stringResource(R.string.search)
+                        )
+                    }
+                    Box {
+                        IconButton(
+                            onClick = { showTopMenu = true }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.more_vert),
+                                contentDescription = stringResource(R.string.more_options)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showTopMenu,
+                            onDismissRequest = { showTopMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ui_text_view_stats)) },
+                                onClick = {
+                                    showTopMenu = false
+                                    navController.navigate("stats")
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ui_remaining_clear_today_s_history)) },
+                                onClick = {
+                                    showTopMenu = false
+                                    showClearTodayDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ui_text_clear_all_history), color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showTopMenu = false
+                                    showClearAllDialog = true
+                                }
                             )
                         }
                     }
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null
-                    )
-                }
-            } else if (!isSearching) {
-                IconButton(
-                    onClick = { isSearching = true }
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.search),
-                        contentDescription = null
-                    )
                 }
             }
-        }
-    )
+        )
+    }
 }

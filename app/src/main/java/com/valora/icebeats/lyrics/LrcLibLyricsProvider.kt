@@ -25,6 +25,8 @@ object LrcLibLyricsProvider : LyricsProvider {
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        LrcLib.getAllLyrics(title, artist, duration, null, callback)
+        runCatching {
+            LrcLib.getAllLyrics(title, artist, duration, null, callback)
+        }
     }
 }

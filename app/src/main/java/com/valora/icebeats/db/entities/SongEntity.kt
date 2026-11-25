@@ -45,10 +45,16 @@ data class SongEntity(
         liked = !liked,
         likedDate = if (!liked) LocalDateTime.now() else null,
         inLibrary = if (!liked) inLibrary ?: LocalDateTime.now() else inLibrary
-    ).also {
+    ).also { updated ->
         CoroutineScope(Dispatchers.IO).launch {
-            YouTube.likeVideo(id, !liked)
-            this.cancel()
+            runCatching {
+                com.valora.icebeats.data.artist.ArtistInnertubeClient.rateVideo(
+                    videoId = id,
+                    status = if (updated.liked) com.valora.icebeats.data.auth.LikeStatus.LIKE else com.valora.icebeats.data.auth.LikeStatus.INDIFFERENT
+                )
+            }.onFailure {
+                runCatching { YouTube.likeVideo(id, updated.liked) }
+            }
         }
     }
 

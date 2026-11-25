@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -365,7 +365,7 @@
     <string name="backup_create_failed">"Det gick inte att skapa säkerhetskopia"</string>
     <string name="restore_failed">"Fel vid återställning"</string>
     <string name="discord_integration">"Discord-integration"</string>
-    <string name="discord_information">"icebeats använder KizzyRPC-biblioteket för att sätta status på ditt Discord-konto. Detta innebär användning av Discord Gateway-anslutningen, vilket kan ses som ett brott mot Discords användarvillkor. Det finns dock inga kända fall där användarkonton stängts av av denna anledning. Använd på egen risk. icebeats hämtar endast din token, allt annat lagras lokalt."</string>
+    <string name="discord_information">"IceBeats använder KizzyRPC-biblioteket för att sätta status på ditt Discord-konto. Detta innebär användning av Discord Gateway-anslutningen, vilket kan ses som ett brott mot Discords användarvillkor. Det finns dock inga kända fall där användarkonton stängts av av denna anledning. Använd på egen risk. IceBeats hämtar endast din token, allt annat lagras lokalt."</string>
     <string name="dismiss">"Avfärda"</string>
     <string name="options">"Alternativ"</string>
     <string name="preview">"Förhandsvisning"</string>

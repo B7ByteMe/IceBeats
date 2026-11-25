@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.lyrics.providers
+package com.valora.icebeats.lyrics.providers
 
 import android.content.Context
 import com.valora.icebeats.constants.EnableUnisonLyricsKey

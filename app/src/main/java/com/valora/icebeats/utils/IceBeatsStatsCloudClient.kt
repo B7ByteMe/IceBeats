@@ -299,3 +299,5 @@ class icebeatsStatsCloudClient {
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
+
+typealias IceBeatsStatsCloudClient = icebeatsStatsCloudClient

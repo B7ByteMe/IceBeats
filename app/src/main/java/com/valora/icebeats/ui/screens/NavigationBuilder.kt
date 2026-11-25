@@ -20,10 +20,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navArgument
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.navigation.navDeepLink
 import com.valora.icebeats.BuildConfig
 import com.valora.icebeats.constants.HomeScreenStyle
 import com.valora.icebeats.constants.HomeScreenStyleKey
@@ -33,6 +30,7 @@ import com.valora.icebeats.ui.screens.artist.ArtistScreen
 import com.valora.icebeats.ui.screens.artist.ArtistSongsScreen
 import com.valora.icebeats.ui.screens.library.CachePlaylistScreen
 import com.valora.icebeats.ui.screens.library.LibraryScreen
+import com.valora.icebeats.ui.screens.library.LocalSongsScreen
 import com.valora.icebeats.ui.screens.library.PlayfulLibraryScreen
 import com.valora.icebeats.ui.screens.playlist.AutoPlaylistScreen
 import com.valora.icebeats.ui.screens.playlist.LocalPlaylistScreen
@@ -49,29 +47,13 @@ import com.valora.icebeats.ui.screens.settings.DiscordLoginScreen
 import com.valora.icebeats.ui.screens.settings.DiscordSettings
 import com.valora.icebeats.ui.screens.settings.PlayerSettings
 import com.valora.icebeats.ui.screens.settings.PrivacySettings
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.ui.Modifier
 import com.valora.icebeats.ui.screens.settings.SettingsScreen
 import com.valora.icebeats.ui.screens.settings.StorageSettings
 
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.delay
-import com.valora.icebeats.utils.rememberPreference
-import com.valora.icebeats.constants.NeverShowSupportValoraKey
-import com.valora.icebeats.constants.LastSupportValoraShownTimeKey
-import com.valora.icebeats.ui.component.SupportValoraDialog
-
-@Composable
-private fun rememberEffectiveHomeScreenStyle(): HomeScreenStyle {
-    val (rawStyle, _) = rememberEnumPreference(
-        HomeScreenStyleKey,
-        defaultValue = HomeScreenStyle.CLASSIC
-    )
-    return rawStyle
-}
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -80,59 +62,106 @@ fun NavGraphBuilder.navigationBuilder(
     latestVersionName: String,
     playerBottomSheetState: BottomSheetState,
     onSearchClick: () -> Unit,
+    rootPagerState: PagerState? = null,
+    navigationItems: List<Screens> = emptyList(),
 ) {
     composable(Screens.Home.route) {
-        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
-
-        val (neverShowSupport, setNeverShowSupport) = rememberPreference(
-            NeverShowSupportValoraKey,
-            defaultValue = false
-        )
-        val (lastSupportShownTime, setLastSupportShownTime) = rememberPreference(
-            LastSupportValoraShownTimeKey,
-            defaultValue = 0L
-        )
-        var showSupportValoraDialog by remember { mutableStateOf(false) }
-
-        LaunchedEffect(neverShowSupport, lastSupportShownTime) {
-            if (!neverShowSupport) {
-                val now = System.currentTimeMillis()
-                if (now - lastSupportShownTime >= 24 * 60 * 60 * 1000L) {
-                    delay(1500)
-                    showSupportValoraDialog = true
-                }
-            }
-        }
-
-        if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
-            PlayfulHomeScreen(navController = navController, playerBottomSheetState = playerBottomSheetState, onSearchClick = onSearchClick)
-        } else if (homeScreenStyle == HomeScreenStyle.NEON) {
-            NeonHomeScreen(navController = navController)
-        } else if (homeScreenStyle == HomeScreenStyle.SPOTIFY) {
-            SpotifyHomeScreen(navController = navController)
-        } else if (homeScreenStyle == HomeScreenStyle.APPLE) {
-            com.valora.icebeats.ui.screens.apple.AppleHomeScreen(navController = navController)
-        } else {
-            HomeScreen(navController = navController)
-        }
-
-        if (showSupportValoraDialog) {
-            SupportValoraDialog(
-                onDismiss = { neverShowAgain ->
-                    showSupportValoraDialog = false
-                    setLastSupportShownTime(System.currentTimeMillis())
-                    if (neverShowAgain) {
-                        setNeverShowSupport(true)
+        if (rootPagerState != null && navigationItems.isNotEmpty()) {
+            HorizontalPager(
+                state = rootPagerState,
+                modifier = Modifier.fillMaxSize(),
+                key = { index -> navigationItems.getOrNull(index)?.route ?: index.toString() }
+            ) { pageIndex ->
+                val screen = navigationItems.getOrNull(pageIndex) ?: Screens.Home
+                val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+                val (rawHomeScreenStyle, _) = rememberEnumPreference(
+                    HomeScreenStyleKey,
+                    defaultValue = HomeScreenStyle.CLASSIC
+                )
+                val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
+                when (screen.route) {
+                    Screens.Home.route -> {
+                        when (homeScreenStyle) {
+                            HomeScreenStyle.PLAYFUL -> PlayfulHomeScreen(navController = navController, playerBottomSheetState = playerBottomSheetState, onSearchClick = onSearchClick)
+                            HomeScreenStyle.SPOTIFY -> SpotifyHomeScreen(navController = navController)
+                            HomeScreenStyle.APPLE -> com.valora.icebeats.ui.screens.apple.AppleHomeScreen(navController = navController)
+                            HomeScreenStyle.NEW_CLASSIC -> NewClassicHomeScreen(navController = navController, onSearchClick = onSearchClick)
+                            HomeScreenStyle.BETTER -> BetterHomeScreen(navController = navController, onSearchClick = onSearchClick)
+                            HomeScreenStyle.MATERIAL -> com.valora.icebeats.ui.screens.material.MaterialHomeScreen(navController = navController, onSearchClick = onSearchClick)
+                            HomeScreenStyle.UNIVERSAL -> UniversalHomeScreen(navController = navController, onSearchClick = onSearchClick)
+                            else -> HomeScreen(navController = navController, onSearchClick = onSearchClick)
+                        }
+                    }
+                    Screens.Explore.route -> {
+                        when (homeScreenStyle) {
+                            HomeScreenStyle.PLAYFUL -> PlayfulExploreScreen(navController = navController, playerBottomSheetState = playerBottomSheetState, onSearchClick = onSearchClick)
+                            HomeScreenStyle.SPOTIFY -> SpotifyExploreScreen(navController = navController)
+                            HomeScreenStyle.APPLE -> com.valora.icebeats.ui.screens.apple.AppleExploreScreen(navController = navController)
+                            HomeScreenStyle.MATERIAL -> com.valora.icebeats.ui.screens.material.MaterialExploreScreen(navController = navController, scrollBehavior = scrollBehavior)
+                            else -> ExploreScreen(navController, scrollBehavior)
+                        }
+                    }
+                    Screens.Library.route -> {
+                        when (homeScreenStyle) {
+                            HomeScreenStyle.PLAYFUL -> PlayfulLibraryScreen(navController = navController, playerBottomSheetState = playerBottomSheetState, onSearchClick = onSearchClick)
+                            HomeScreenStyle.SPOTIFY -> SpotifyLibraryScreen(navController)
+                            HomeScreenStyle.APPLE -> com.valora.icebeats.ui.screens.apple.AppleLibraryScreen(navController = navController)
+                            HomeScreenStyle.MATERIAL -> com.valora.icebeats.ui.screens.material.MaterialLibraryScreen(navController = navController)
+                            else -> LibraryScreen(navController)
+                        }
+                    }
+                    Screens.Search.route -> {
+                        com.valora.icebeats.ui.screens.material.MaterialSearchScreen(navController = navController)
+                    }
+                    "stats" -> {
+                        if (homeScreenStyle == HomeScreenStyle.APPLE) {
+                            com.valora.icebeats.ui.screens.apple.AppleStatsScreen(navController = navController)
+                        } else {
+                            StatsScreen(navController)
+                        }
+                    }
+                    else -> {
+                        HomeScreen(navController = navController, onSearchClick = onSearchClick)
                     }
                 }
+            }
+        } else {
+            val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+            val (rawHomeScreenStyle, _) = rememberEnumPreference(
+                HomeScreenStyleKey,
+                defaultValue = HomeScreenStyle.CLASSIC
             )
+            val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
+
+            if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
+                PlayfulHomeScreen(navController = navController, playerBottomSheetState = playerBottomSheetState, onSearchClick = onSearchClick)
+            } else if (homeScreenStyle == HomeScreenStyle.SPOTIFY) {
+                SpotifyHomeScreen(navController = navController)
+            } else if (homeScreenStyle == HomeScreenStyle.APPLE) {
+                com.valora.icebeats.ui.screens.apple.AppleHomeScreen(navController = navController)
+            } else if (homeScreenStyle == HomeScreenStyle.NEW_CLASSIC) {
+                NewClassicHomeScreen(navController = navController, onSearchClick = onSearchClick)
+            } else if (homeScreenStyle == HomeScreenStyle.BETTER) {
+                BetterHomeScreen(navController = navController, onSearchClick = onSearchClick)
+            } else if (homeScreenStyle == HomeScreenStyle.MATERIAL) {
+                com.valora.icebeats.ui.screens.material.MaterialHomeScreen(navController = navController, onSearchClick = onSearchClick)
+            } else if (homeScreenStyle == HomeScreenStyle.UNIVERSAL) {
+                UniversalHomeScreen(navController = navController, onSearchClick = onSearchClick)
+            } else {
+                HomeScreen(navController = navController, onSearchClick = onSearchClick)
+            }
         }
     }
 
     composable(
         Screens.Library.route,
     ) {
-        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
+        val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+        val (rawHomeScreenStyle, _) = rememberEnumPreference(
+            HomeScreenStyleKey,
+            defaultValue = HomeScreenStyle.CLASSIC
+        )
+        val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
 
         if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
             PlayfulLibraryScreen(
@@ -140,18 +169,23 @@ fun NavGraphBuilder.navigationBuilder(
                 playerBottomSheetState = playerBottomSheetState,
                 onSearchClick = onSearchClick
             )
-        } else if (homeScreenStyle == HomeScreenStyle.NEON) {
-            com.valora.icebeats.ui.screens.library.NeonLibraryScreen(navController = navController)
         } else if (homeScreenStyle == HomeScreenStyle.SPOTIFY) {
             SpotifyLibraryScreen(navController)
         } else if (homeScreenStyle == HomeScreenStyle.APPLE) {
             com.valora.icebeats.ui.screens.apple.AppleLibraryScreen(navController = navController)
+        } else if (homeScreenStyle == HomeScreenStyle.MATERIAL) {
+            com.valora.icebeats.ui.screens.material.MaterialLibraryScreen(navController = navController)
         } else {
             LibraryScreen(navController)
         }
     }
     composable(Screens.Explore.route) {
-        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
+        val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+        val (rawHomeScreenStyle, _) = rememberEnumPreference(
+            HomeScreenStyleKey,
+            defaultValue = HomeScreenStyle.CLASSIC
+        )
+        val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
 
         if (homeScreenStyle == HomeScreenStyle.PLAYFUL) {
             PlayfulExploreScreen(
@@ -159,25 +193,21 @@ fun NavGraphBuilder.navigationBuilder(
                 playerBottomSheetState = playerBottomSheetState,
                 onSearchClick = onSearchClick
             )
-        } else if (homeScreenStyle == HomeScreenStyle.NEON) {
-            NeonExploreScreen(navController = navController)
         } else if (homeScreenStyle == HomeScreenStyle.SPOTIFY) {
             SpotifyExploreScreen(navController = navController)
         } else if (homeScreenStyle == HomeScreenStyle.APPLE) {
             com.valora.icebeats.ui.screens.apple.AppleExploreScreen(navController = navController)
+        } else if (homeScreenStyle == HomeScreenStyle.MATERIAL) {
+            com.valora.icebeats.ui.screens.material.MaterialExploreScreen(navController = navController, scrollBehavior = scrollBehavior)
         } else {
             ExploreScreen(navController,scrollBehavior)
         }
     }
     composable(Screens.Search.route) {
-        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
-        if (homeScreenStyle == HomeScreenStyle.NEON) {
-            com.valora.icebeats.ui.screens.search.NeonSearchScreen(navController = navController)
-        } else if (homeScreenStyle == HomeScreenStyle.APPLE) {
-            com.valora.icebeats.ui.screens.apple.AppleSearchScreen(navController = navController)
-        } else {
-            SpotifySearchScreen(navController = navController)
-        }
+        com.valora.icebeats.ui.screens.material.MaterialSearchScreen(navController = navController)
+    }
+    composable("search/") {
+        com.valora.icebeats.ui.screens.material.MaterialSearchScreen(navController = navController)
     }
     composable("history") {
         HistoryScreen(navController)
@@ -190,11 +220,13 @@ fun NavGraphBuilder.navigationBuilder(
     composable("guest_profile_setup") {
         com.valora.icebeats.ui.screens.onboarding.GuestProfileSetupScreen(navController = navController)
     }
-    composable("neon_search") {
-        com.valora.icebeats.ui.screens.search.NeonSearchScreen(navController = navController)
-    }
     composable("stats") {
-        val homeScreenStyle = rememberEffectiveHomeScreenStyle()
+        val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+        val (rawHomeScreenStyle, _) = rememberEnumPreference(
+            HomeScreenStyleKey,
+            defaultValue = HomeScreenStyle.CLASSIC
+        )
+        val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
         if (homeScreenStyle == HomeScreenStyle.APPLE) {
             com.valora.icebeats.ui.screens.apple.AppleStatsScreen(navController = navController)
         } else {
@@ -203,6 +235,12 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("account") {
         AccountScreen(navController, scrollBehavior)
+    }
+    composable("spotify_login") {
+        SpotifyLoginScreen(navController)
+    }
+    composable("spotify_account") {
+        com.valora.icebeats.ui.screens.settings.SpotifyAccountScreen(navController)
     }
     composable("new_release") {
         NewReleaseScreen(navController, scrollBehavior)
@@ -213,17 +251,28 @@ fun NavGraphBuilder.navigationBuilder(
     composable("year_in_music") {
         YearInMusicScreen(navController)
     }
-    composable("listen_together") {
+    composable(
+        route = "listen_together",
+        deepLinks = listOf(
+            navDeepLink { uriPattern = "airbeats://together.*" }
+        )
+    ) {
         ListenTogetherScreen(navController, scrollBehavior)
     }
     composable(com.valora.icebeats.ui.screens.musicrecognition.MusicRecognitionRoute) {
         com.valora.icebeats.ui.screens.musicrecognition.MusicRecognitionScreen(navController)
     }
 
-
-
-
-
+    composable("generator") {
+        com.valora.icebeats.ui.screens.generator.GenerateScreen(
+            navController = navController,
+            onBack = { navController.popBackStack() },
+            onNavigateToPlaylist = { playlistId ->
+                navController.popBackStack()
+                navController.navigate("local_playlist/$playlistId")
+            }
+        )
+    }
 
     composable(
         route = "search/{query}",
@@ -335,6 +384,9 @@ fun NavGraphBuilder.navigationBuilder(
     ) {
         LocalPlaylistScreen(navController, scrollBehavior)
     }
+    composable(route = "local_songs") {
+        LocalSongsScreen(navController)
+    }
     composable(
         route = "auto_playlist/{playlist}",
         arguments =
@@ -391,73 +443,103 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("settings") {
         val latestVersion by mutableLongStateOf(BuildConfig.VERSION_CODE.toLong())
-        SettingsThemeWrapper {
-            SettingsScreen(latestVersion, navController, scrollBehavior)
-        }
+        SettingsScreen(latestVersion, navController, scrollBehavior)
     }
     composable("settings/appearance") {
-        SettingsThemeWrapper {
-            AppearanceSettings(navController, scrollBehavior)
-        }
+        AppearanceSettings(navController, scrollBehavior)
+    }
+    composable("settings/appearance/app_icon") {
+        com.valora.icebeats.ui.screens.settings.AppIconScreen(navController, scrollBehavior)
+    }
+    composable("settings/dynamic_island") {
+        com.valora.icebeats.ui.screens.settings.DynamicIslandSettings(navController, scrollBehavior)
     }
     composable("settings/always_on_display") {
-        SettingsThemeWrapper {
-            AODSettings(navController, scrollBehavior)
-        }
+        AODSettings(navController, scrollBehavior)
     }
     composable("settings/account") {
-        SettingsThemeWrapper {
-            AccountSettings(navController, scrollBehavior)
-        }
+        AccountSettings(navController, scrollBehavior)
     }
     composable("settings/content") {
-        SettingsThemeWrapper {
-            ContentSettings(navController, scrollBehavior)
-        }
+        ContentSettings(navController, scrollBehavior)
+    }
+    composable("settings/content/excluded_songs") {
+        com.valora.icebeats.ui.screens.settings.ExcludedSongsScreen(navController, scrollBehavior)
+    }
+    composable("settings/lyrics") {
+        com.valora.icebeats.ui.screens.settings.LyricsSettings(navController, scrollBehavior)
+    }
+    composable("settings/ai") {
+        com.valora.icebeats.ui.screens.settings.AiSettings(navController, scrollBehavior)
     }
     composable("settings/player") {
-        SettingsThemeWrapper {
-            PlayerSettings(navController, scrollBehavior)
-        }
+        PlayerSettings(navController, scrollBehavior)
+    }
+    composable("settings/scrobbler") {
+        com.valora.icebeats.ui.screens.settings.ScrobblerSettingsScreen(navController, scrollBehavior)
+    }
+    composable("settings/scrobbler/apps") {
+        com.valora.icebeats.ui.screens.settings.ScrobblerAppsScreen(navController)
     }
     composable("settings/storage") {
-        SettingsThemeWrapper {
-            StorageSettings(navController, scrollBehavior)
-        }
+        StorageSettings(navController, scrollBehavior)
     }
     composable("settings/privacy") {
-        SettingsThemeWrapper {
-            PrivacySettings(navController, scrollBehavior)
-        }
+        PrivacySettings(navController, scrollBehavior)
     }
     composable("settings/backup_restore") {
-        SettingsThemeWrapper {
-            BackupAndRestore(navController, scrollBehavior)
-        }
+        BackupAndRestore(navController, scrollBehavior)
     }
     composable("settings/discord") {
-        SettingsThemeWrapper {
-            DiscordSettings(navController, scrollBehavior)
-        }
+        DiscordSettings(navController, scrollBehavior)
     }
     composable("settings/experimental") {
-        SettingsThemeWrapper {
             com.valora.icebeats.ui.screens.settings.DebugSettings(navController)
         }
-    }
-    composable("settings/discord/login") {
-        SettingsThemeWrapper {
-            DiscordLoginScreen(navController)
+        composable("settings/voice_assistant") {
+            com.valora.icebeats.ui.screens.settings.VoiceAssistantSettings(navController, scrollBehavior)
         }
+    composable("settings/discord/login") {
+        DiscordLoginScreen(navController)
+    }
+    composable("settings/android_auto") {
+        com.valora.icebeats.ui.screens.settings.AndroidAutoSettings(
+            navController,
+            scrollBehavior
+        )
     }
     composable("settings/about") {
-        SettingsThemeWrapper {
-            AboutScreen(navController, scrollBehavior)
-        }
+        AboutScreen(navController, scrollBehavior)
+    }
+    composable("settings/app_info") {
+        com.valora.icebeats.ui.screens.settings.AppInfoScreen(navController, scrollBehavior)
+    }
+    composable("settings/developer_news") {
+        com.valora.icebeats.ui.screens.settings.DeveloperNewsScreen(navController, scrollBehavior)
+    }
+    composable("settings/home_sections") {
+        com.valora.icebeats.ui.screens.settings.MaterialHomeSectionsScreen(
+            onBack = { navController.popBackStack() }
+        )
+    }
+    composable("settings/gestures") {
+        com.valora.icebeats.ui.screens.settings.GesturesSettingsScreen(
+            navController = navController,
+            scrollBehavior = scrollBehavior
+        )
+    }
+    composable("charts") {
+        com.valora.icebeats.ui.screens.charts.ChartsScreen(
+            navController = navController,
+            scrollBehavior = scrollBehavior
+        )
     }
     composable("login") {
-        LoginScreen(navController)
-    }
+            LoginScreen(navController)
+        }
+        composable("youtube_login") {
+            YouTubeLoginScreen(navController)
+        }
     composable("contributor/{username}") { backStackEntry ->
         val username = backStackEntry.arguments?.getString("username") ?: return@composable
         ContributorProfileScreen(navController, username)
@@ -473,19 +555,8 @@ fun NavGraphBuilder.navigationBuilder(
     }
 }
 
-@Composable
-fun SettingsThemeWrapper(content: @Composable () -> Unit) {
-    val currentTheme = MaterialTheme.colorScheme
-    val neonGreenColorScheme = remember(currentTheme) {
-        currentTheme.copy(
-            primary = Color(0xFF99FF00),
-            tertiary = Color(0xFF99FF00),
-            secondary = Color(0xFF99FF00),
-            onPrimary = Color.Black
-        )
-    }
-    MaterialTheme(colorScheme = neonGreenColorScheme) {
-        content()
-    }
-}
+
+
+
+
 

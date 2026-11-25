@@ -5,40 +5,66 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
+val AppModeKey = stringPreferencesKey("app_mode")
+const val APP_MODE_LITE = "Lite"
+const val APP_MODE_NORMAL = "Normal"
+/** User chose "Use locally" on the Google sign-in prompt. */
+val UseLocalOnlyKey = booleanPreferencesKey("loginChoiceLocal")
+val DynamicBackgroundKey = booleanPreferencesKey("dynamicBackground")
+val ThemeAccentColorKey = intPreferencesKey("themeAccentColor")
+val ThemeColorEffectKey = stringPreferencesKey("themeColorEffect")
+
+enum class ThemeColorEffect(val title: String, val description: String) {
+    NONE("None", "Default balanced tonal appearance"),
+    VIBRANT("Vibrant", "High energy & maximum chromatic saturation"),
+    EXPRESSIVE("Expressive", "Artistic with playful secondary & tertiary hues"),
+    FRUIT_SALAD("Fruit Salad", "Playful complementary fruit palette"),
+    RAINBOW("Rainbow", "Spirited spectrum dynamic tones"),
+    FIDELITY("Fidelity", "Faithfully mirrors the exact accent color"),
+    CONTENT("Content", "Content-focused balanced aesthetic"),
+    MONOCHROME("Monochrome", "Sleek modern greyscale tonal styling"),
+    NEUTRAL("Neutral", "Quiet, calm, and understated chromatic tones"),
+}
+
 val DarkModeKey = stringPreferencesKey("darkMode")
 val LiquidGlassKey = booleanPreferencesKey("enableLiquidGlass")
 val DynamicIslandKey = booleanPreferencesKey("enableDynamicIsland")
 val DynamicIslandOffsetXKey = intPreferencesKey("dynamicIslandOffsetX")
 val DynamicIslandOffsetYKey = intPreferencesKey("dynamicIslandOffsetY")
+val DynamicIslandWidthKey = intPreferencesKey("dynamicIslandWidth")
+val DynamicIslandHeightKey = intPreferencesKey("dynamicIslandHeight")
+val DynamicIslandLandscapeOffsetXKey = intPreferencesKey("dynamicIslandLandscapeOffsetX")
+val DynamicIslandLandscapeOffsetYKey = intPreferencesKey("dynamicIslandLandscapeOffsetY")
+val DynamicIslandLandscapeWidthKey = intPreferencesKey("dynamicIslandLandscapeWidth")
+val DynamicIslandLandscapeHeightKey = intPreferencesKey("dynamicIslandLandscapeHeight")
+val DynamicIslandBgColorKey = intPreferencesKey("dynamicIslandBgColor")
+val DynamicIslandAccentColorKey = intPreferencesKey("dynamicIslandAccentColor")
+val DynamicIslandTextColorKey = intPreferencesKey("dynamicIslandTextColor")
+val DynamicIslandLiquidGlassKey = booleanPreferencesKey("dynamicIslandLiquidGlass")
+val FrostedGlassCardsButtonsKey = booleanPreferencesKey("frostedGlassCardsButtons")
 
 val UserNameKey = stringPreferencesKey("user_name")
 
 val PureBlackKey = booleanPreferencesKey("pureBlack")
+val ReduceAnimationsKey = booleanPreferencesKey("reduceAnimations")
 val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
 val SlimNavBarKey = booleanPreferencesKey("slimNavBar")
 val ShowGalaxySliderKey = booleanPreferencesKey("showGalaxySlider")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val PlayerScreenStyleKey = stringPreferencesKey("playerScreenStyle")
+val ImmersivePlayerModeKey = booleanPreferencesKey("immersive_player_mode")
+val FullScreenModeKey = booleanPreferencesKey("full_screen_mode")
 val HomeScreenStyleKey = stringPreferencesKey("homeScreenStyle")
 val NavBarStyleKey = stringPreferencesKey("navBarStyle")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
 
 val ColourfullPlayerColorKey = intPreferencesKey("colourfullPlayerColor")
-
-val VipStatusKey = booleanPreferencesKey("vip_status")
-val VipExpiresAtKey = longPreferencesKey("vip_expires_at")
-val VipStartsAtKey = longPreferencesKey("vip_starts_at")
-val VipPlanKey = stringPreferencesKey("vip_plan")
-val VipSignatureKey = stringPreferencesKey("vip_sig_token")
-val VipPendingTxIdKey = stringPreferencesKey("vip_pending_tx_id")
-val VipPendingPlanKey = stringPreferencesKey("vip_pending_plan")
-val VipPendingPriceKey = intPreferencesKey("vip_pending_price")
-val VipPendingCreatedAtKey = stringPreferencesKey("vip_pending_created_at")
 
 enum class SliderStyle {
     DEFAULT,
@@ -47,18 +73,56 @@ enum class SliderStyle {
 }
 
 enum class HomeScreenStyle {
-    CLASSIC, PLAYFUL, NEON, SPOTIFY, APPLE
+    CLASSIC, PLAYFUL, SPOTIFY, APPLE, NEW_CLASSIC, MATERIAL, BETTER, UNIVERSAL
 }
 
 enum class NavBarStyle {
-    CLASSIC, LIQUID_GLASS, SPOTIFY, APPLE, NEON, NEW_CLASSIC
+    LIQUID_GLASS, SPOTIFY, APPLE, NEW_CLASSIC, MATERIAL, BETTER
+}
+
+val HiddenHomeSectionsKey = stringSetPreferencesKey("hiddenHomeSections")
+
+enum class MaterialHomeSection(val id: String, val title: String, val subtitle: String) {
+    HERO("hero", "Hero Greeting", "Greeting, date, and infinite radio quick start"),
+    QUICK_TILES("quick_tiles", "Quick Access", "Quick tiles for favorites, mixes, and recent tracks"),
+    TASTE_STRIP("taste_strip", "Taste Strip", "Genre and mood exploration chips"),
+    QUICK_PICKS("quick_picks", "Quick Picks", "Personalized recommendations for you"),
+    BECAUSE_YOU_LISTEN_TO("because_you_listen_to", "Because You Listen To", "Similar songs based on your listening history"),
+    FRESH_FINDS("fresh_finds", "Fresh Finds", "New tracks and undiscovered gems"),
+    JUMP_BACK_IN("jump_back_in", "Jump Back In", "Recently played tracks and listening history"),
+    MIXES("mixed_for_you", "Mixes To Explore", "Artist radios and endless mixes"),
+    SPOTLIGHT("spotlight_hero", "Artist Spotlight", "Featured artist card with instant radio"),
+    TOP_ARTISTS("top_artists", "Top Artists", "Your favorite and recommended artists"),
+    HEAVY_ROTATION("heavy_rotation", "Heavy Rotation", "Frequently played tracks"),
+    ALBUMS("albums_in_rotation", "Albums For You", "Top albums and recommended collections"),
+    CHARTS("trending_charts", "Trending Charts", "Top ranked and trending music charts"),
+    NEW_RELEASES("new_releases", "New Releases", "Fresh album and single drops");
+
+    companion object {
+        fun fromId(id: String?): MaterialHomeSection? =
+            entries.firstOrNull { it.id == id }
+    }
+}
+
+val DefaultHiddenHomeSections: Set<String> = setOf(
+    MaterialHomeSection.HERO.id,
+    MaterialHomeSection.TASTE_STRIP.id,
+)
+
+enum class LyricsScreenStyle {
+    LYRICS_1,
+    LYRICS_2
 }
 
 enum class PlayerScreenStyle {
-    PAPER,
-    CLASSIC,
+    MATERIAL,
+    IOS_STYLED,
     MODERN,
     SPOTIFY,
+    BETTER,
+    CLASSIC,
+    APPLE,
+    PAPER,
     LIQUID,
     CLOUDGLOW,
     FROST,
@@ -67,9 +131,7 @@ enum class PlayerScreenStyle {
     POPSY,
     MINIMAL,
     COLOURFULL,
-    APPLE,
-    GALAXY,
-    IOS_STYLED
+    GALAXY
 }
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
@@ -87,6 +149,8 @@ val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableYouTubeSubtitleLyricsKey = booleanPreferencesKey("enableYouTubeSubtitles")
 val EnableYouTubeMusicLyricsKey = booleanPreferencesKey("enableYouTubeMusicLyrics")
 val MusicProviderKey = stringPreferencesKey("musicProvider")
+val EnableJioSaavnKey = booleanPreferencesKey("enableJioSaavn")
+val AudDTokenKey = stringPreferencesKey("audd_api_token")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val LastNewReleaseCheckKey = longPreferencesKey("last_new_release_check")
 val minPlaybackDurKey = intPreferencesKey("minPlaybackDur")
@@ -100,39 +164,39 @@ val AudioQualityKey = stringPreferencesKey("audioQuality")
 enum class AudioQuality {
     AUTO,
     HIGH,
+    MEDIUM,
     LOW,
 }
 
+val BitPerfectEnabledKey = booleanPreferencesKey("bit_perfect_enabled")
+val StreamingQualityPresetKey = intPreferencesKey("streaming_quality_preset")
+
+object QualityTiers {
+    const val QUALITY_DOLBY_ATMOS = 28 // Dolby Atmos (Spatial Immersive Audio)
+    const val QUALITY_MAX_HI_RES = 27  // Up to 24-bit / 192 kHz
+    const val QUALITY_HI_RES_96 = 7    // Up to 24-bit / 96 kHz
+    const val QUALITY_CD_LOSSLESS = 6  // 16-bit / 44.1 kHz FLAC
+    const val QUALITY_MP3_320 = 5      // 320 kbps MP3
+    const val QUALITY_DATA_SAVER = 4   // 96 kbps HE-AAC
+    const val QUALITY_YOUTUBE = -1     // YouTube Music Native (AAC / Opus)
+}
+
+val DownloadQualityKey = stringPreferencesKey("downloadQuality")
+
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
+val PermanentShuffleKey = booleanPreferencesKey("permanentShuffle")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
+val PauseOnZeroVolumeKey = booleanPreferencesKey("pauseOnZeroVolume")
 val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val SimilarContent = booleanPreferencesKey("similarContent")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
-val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
-
-val DownloadQualityKey = stringPreferencesKey("downloadQuality")
-val PermanentShuffleKey = booleanPreferencesKey("permanentShuffle")
 val SkipUncachedPartKey = booleanPreferencesKey("skipUncachedPart")
+val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val CrossfadeKey = intPreferencesKey("crossfade")
-val ReduceAnimationsKey = booleanPreferencesKey("reduceAnimations")
-val SpotifyCookieKey = stringPreferencesKey("spotifyCookie")
-
-val DynamicIslandWidthKey = intPreferencesKey("dynamicIslandWidth")
-val DynamicIslandHeightKey = intPreferencesKey("dynamicIslandHeight")
-val DynamicIslandLandscapeOffsetXKey = intPreferencesKey("dynamicIslandLandscapeOffsetX")
-val DynamicIslandLandscapeOffsetYKey = intPreferencesKey("dynamicIslandLandscapeOffsetY")
-val DynamicIslandLandscapeWidthKey = intPreferencesKey("dynamicIslandLandscapeWidth")
-val DynamicIslandLandscapeHeightKey = intPreferencesKey("dynamicIslandLandscapeHeight")
-val DynamicIslandBgColorKey = intPreferencesKey("dynamicIslandBgColor")
-val DynamicIslandAccentColorKey = intPreferencesKey("dynamicIslandAccentColor")
-val DynamicIslandTextColorKey = intPreferencesKey("dynamicIslandTextColor")
-val DynamicIslandLiquidGlassKey = booleanPreferencesKey("dynamicIslandLiquidGlass")
-
-val EnableVoiceAssistantKey = booleanPreferencesKey("enable_voice_assistant")
-val VoiceAssistantAutoStartOnBootKey = booleanPreferencesKey("voice_auto_start_boot")
-val VoiceAssistantDirectCommandsKey = booleanPreferencesKey("voice_direct_commands")
-val VoiceAssistantTtsFeedbackKey = booleanPreferencesKey("voice_tts_feedback")
+val CrossfadeEnabledKey = booleanPreferencesKey("crossfadeEnabled")
+val CrossfadeDurationKey = floatPreferencesKey("crossfadeDuration")
+val CrossfadeGaplessKey = booleanPreferencesKey("crossfadeGapless")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
@@ -143,6 +207,11 @@ val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 val EnableLastFMScrobblingKey = booleanPreferencesKey("enableLastFMScrobbling")
 val LastFMUseNowPlaying = booleanPreferencesKey("lastFMUseNowPlaying")
+val LastFmApiKey = stringPreferencesKey("lastfm_api_key")
+val LastFmApiSecret = stringPreferencesKey("lastfm_api_secret")
+val LastFmSessionKey = stringPreferencesKey("lastfm_session_key")
+val LastFmUsername = stringPreferencesKey("lastfm_username")
+val AutoBackupToStorageKey = booleanPreferencesKey("auto_backup_to_storage")
 val AudioOffload = booleanPreferencesKey("audioOffload")
 
 val PlayerTextAlignmentKey = stringPreferencesKey("playerTextAlignment")
@@ -208,8 +277,13 @@ val QueueEditLockKey = booleanPreferencesKey("queueEditLock")
 val LyricFontSizeKey = intPreferencesKey("lyricFontSize")
 val fullScreenLyricsKey = booleanPreferencesKey("fullScreenLyrics")
 val AnimateLyricsKey = booleanPreferencesKey("animate_lyrics")
+val LyricsScreenStyleKey = stringPreferencesKey("lyrics_screen_style")
 val EnableNewLyricsScreenKey = booleanPreferencesKey("enable_new_lyrics_screen")
-val EnableNewQueueScreenKey = booleanPreferencesKey("enable_new_queue_screen")
+
+val EnableSwipeBackGestureKey = booleanPreferencesKey("enableSwipeBackGesture")
+val EnableTabSwipeGestureKey = booleanPreferencesKey("enableTabSwipeGesture")
+val EnableMiniPlayerSwipeKey = booleanPreferencesKey("enableMiniPlayerSwipe")
+val EnablePlayerDoubleTapSeekKey = booleanPreferencesKey("enablePlayerDoubleTapSeek")
 
 
 val PlayPauseButtonShapeKey = stringPreferencesKey("playPauseButtonShape")
@@ -393,9 +467,40 @@ val LyricsClickKey = booleanPreferencesKey("lyricsClick")
 val TranslateLyricsKey = booleanPreferencesKey("translateLyrics")
 
 val PlayerVolumeKey = floatPreferencesKey("playerVolume")
+val BypassAllAudioEffectsKey = booleanPreferencesKey("bypass_all_audio_effects")
+val AudioFxAndDjEnabledKey = booleanPreferencesKey("audio_fx_and_dj_enabled")
 val EqualizerEnabledKey = booleanPreferencesKey("equalizerEnabled")
+val EqualizerPresetKey = stringPreferencesKey("equalizerPreset")
+
+val DolbyAtmosEnabledKey = booleanPreferencesKey("dolbyAtmosEnabled")
+val SpatialAudioEnabledKey = booleanPreferencesKey("spatialAudioEnabled")
+val AudioBoostEnabledKey = booleanPreferencesKey("audio_boost_enabled")
+val AudioBoostPercentKey = intPreferencesKey("audio_boost_percent")
+val EchoEnabledKey = booleanPreferencesKey("echo_enabled")
+val EchoDelayMsKey = intPreferencesKey("echo_delay_ms")
+val EchoFeedbackKey = floatPreferencesKey("echo_feedback")
+val EchoWetMixKey = floatPreferencesKey("echo_wet_mix")
+val EchoPingPongKey = booleanPreferencesKey("echo_ping_pong")
+val DjFilterSweepKey = floatPreferencesKey("dj_filter_sweep")
+val DjFlangerEnabledKey = booleanPreferencesKey("dj_flanger_enabled")
+val DjFlangerRateKey = floatPreferencesKey("dj_flanger_rate")
+val DjFlangerDepthKey = floatPreferencesKey("dj_flanger_depth")
+val DjSaturationKey = floatPreferencesKey("dj_saturation")
+val DjTurntableLinkedKey = booleanPreferencesKey("dj_turntable_linked")
+val DjTempoSpeedKey = floatPreferencesKey("dj_tempo_speed")
+val DjPitchKey = floatPreferencesKey("dj_pitch")
+val EightDAudioEnabledKey = booleanPreferencesKey("eight_d_audio_enabled")
+val EightDAudioLevelKey = intPreferencesKey("eight_d_audio_level")
+val AutomixEnabledKey = booleanPreferencesKey("automixEnabled")
+val AutomixPerformanceModeKey = stringPreferencesKey("automixPerformanceMode")
 val RepeatModeKey = intPreferencesKey("repeatMode")
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
+
+enum class AutomixPerformanceMode(val threads: Int) {
+    EFFICIENT(1),
+    BALANCED(2),
+    PERFORMANCE(4);
+}
 
 val SearchSourceKey = stringPreferencesKey("searchSource")
 val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
@@ -420,87 +525,88 @@ val LastBackupTimestampKey = longPreferencesKey("last_backup_timestamp")
 val AccountNameKey = stringPreferencesKey("accountName")
 val AccountEmailKey = stringPreferencesKey("accountEmail")
 val AccountChannelHandleKey = stringPreferencesKey("accountChannelHandle")
+val SpotifyCookieKey = stringPreferencesKey("spotifyCookie")
 val UseLoginForBrowse = booleanPreferencesKey("useLoginForBrowse")
 
 val LanguageCodeToName =
     mapOf(
         "af" to "Afrikaans",
-        "az" to "Az?rbaycan",
+        "az" to "Azərbaycan",
         "id" to "Bahasa Indonesia",
         "ms" to "Bahasa Malaysia",
-        "ca" to "Catal•",
-        "cs" to "Ce•tina",
+        "ca" to "Català",
+        "cs" to "Čeština",
         "da" to "Dansk",
         "de" to "Deutsch",
         "et" to "Eesti",
         "en-GB" to "English (UK)",
         "en" to "English (US)",
-        "es" to "Espa•ol (Espa•a)",
-        "es-419" to "Espa•ol (Latinoam•rica)",
+        "es" to "Español (España)",
+        "es-419" to "Español (Latinoamérica)",
         "eu" to "Euskara",
         "fil" to "Filipino",
-        "fr" to "Fran•ais",
-        "fr-CA" to "Fran•ais (Canada)",
+        "fr" to "Français",
+        "fr-CA" to "Français (Canada)",
         "gl" to "Galego",
         "hr" to "Hrvatski",
         "zu" to "IsiZulu",
-        "is" to "•slenska",
+        "is" to "Íslenska",
         "it" to "Italiano",
         "sw" to "Kiswahili",
-        "lt" to "Lietuviu",
+        "lt" to "Lietuvių",
         "hu" to "Magyar",
         "nl" to "Nederlands",
         "no" to "Norsk",
         "or" to "Odia",
-        "uz" to "O•zbe",
+        "uz" to "O‘zbe",
         "pl" to "Polski",
-        "pt-PT" to "Portugu•s",
-        "pt" to "Portugu•s (Brasil)",
-        "ro" to "Rom•na",
+        "pt-PT" to "Português",
+        "pt" to "Português (Brasil)",
+        "ro" to "Română",
         "sq" to "Shqip",
-        "sk" to "Slovencina",
-        "sl" to "Sloven•cina",
+        "sk" to "Slovenčina",
+        "sl" to "Slovenščina",
         "fi" to "Suomi",
         "sv" to "Svenska",
-        "bo" to "Tibetan ????????",
-        "vi" to "Ti?ng Vi?t",
-        "tr" to "T•rk•e",
-        "bg" to "?????????",
-        "ky" to "????????",
-        "kk" to "????? ????",
-        "mk" to "??????????",
-        "mn" to "??????",
-        "ru" to "???????",
-        "sr" to "??????",
-        "uk" to "??????????",
-        "el" to "????????",
-        "hy" to "???????",
-        "iw" to "?????",
-        "ur" to "????",
-        "ar" to "???????",
-        "fa" to "?????",
-        "ne" to "??????",
-        "mr" to "?????",
-        "hi" to "??????",
-        "bn" to "?????",
-        "pa" to "??????",
-        "gu" to "???????",
-        "ta" to "?????",
-        "te" to "??????",
-        "kn" to "?????",
-        "ml" to "??????",
-        "si" to "?????",
-        "th" to "???????",
-        "lo" to "???",
-        "my" to "???",
-        "ka" to "???????",
-        "am" to "????",
-        "km" to "?????",
-        "zh-CN" to "?? (??)",
-        "zh-TW" to "?? (??)",
-        "zh-HK" to "?? (??)",
-        "ja" to "???",
-        "ko" to "???",
+        "bo" to "Tibetan བོད་སྐད།",
+        "vi" to "Tiếng Việt",
+        "tr" to "Türkçe",
+        "bg" to "Български",
+        "ky" to "Кыргызча",
+        "kk" to "Қазақ Тілі",
+        "mk" to "Македонски",
+        "mn" to "Монгол",
+        "ru" to "Русский",
+        "sr" to "Српски",
+        "uk" to "Українська",
+        "el" to "Ελληνικά",
+        "hy" to "Հայերեն",
+        "iw" to "עברית",
+        "ur" to "اردو",
+        "ar" to "العربية",
+        "fa" to "فارسی",
+        "ne" to "नेपाली",
+        "mr" to "मराठी",
+        "hi" to "हिन्दी",
+        "bn" to "বাংলা",
+        "pa" to "ਪੰਜਾਬੀ",
+        "gu" to "ગુજરાતી",
+        "ta" to "தமிழ்",
+        "te" to "తెలుగు",
+        "kn" to "ಕನ್ನಡ",
+        "ml" to "മലയാളം",
+        "si" to "සිංහල",
+        "th" to "ภาษาไทย",
+        "lo" to "ລາວ",
+        "my" to "ဗမာ",
+        "ka" to "ქართული",
+        "am" to "አማርኛ",
+        "km" to "ខ្មែរ",
+        "zh-CN" to "中文 (简体)",
+        "zh-TW" to "中文 (繁體)",
+        "zh-HK" to "中文 (香港)",
+        "ja" to "日本語",
+        "ko" to "한국어",
     )
 
 val CountryCodeToName =
@@ -647,5 +753,79 @@ val AodTextScaleKey = floatPreferencesKey("aod_text_scale")
 val AodShowClockKey = booleanPreferencesKey("aod_show_clock")
 val AodClockFormatKey = booleanPreferencesKey("aod_clock_24h")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
-val NeverShowSupportValoraKey = booleanPreferencesKey("neverShowSupportValora")
-val LastSupportValoraShownTimeKey = longPreferencesKey("lastSupportValoraShownTime")
+
+val EnableVoiceAssistantKey = booleanPreferencesKey("enable_voice_assistant")
+val VoiceAssistantAutoStartOnBootKey = booleanPreferencesKey("voice_auto_start_boot")
+val VoiceAssistantDirectCommandsKey = booleanPreferencesKey("voice_direct_commands")
+val VoiceAssistantTtsFeedbackKey = booleanPreferencesKey("voice_tts_feedback")
+
+// ==================== AI INTEGRATION & LYRICS TRANSLATION KEYS ====================
+val AiProviderKey = stringPreferencesKey("aiProvider")
+val OpenRouterApiKey = stringPreferencesKey("openRouterApiKey")
+val OpenRouterBaseUrlKey = stringPreferencesKey("openRouterBaseUrl")
+val OpenRouterModelKey = stringPreferencesKey("openRouterModel")
+val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
+val TranslateModeKey = stringPreferencesKey("translateMode")
+val CustomPromptKey = stringPreferencesKey("customPrompt")
+val AutoTranslateKey = booleanPreferencesKey("autoTranslate")
+val ReplaceOriginalLyricsWithTranslationKey = booleanPreferencesKey("replaceOriginalLyricsWithTranslation")
+val DeeplApiKey = stringPreferencesKey("deeplApiKey")
+val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
+val AiRecommendationsKey = booleanPreferencesKey("aiRecommendations")
+
+val AiTranslationLanguages = linkedMapOf(
+    "hi-Latn" to "Hinglish (Hindi in English)",
+    "en" to "English (US)",
+    "en-GB" to "English (UK)",
+    "hi" to "हिन्दी (Hindi)",
+    "es" to "Español (Spanish)",
+    "fr" to "Français (French)",
+    "de" to "Deutsch (German)",
+    "ja" to "日本語 (Japanese)",
+    "ko" to "한국어 (Korean)",
+    "zh" to "中文 (Chinese)",
+    "ar" to "العربية (Arabic)",
+    "ru" to "Русский (Russian)",
+    "pt" to "Português (Portuguese)",
+    "it" to "Italiano (Italian)",
+    "tr" to "Türkçe (Turkish)",
+    "ur" to "اردو (Urdu)",
+    "pa" to "ਪੰਜਾਬੀ (Punjabi)",
+    "bn" to "বাংলা (Bengali)",
+    "mr" to "मराठी (Marathi)",
+    "gu" to "ગુજરાતી (Gujarati)",
+    "ta" to "தமிழ் (Tamil)",
+    "te" to "తెలుగు (Telugu)",
+    "kn" to "ಕನ್ನಡ (Kannada)",
+    "ml" to "മലയാളം (Malayalam)",
+    "id" to "Bahasa Indonesia",
+    "ms" to "Bahasa Malaysia",
+    "vi" to "Tiếng Việt",
+    "th" to "ไทย (Thai)",
+    "pl" to "Polski",
+    "nl" to "Nederlands",
+    "sv" to "Svenska",
+    "no" to "Norsk",
+    "da" to "Dansk",
+    "fi" to "Suomi",
+    "el" to "Ελληνικά (Greek)",
+    "he" to "עברית (Hebrew)",
+    "fa" to "فارسی (Persian)",
+    "ro" to "Română",
+    "hu" to "Magyar",
+    "cs" to "Čeština",
+    "sk" to "Slovenčina",
+    "uk" to "Українська",
+    "bg" to "Български",
+    "hr" to "Hrvatski",
+    "sr" to "Српски",
+    "sl" to "Slovenščina",
+    "et" to "Eesti",
+    "lv" to "Latviešu",
+    "lt" to "Lietuvių",
+    "fil" to "Filipino",
+    "sw" to "Kiswahili",
+    "af" to "Afrikaans",
+)
+
+val HasCompletedSetupKey = booleanPreferencesKey("has_completed_setup")

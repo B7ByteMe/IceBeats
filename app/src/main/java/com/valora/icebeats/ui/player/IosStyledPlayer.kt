@@ -1,11 +1,32 @@
 package com.valora.icebeats.ui.player
 
+import androidx.compose.ui.res.stringResource
+
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.SpeakerGroup
+import androidx.compose.material.icons.filled.Usb
+import androidx.compose.runtime.collectAsState
+import com.valora.icebeats.LocalPlayerConnection
+import com.valora.icebeats.ui.component.PlayerCastMenuRow
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.material3.Switch
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,8 +46,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
@@ -47,6 +72,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.valora.icebeats.ui.component.SongDetailsDialog
+import com.valora.icebeats.ui.component.AudioPipelineDialog
+import com.valora.icebeats.ui.component.AudioQualityTag
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,7 +114,7 @@ import com.valora.icebeats.ui.menu.PlayerMenu
 import com.valora.icebeats.utils.makeTimeString
 import com.skydoves.cloudy.cloudy
 
-private fun String?.highRes(): String = this?.replace("w54-h54", "w512-h512") ?: ""
+private fun String?.highRes(): String = this?.replace(Regex("w\\d+-h\\d+"), "w8192-h8192") ?: ""
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -442,46 +469,29 @@ private fun V8PlayerControlsContent(
 
         Spacer(Modifier.height(4.dp))
 
+        var showAudioPipelineDialog by rememberSaveable { mutableStateOf(false) }
+
+        if (showAudioPipelineDialog) {
+            AudioPipelineDialog(
+                currentFormat = currentFormat,
+                mediaMetadata = mediaMetadata,
+                onDismiss = { showAudioPipelineDialog = false },
+            )
+        }
+
         PlayerTimeLabel(
             sliderPosition = sliderPosition,
             position = position,
             duration = duration,
             textBackgroundColor = textBackgroundColor,
             showRemainingTime = true,
-            centerContent = currentFormat?.let { format ->
-                {
-                    val codec = format.mimeType.substringAfter("/").uppercase()
-                    val label = when {
-                        codec.contains("FLAC") || codec.contains("ALAC") -> "Lossless"
-                        codec.contains("OPUS") -> codec
-                        codec.contains("AAC") -> codec
-                        codec.contains("MP4A") -> "AAC"
-                        codec.contains("VORBIS") -> "Vorbis"
-                        else -> codec
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = textBackgroundColor.copy(alpha = 0.12f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.graphic_eq),
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = textBackgroundColor.copy(alpha = 0.8f),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = textBackgroundColor.copy(alpha = 0.8f),
-                            )
-                        }
-                    }
-                }
+            centerContent = {
+                AudioQualityTag(
+                    currentFormat = currentFormat,
+                    mediaMetadata = mediaMetadata,
+                    tint = textBackgroundColor,
+                    onClick = { showAudioPipelineDialog = true },
+                )
             },
         )
 
@@ -627,7 +637,7 @@ private fun QueueCollapsedContentV8(
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
                     painter = painterResource(R.drawable.lyrics_apple),
-                    contentDescription = "Lyrics",
+                    contentDescription = stringResource(R.string.lyrics),
                     tint = textBackgroundColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
@@ -653,7 +663,7 @@ private fun QueueCollapsedContentV8(
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
                     painter = painterResource(R.drawable.queue_music),
-                    contentDescription = "Queue",
+                    contentDescription = stringResource(R.string.queue),
                     tint = textBackgroundColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
@@ -668,23 +678,52 @@ private fun V8DeviceSelector(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val playerConnection = LocalPlayerConnection.current
     var showDeviceSheet by remember { mutableStateOf(false) }
-    val availableDevices = remember { getAvailableDevices(context) }
-    val activeDevice = remember(availableDevices) { getActiveDevice(availableDevices) }
+
+    val preferredAudioDevice by (playerConnection?.service?.preferredAudioDevice?.collectAsState() ?: remember { mutableStateOf(null) })
+    val availableAudioDevices by (playerConnection?.service?.availableAudioDevices?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
+
+    val fallbackDevices = remember { getAvailableDevices(context) }
+    val displayDevices = if (availableAudioDevices.isNotEmpty()) availableAudioDevices else fallbackDevices
+    val activeDevice = preferredAudioDevice ?: remember(displayDevices) { getActiveDevice(displayDevices) }
+    val isCasting by (playerConnection?.service?.isCasting?.collectAsState() ?: remember { mutableStateOf(false) })
     val isBluetooth = activeDevice?.isBluetoothOutput() == true
-    val deviceIcon = if (isBluetooth) R.drawable.ic_bluetooth else R.drawable.airplay
+    val deviceIcon = when {
+        isCasting -> R.drawable.ic_cast_connected
+        isBluetooth -> R.drawable.ic_bluetooth
+        else -> R.drawable.airplay
+    }
+
+    val hasBtPerm = remember(context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else true
+    }
+    var btPermGranted by remember { mutableStateOf(hasBtPerm) }
+    val btLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        btPermGranted = granted
+        playerConnection?.service?.refreshAudioOutputDevices()
+        showDeviceSheet = true
+    }
 
     Surface(
-        onClick = { showDeviceSheet = true },
+        onClick = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !btPermGranted) {
+                btLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            } else {
+                showDeviceSheet = true
+            }
+        },
         shape = CircleShape,
-        color = if (isBluetooth) textBackgroundColor.copy(alpha = 0.15f) else Color.Transparent,
+        color = if (isCasting || isBluetooth) textBackgroundColor.copy(alpha = 0.15f) else Color.Transparent,
         modifier = modifier.size(36.dp),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Icon(
                 painter = painterResource(deviceIcon),
-                contentDescription = "AirPlay",
-                tint = textBackgroundColor.copy(alpha = if (isBluetooth) 1f else 0.7f),
+                contentDescription = stringResource(R.string.ui_a11y_playback_device),
+                tint = textBackgroundColor.copy(alpha = if (isCasting || isBluetooth) 1f else 0.7f),
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -693,34 +732,56 @@ private fun V8DeviceSelector(
     if (showDeviceSheet) {
         DeviceSelectionBottomSheet(
             onDismiss = { showDeviceSheet = false },
-            availableDevices = availableDevices,
+            availableDevices = displayDevices,
             activeDevice = activeDevice,
+            preferredDevice = preferredAudioDevice,
+            onSelectDevice = { device ->
+                playerConnection?.service?.setPreferredOutputDevice(device)
+            },
             textBackgroundColor = textBackgroundColor,
+            hasBluetoothPermission = btPermGranted,
+            onRequestBluetoothPermission = {
+                btLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            }
         )
     }
 }
 
 @Composable
-private fun DeviceSelectionBottomSheet(
+internal fun DeviceSelectionBottomSheet(
     onDismiss: () -> Unit,
     availableDevices: List<AudioDeviceInfo>,
     activeDevice: AudioDeviceInfo?,
-    textBackgroundColor: Color,
+    preferredDevice: AudioDeviceInfo? = null,
+    onSelectDevice: (AudioDeviceInfo?) -> Unit = {},
+    textBackgroundColor: Color = MaterialTheme.colorScheme.onSurface,
+    hasBluetoothPermission: Boolean = true,
+    onRequestBluetoothPermission: (() -> Unit)? = null,
 ) {
+    val context = LocalContext.current
+    val playerConnection = LocalPlayerConnection.current
+    val configuration = LocalConfiguration.current
+    val maxHeight = configuration.screenHeightDp.dp * 0.88f
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxHeight)
+                .padding(horizontal = 8.dp),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
+                // Drag Handle
                 Box(
                     modifier = Modifier
                         .width(40.dp)
@@ -732,24 +793,60 @@ private fun DeviceSelectionBottomSheet(
 
                 Spacer(Modifier.height(16.dp))
 
-                Text(
-                    text = "Select device",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-
-                availableDevices.forEach { device ->
-                    val isActive = device.id == activeDevice?.id
-                    val iconRes = if (device.isBluetoothOutput()) R.drawable.ic_bluetooth else R.drawable.airplay
+                // Header Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.ui_text_playback_destination),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.ui_text_choose_audio_route_or_stream_to_multiple_devices),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                        )
+                    }
                     Surface(
                         onClick = onDismiss,
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isActive) textBackgroundColor.copy(alpha = 0.15f) else Color.Transparent,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.close),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Scrollable Content Column
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+
+                // Permission Warning Banner if missing Bluetooth permission on Android 12+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermission && onRequestBluetoothPermission != null) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(bottom = 12.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -758,65 +855,385 @@ private fun DeviceSelectionBottomSheet(
                                 .padding(12.dp),
                         ) {
                             Icon(
-                                painter = painterResource(iconRes),
+                                painter = painterResource(R.drawable.ic_bluetooth),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isActive) 1f else 0.65f),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp),
                             )
-
-                            Spacer(Modifier.width(12.dp))
-
+                            Spacer(Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = device.outputName(),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isActive) 1f else 0.75f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    text = stringResource(R.string.ui_text_bluetooth_permission_required),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
-                                if (isActive) {
-                                    Text(
-                                        text = "Active",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                    )
-                                }
+                                Text(
+                                    text = stringResource(R.string.ui_sweep_needed_to_detect_connected_bluetooth_earbuds_and_speakers),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                )
                             }
-
-                            if (isActive) {
-                                Icon(
-                                    painter = painterResource(R.drawable.done),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp),
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                onClick = onRequestBluetoothPermission,
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.ui_text_grant),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                // Google Cast / Chromecast Streaming
+                PlayerCastMenuRow(
+                    onDismiss = onDismiss,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
 
+                // 1. Automatic (System Default) Option
+                val isAutoSelected = preferredDevice == null
                 Surface(
-                    onClick = onDismiss,
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    onClick = {
+                        onSelectDevice(null)
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    color = if (isAutoSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.airplay),
+                            contentDescription = null,
+                            tint = if (isAutoSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.ui_sweep_system_default_automatic),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isAutoSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isAutoSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = if (activeDevice != null) "Routes to ${activeDevice.outputName()}" else "Automatic routing based on plugged/paired devices",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            )
+                        }
+                        if (isAutoSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = stringResource(R.string.ui_text_selected),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Available Physical Devices
+                availableDevices.forEach { device ->
+                    val isSelected = (preferredDevice != null && preferredDevice.id == device.id) ||
+                        (preferredDevice == null && activeDevice?.id == device.id)
+                    val iconVector = when {
+                        device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> Icons.Default.PhoneAndroid
+                        device.type == AudioDeviceInfo.TYPE_USB_DEVICE || device.type == AudioDeviceInfo.TYPE_USB_HEADSET -> Icons.Default.Usb
+                        device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET -> Icons.Default.Headphones
+                        else -> null
+                    }
+
+                    Surface(
+                        onClick = {
+                            onSelectDevice(device)
+                            onDismiss()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                        ) {
+                            if (device.isBluetoothOutput()) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_bluetooth),
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = iconVector ?: Icons.Default.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+
+                            Spacer(Modifier.width(14.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = device.outputName(),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                val subtitleText = when {
+                                    device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Internal phone speaker"
+                                    device.isBluetoothOutput() -> "Bluetooth wireless audio"
+                                    device.type == AudioDeviceInfo.TYPE_USB_DEVICE || device.type == AudioDeviceInfo.TYPE_USB_HEADSET -> "USB DAC / Bit-perfect audio"
+                                    else -> "Wired output"
+                                }
+                                Text(
+                                    text = subtitleText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                )
+                            }
+
+                            if (isSelected) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = stringResource(R.string.ui_text_active),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = stringResource(R.string.ui_text_active),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // In-App Simultaneous Multi-Device Playback (Dual Output)
+                val isDualAudioEnabled by (playerConnection?.service?.isDualAudioEnabled?.collectAsState() ?: remember { mutableStateOf(false) })
+                val dualAudioSecondaryDeviceId by (playerConnection?.service?.dualAudioSecondaryDeviceId?.collectAsState() ?: remember { mutableStateOf(null) })
+                val dualAudioSecondaryVolume by (playerConnection?.service?.dualAudioSecondaryVolume?.collectAsState() ?: remember { mutableStateOf(1.0f) })
+
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (isDualAudioEnabled) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (isDualAudioEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                modifier = Modifier.size(38.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.SpeakerGroup,
+                                        contentDescription = null,
+                                        tint = if (isDualAudioEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.ui_text_simultaneous_dual_playback),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = stringResource(R.string.ui_sweep_play_in_phone_speaker_bluetooth_aux_at_the_same_time),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                )
+                            }
+
+                            Switch(
+                                checked = isDualAudioEnabled,
+                                onCheckedChange = { isChecked ->
+                                    playerConnection?.service?.setDualAudioEnabled(isChecked)
+                                },
+                            )
+                        }
+
+                        AnimatedVisibility(visible = isDualAudioEnabled) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)),
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
+                                Text(
+                                    text = stringResource(R.string.ui_text_secondary_mirror_output),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = 6.dp),
+                                )
+
+                                val secondaryDevices = availableDevices.filter { it.id != activeDevice?.id }
+                                val allSecondary = if (secondaryDevices.isNotEmpty()) secondaryDevices else availableDevices
+
+                                allSecondary.forEach { secDevice ->
+                                    val isSecSelected = (dualAudioSecondaryDeviceId == secDevice.id) ||
+                                        (dualAudioSecondaryDeviceId == null && secDevice.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)
+
+                                    Surface(
+                                        onClick = {
+                                            playerConnection?.service?.setDualAudioSecondaryDevice(secDevice)
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isSecSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 2.dp),
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = if (secDevice.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) Icons.Default.PhoneAndroid else Icons.Default.Headphones,
+                                                contentDescription = null,
+                                                tint = if (isSecSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            Text(
+                                                text = secDevice.outputName(),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isSecSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSecSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            if (isSecSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = stringResource(R.string.ui_a11y_active_secondary),
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(10.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.ui_text_speaker_volume),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                        modifier = Modifier.width(100.dp),
+                                    )
+                                    Slider(
+                                        value = dualAudioSecondaryVolume,
+                                        onValueChange = {
+                                            playerConnection?.service?.setDualAudioSecondaryVolume(it)
+                                        },
+                                        valueRange = 0f..1f,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "${(dualAudioSecondaryVolume * 100).toInt()}%",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Done Button
+                Surface(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(14.dp),
                     ) {
                         Text(
-                            text = "Close",
+                            text = stringResource(R.string.done),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
                 }
             }
         }
@@ -1008,7 +1425,8 @@ private fun thickSliderColors(activeColor: Color) = SliderDefaults.colors(
     inactiveTrackColor = activeColor.copy(alpha = 0.24f),
 )
 
-private fun getAvailableDevices(context: Context): List<AudioDeviceInfo> {
+internal fun getAvailableDevices(context: Context): List<AudioDeviceInfo> {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return emptyList()
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     return audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
         .filter { device ->
@@ -1017,47 +1435,60 @@ private fun getAvailableDevices(context: Context): List<AudioDeviceInfo> {
                 device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
                 isBleHeadset(device) ||
                 device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
-                device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET
+                device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                device.type == AudioDeviceInfo.TYPE_USB_HEADSET
         }
         .sortedBy { device ->
             when {
                 device.isBluetoothOutput() -> 0
                 device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
                     device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET -> 1
-                device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> 2
-                else -> 3
+                device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                    device.type == AudioDeviceInfo.TYPE_USB_HEADSET -> 2
+                device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> 3
+                else -> 4
             }
         }
 }
 
-private fun getActiveDevice(devices: List<AudioDeviceInfo>): AudioDeviceInfo? {
+internal fun getActiveDevice(devices: List<AudioDeviceInfo>): AudioDeviceInfo? {
     return devices.firstOrNull { it.isBluetoothOutput() }
         ?: devices.firstOrNull {
             it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
                 it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET
         }
+        ?: devices.firstOrNull {
+            it.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                it.type == AudioDeviceInfo.TYPE_USB_HEADSET
+        }
         ?: devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
 }
 
-private fun AudioDeviceInfo.isBluetoothOutput(): Boolean {
+internal fun AudioDeviceInfo.isBluetoothOutput(): Boolean {
     return type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
         type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
         isBleHeadset(this)
 }
 
-private fun isBleHeadset(device: AudioDeviceInfo): Boolean {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-        device.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+internal fun isBleHeadset(device: AudioDeviceInfo): Boolean {
+    return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && device.type == AudioDeviceInfo.TYPE_BLE_HEADSET) ||
+        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER)
 }
 
-private fun AudioDeviceInfo.outputName(): String {
+internal fun AudioDeviceInfo.outputName(): String {
     productName?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
     return when (type) {
-        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Speaker"
-        AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wired headphones"
-        AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headset"
-        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth"
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Phone Speaker"
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wired Headphones"
+        AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired Headset"
+        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth Device"
         AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth SCO"
-        else -> if (isBleHeadset(this)) "BLE headset" else "Device"
+        AudioDeviceInfo.TYPE_USB_DEVICE -> "USB Device"
+        AudioDeviceInfo.TYPE_USB_HEADSET -> "USB Headset"
+        else -> if (isBleHeadset(this)) "BLE Headset" else "Audio Device"
     }
 }
+
+
+

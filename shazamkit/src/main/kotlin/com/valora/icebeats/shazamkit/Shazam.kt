@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.shazamkit
+package com.valora.icebeats.shazamkit
 
 import com.valora.icebeats.shazamkit.models.RecognitionResult
 import com.valora.icebeats.shazamkit.models.ShazamRequestJson

@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -9,6 +9,9 @@ package com.valora.icebeats.lyrics
 
 import android.content.Context
 import com.valora.icebeats.betterlyrics.BetterLyrics
+import com.valora.icebeats.constants.EnableBetterLyricsKey
+import com.valora.icebeats.utils.dataStore
+import com.valora.icebeats.utils.get
 import android.util.Log
 
 object BetterLyricsProvider : LyricsProvider {
@@ -20,7 +23,7 @@ object BetterLyricsProvider : LyricsProvider {
 
     override val name = "BetterLyrics"
 
-    override fun isEnabled(context: Context): Boolean = true
+    override fun isEnabled(context: Context): Boolean = context.dataStore[EnableBetterLyricsKey] ?: true
 
     override suspend fun getLyrics(
         id: String,

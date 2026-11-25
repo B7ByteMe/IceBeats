@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,6 +22,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.LocalDatabase
+import com.valora.icebeats.constants.InnerTubeCookieKey
+import com.valora.icebeats.innertube.utils.parseCookieString
+import com.valora.icebeats.utils.rememberPreference
 import com.valora.icebeats.R
 import com.valora.icebeats.db.entities.PlaylistEntity
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +40,10 @@ fun CreatePlaylistDialog(
     val context = androidx.compose.ui.platform.LocalContext.current
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
-    var syncedPlaylist by remember { mutableStateOf(false) }
+    val cookie by rememberPreference(InnerTubeCookieKey, "")
+    val loggedIn = com.valora.icebeats.data.auth.hasApiSid(cookie)
+    // Signed in: default to Google (YouTube) so the playlist shows up everywhere; user can pick Local.
+    var syncedPlaylist by remember(loggedIn) { mutableStateOf(loggedIn) }
     TextFieldDialog(
         icon = { Icon(painter = painterResource(R.drawable.add), contentDescription = null) },
         title = { Text(text = stringResource(R.string.create_playlist)) },
@@ -45,28 +51,34 @@ fun CreatePlaylistDialog(
         onDismiss = onDismiss,
         onDone = { playlistName ->
             coroutineScope.launch(Dispatchers.IO) {
-                val browseId = if (syncedPlaylist) {
-                    YouTube.createPlaylist(playlistName).getOrNull()
-                } else {
-                    null
+                if (cookie.isNotBlank()) {
+                    com.valora.icebeats.data.artist.ArtistInnertubeClient.activeCookie = cookie
+                    com.valora.icebeats.innertube.YouTube.cookie = cookie
                 }
-                val newId = PlaylistEntity.generatePlaylistId()
+                val createdBrowseId = if (syncedPlaylist || loggedIn) {
+                    runCatching {
+                        com.valora.icebeats.data.artist.ArtistInnertubeClient.createPlaylist(playlistName, "PRIVATE")
+                    }.getOrNull() ?: YouTube.createPlaylist(playlistName).getOrNull()
+                } else null
+                val cleanId = createdBrowseId?.removePrefix("VL")
                 database.query {
                     insert(
                         PlaylistEntity(
-                            id = newId,
                             name = playlistName,
-                            browseId = browseId?.takeIf { it.isNotBlank() && it != "null" },
+                            browseId = cleanId,
                             bookmarkedAt = LocalDateTime.now(),
                             isEditable = true,
                         )
                     )
                 }
-                com.valora.icebeats.supabase.SupabaseClient(context).autoSyncPlaylist(database, newId)
+                if (cookie.isNotBlank()) {
+                    com.valora.icebeats.data.library.HomeFeedRepository.refresh(cookie)
+                    com.valora.icebeats.utils.SyncUtils(context, database).syncSavedPlaylists()
+                }
             }
         },
         extraContent = {
-            if (allowSyncing) {
+            if (allowSyncing && loggedIn) {
                 Row(
                     modifier = Modifier.padding(vertical = 16.dp, horizontal = 40.dp)
                 ) {
@@ -83,14 +95,11 @@ fun CreatePlaylistDialog(
                     }
                     Row(
                         modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.End,
                     ) {
-                        Switch(
-                            checked = syncedPlaylist,
-                            onCheckedChange = {
-                                syncedPlaylist = !syncedPlaylist
-                            },
-                        )
+                        FilterChip(selected = !syncedPlaylist, onClick = { syncedPlaylist = false }, label = { Text("Local") })
+                        FilterChip(selected = syncedPlaylist, onClick = { syncedPlaylist = true }, label = { Text("Google") },
+                            modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }

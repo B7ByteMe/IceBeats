@@ -32,6 +32,8 @@ import com.valora.icebeats.constants.SongFilterKey
 import com.valora.icebeats.constants.SongSortDescendingKey
 import com.valora.icebeats.constants.SongSortType
 import com.valora.icebeats.constants.SongSortTypeKey
+import com.valora.icebeats.constants.SpotifyCookieKey
+import com.valora.icebeats.constants.InnerTubeCookieKey
 import com.valora.icebeats.constants.TopSize
 import com.valora.icebeats.db.MusicDatabase
 import com.valora.icebeats.extensions.reversed
@@ -162,6 +164,16 @@ constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.data
+                .map { it[InnerTubeCookieKey] }
+                .distinctUntilChanged()
+                .collect { cookie ->
+                    if (com.valora.icebeats.data.auth.hasApiSid(cookie)) {
+                        sync()
+                    }
+                }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
             allArtists.collect { artists ->
                 artists
                     .map { it.artist }
@@ -256,7 +268,33 @@ constructor(
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun sync() {
-        viewModelScope.launch(Dispatchers.IO) { syncUtils.syncSavedPlaylists() }
+        viewModelScope.launch(Dispatchers.IO) {
+            syncUtils.syncSavedPlaylists()
+            syncUtils.syncSpotifyPlaylists()
+        }
+    }
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.data
+                .map { it[InnerTubeCookieKey] }
+                .distinctUntilChanged()
+                .collect { cookie ->
+                    if (!cookie.isNullOrBlank() && com.valora.icebeats.data.auth.hasApiSid(cookie)) {
+                        syncUtils.syncSavedPlaylists()
+                    }
+                }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.data
+                .map { it[SpotifyCookieKey] }
+                .distinctUntilChanged()
+                .collect { spDc ->
+                    if (!spDc.isNullOrBlank()) {
+                        syncUtils.syncSpotifyPlaylists()
+                    }
+                }
+        }
     }
 
     val topValue =

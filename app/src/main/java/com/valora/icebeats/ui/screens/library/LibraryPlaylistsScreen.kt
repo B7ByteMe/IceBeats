@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -27,6 +29,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
@@ -73,6 +76,7 @@ import com.valora.icebeats.db.entities.PlaylistEntity
 import com.valora.icebeats.ui.component.CreatePlaylistDialog
 import com.valora.icebeats.ui.component.GridPosition
 import com.valora.icebeats.ui.component.HideOnScrollFAB
+import com.valora.icebeats.ui.component.LibraryFloatingActions
 import com.valora.icebeats.ui.component.LibraryHeroFavoriteTile
 import com.valora.icebeats.ui.component.LibraryPinnedCollectionTile
 import com.valora.icebeats.ui.component.LibraryPlaylistGridItem
@@ -89,7 +93,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-@OptIn(ExperimentalFoundationApi::class)
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExperimentalMaterial3Api
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
@@ -207,13 +214,12 @@ fun LibraryPlaylistsScreen(
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
-    LaunchedEffect(isLoggedIn, ytmSync) {
-        if (ytmSync) {
-            withContext(Dispatchers.IO) {
-                viewModel.sync()
-            }
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn && ytmSync && allowSyncing) {
+            viewModel.sync()
         }
     }
+
 
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
@@ -225,7 +231,123 @@ fun LibraryPlaylistsScreen(
         }
     }
 
+    val context = LocalContext.current
+    val database = com.valora.icebeats.LocalDatabase.current
+    var showActionChooser by rememberSaveable { mutableStateOf(false) }
     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
+
+    val importPlaylistLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    val result = com.valora.icebeats.utils.PlaylistFileHelper.importPlaylistFromUri(
+                        context = context,
+                        uri = uri,
+                        database = database
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (result.isSuccess) {
+                            val (name, count) = result.getOrThrow()
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.playlist_imported_success, name, count),
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            android.widget.Toast.makeText(
+                                context,
+                                "${context.getString(R.string.import_playlist_failed)}: ${result.exceptionOrNull()?.message}",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+            }
+        }
+
+    if (showActionChooser) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showActionChooser = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.add),
+                    contentDescription = null
+                )
+            },
+            title = {
+                Text(text = stringResource(R.string.playlists))
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        onClick = {
+                            showActionChooser = false
+                            showCreatePlaylistDialog = true
+                        },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.add),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Text(
+                                text = stringResource(R.string.create_playlist_option),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Surface(
+                        onClick = {
+                            showActionChooser = false
+                            importPlaylistLauncher.launch(arrayOf("text/*", "application/json", "*/*"))
+                        },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.save_to_storage),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Text(
+                                text = stringResource(R.string.import_playlist_option),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showActionChooser = false }) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
 
     if (showCreatePlaylistDialog) {
         CreatePlaylistDialog(
@@ -302,7 +424,7 @@ fun LibraryPlaylistsScreen(
                     entries = shortcuts,
                     onClick = { route ->
                         when (route) {
-                            "local" -> onLocalClick()
+                            "local" -> navController.navigate("local_songs")
                             "import" -> showSpotifyImportDialog = true
                             "import_yt" -> showYouTubeImportDialog = true
                             else -> navController.navigate(route)
@@ -335,21 +457,31 @@ fun LibraryPlaylistsScreen(
                         .animateItem(),
                 )
             }
+
+            // Keep the list scrollable when the shortcut cards are the only content.
+            // This is in-list space, so it does not create a fixed sheet behind the nav bar.
+            item(key = "scroll_buffer") {
+                Spacer(modifier = Modifier.height(160.dp))
+            }
         }
 
-        PullToRefreshDefaults.Indicator(
+        PullToRefreshDefaults.LoadingIndicator(
             isRefreshing = isRefreshing,
             state = pullRefreshState,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
         )
 
-        HideOnScrollFAB(
+        LibraryFloatingActions(
             lazyListState = lazyListState,
-            icon = R.drawable.add,
-            onClick = {
-                showCreatePlaylistDialog = true
+            onOpenGenerator = {
+                navController.navigate("generator")
+            },
+            onCreatePlaylist = {
+                showActionChooser = true
             },
         )
     }
@@ -367,10 +499,12 @@ private fun PlaylistControlCard(
     modifier: Modifier = Modifier,
     controls: @Composable RowScope.() -> Unit,
 ) {
+    val isFrosted = com.valora.icebeats.ui.component.isFrostedGlassUiEnabled()
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = if (isFrosted) com.valora.icebeats.ui.component.settingsCardContainerColor() else MaterialTheme.colorScheme.surfaceContainerHigh
         ),
+        border = if (isFrosted) com.valora.icebeats.ui.component.settingsCardBorder() else null,
         shape = MaterialTheme.shapes.large,
         modifier = modifier,
     ) {
@@ -408,7 +542,7 @@ private fun PlaylistShortcutGrid(
         LibraryHeroFavoriteTile(
             title = heroEntry.first,
             iconRes = heroEntry.second,
-            badgeText = "icebeats",
+            badgeText = "IceBeats",
             accentColor = MaterialTheme.colorScheme.error,
             modifier = Modifier
                 .fillMaxWidth()
@@ -462,10 +596,12 @@ private fun PlaylistSectionHeaderCard(
     supportingText: String,
     modifier: Modifier = Modifier,
 ) {
+    val isFrosted = com.valora.icebeats.ui.component.isFrostedGlassUiEnabled()
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = if (isFrosted) com.valora.icebeats.ui.component.settingsCardContainerColor() else MaterialTheme.colorScheme.surfaceContainerHigh
         ),
+        border = if (isFrosted) com.valora.icebeats.ui.component.settingsCardBorder() else null,
         shape = MaterialTheme.shapes.large,
         modifier = modifier,
     ) {

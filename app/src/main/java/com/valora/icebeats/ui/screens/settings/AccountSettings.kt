@@ -1,5 +1,6 @@
 package com.valora.icebeats.ui.screens.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,44 +21,24 @@ import com.valora.icebeats.R
 import com.valora.icebeats.constants.*
 import com.valora.icebeats.ui.component.*
 import com.valora.icebeats.utils.rememberPreference
-import com.valora.icebeats.utils.dataStore
-import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import android.widget.Toast
-import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.valora.icebeats.viewmodels.BackupRestoreViewModel
-import androidx.compose.ui.draw.blur
+import com.valora.icebeats.LocalPlayerAwareWindowInsets
+import com.valora.icebeats.LocalPlayerConnection
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
-import coil.compose.AsyncImage
-import com.valora.icebeats.LocalPlayerAwareWindowInsets
-import com.valora.icebeats.LocalPlayerConnection
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
-import com.google.android.gms.common.api.ApiException
-import kotlinx.coroutines.flow.first
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.text.style.TextAlign
+import androidx.datastore.preferences.core.edit
+import com.valora.icebeats.utils.dataStore
+import kotlinx.coroutines.flow.map
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,13 +51,8 @@ fun AccountSettings(
 
     val nameManager = remember { NamePreferenceManager(context) }
     val currentDisplayName by nameManager.userName.collectAsState(initial = "")
-    val currentGoogleEmail by nameManager.accountEmail.collectAsState(initial = "")
-    
-    val backupViewModel: BackupRestoreViewModel = hiltViewModel()
     val avatarManager = remember { AvatarPreferenceManager(context) }
-
     var showEditNameDialog by remember { mutableStateOf(false) }
-    var isGoogleSignInOpen by remember { mutableStateOf(false) }
 
     val (accountName, onAccountNameChange) = rememberPreference(AccountNameKey, "")
     val (accountEmail, onAccountEmailChange) = rememberPreference(AccountEmailKey, "")
@@ -89,25 +65,10 @@ fun AccountSettings(
     val (dataSyncId, onDataSyncIdChange) =
         rememberPreference(DataSyncIdKey, "")
 
-    val database = com.valora.icebeats.LocalDatabase.current
-    val supabaseAuthManager = remember { com.valora.icebeats.supabase.SupabaseAuthManager.getInstance(context) }
-    val supabaseClient = remember { com.valora.icebeats.supabase.SupabaseClient(context) }
-    val isSupabaseLoggedIn by supabaseAuthManager.isLoggedIn.collectAsState()
-    val supabaseEmail by supabaseAuthManager.userEmail.collectAsState()
-    val supabaseName by supabaseAuthManager.userName.collectAsState()
-    val authProvider by supabaseAuthManager.authProvider.collectAsState()
-    val lastSyncTime by supabaseAuthManager.lastSyncTime.collectAsState()
-    var isSyncing by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        supabaseClient.syncCurrentUserStats(context)
-    }
-
     val isLoggedIn = remember(innerTubeCookie) {
         innerTubeCookie.isNotEmpty() &&
                 "SAPISID" in parseCookieString(innerTubeCookie)
     }
-    val isUserLoggedIn = isSupabaseLoggedIn || isLoggedIn || currentGoogleEmail.isNotBlank()
 
     val getAccountDisplayName =
         remember(accountName, accountEmail, accountChannelHandle, isLoggedIn) {
@@ -142,268 +103,73 @@ fun AccountSettings(
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState()
         ?: remember { mutableStateOf(null) }
 
-    fun generatedAvatarUrl(name: String, email: String): String {
-        val seed = name.takeIf { it.isNotBlank() } ?: email
-        val encodedSeed = URLEncoder.encode(seed, StandardCharsets.UTF_8.toString())
-        return "https://api.dicebear.com/9.x/initials/svg?seed=$encodedSeed&backgroundType=gradientLinear"
-    }
 
-    fun displayNameFromEmail(email: String): String {
-        return email
-            .substringBefore("@")
-            .replace('.', ' ')
-            .replace('_', ' ')
-            .replace('-', ' ')
-            .split(' ')
-            .filter { it.isNotBlank() }
-            .joinToString(" ") { part ->
-                part.replaceFirstChar { char ->
-                    if (char.isLowerCase()) char.titlecase() else char.toString()
-                }
-            }
-            .ifBlank { "Friend" }
-    }
 
-    fun linkGoogleAccount(name: String, email: String, photoUrl: String?, idToken: String?) {
-        scope.launch {
-            try {
-                if (!idToken.isNullOrBlank()) {
-                    val supabaseResult = supabaseClient.signInWithGoogleIdToken(idToken)
-                    supabaseResult.onFailure { err ->
-                        Toast.makeText(context, "Gagal sinkron Google ke Supabase: ${err.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-                nameManager.rememberGoogleLoginEmail(email)
-                val currentName = nameManager.userName.first()
-                if (currentName.isBlank() || currentName.startsWith("Hai,") || currentName == "Friend") {
-                    nameManager.saveUserName(name)
-                    onAccountNameChange(name)
-                }
-                nameManager.saveAccountEmail(email)
-                if (!photoUrl.isNullOrBlank()) {
-                    avatarManager.saveAvatarSelection(
-                        AvatarSelection.Custom(uri = photoUrl, cloudUrl = photoUrl)
-                    )
-                } else {
-                    avatarManager.saveAvatarSelection(
-                        AvatarSelection.DiceBear(generatedAvatarUrl(name, email))
-                    )
-                }
-
-                // Clear local items and restore account data from Supabase cleanly
-                if (database != null) {
-                    withContext(Dispatchers.IO) {
-                        database.clearAllLikes()
-                        database.clearUserPlaylists()
-                        database.clearAllPlaylistSongs()
-                        database.clearAllEvents()
-                        database.clearAllArtistBookmarks()
-                        database.clearAllAlbumBookmarks()
-                        val res = supabaseClient.restoreUserData(database)
-                        res.onSuccess { count ->
-                            runCatching {
-                                val now = System.currentTimeMillis()
-                                val allSongs = database.mostPlayedSongsStats(0L, limit = -1, toTimeStamp = now).first()
-                                val restoredTotalMs = allSongs.sumOf { it.timeListened?.toLong() ?: 0L }
-                                val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-                                val syncPrefs = context.getSharedPreferences(
-                                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME,
-                                    android.content.Context.MODE_PRIVATE
-                                )
-                                val globalPrefs = context.getSharedPreferences("icebeats_global_stats", android.content.Context.MODE_PRIVATE)
-                                syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", restoredTotalMs).apply()
-                                globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", restoredTotalMs).apply()
-                            }
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "Berhasil memulihkan $count data akun dari Cloud!", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(
-                    context,
-                    context.getString(
-                        R.string.google_account_linked_cloud_sync_failed,
-                        e.message.orEmpty()
-                    ),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
-    val googleSignInClient = remember {
-        com.valora.icebeats.utils.GoogleAuthManager(context).getSignInClient()
-    }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        try {
-            val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                .getResult(ApiException::class.java)
-            val email = account.email.orEmpty()
-            if (email.isBlank()) {
-                Toast.makeText(context, context.getString(R.string.google_email_missing), Toast.LENGTH_SHORT).show()
-                return@rememberLauncherForActivityResult
-            }
-            val name = account.displayName
-                ?.takeIf { it.isNotBlank() }
-                ?: account.givenName
-                ?: displayNameFromEmail(email)
-
-            isGoogleSignInOpen = false
-            linkGoogleAccount(name, email, account.photoUrl?.toString(), account.idToken)
-        } catch (e: ApiException) {
-            e.printStackTrace()
-            val message = when (e.statusCode) {
-                GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
-                    context.getString(R.string.google_sign_in_cancelled)
-                GoogleSignInStatusCodes.SIGN_IN_CURRENTLY_IN_PROGRESS ->
-                    context.getString(R.string.google_sign_in_in_progress)
-                GoogleSignInStatusCodes.SIGN_IN_FAILED ->
-                    context.getString(R.string.google_sign_in_failed_oauth)
-                else -> context.getString(
-                    R.string.google_sign_in_failed_with_status,
-                    e.statusCode,
-                    e.message.orEmpty()
-                )
-            }
-            isGoogleSignInOpen = false
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            isGoogleSignInOpen = false
-            Toast.makeText(
-                context,
-                context.getString(R.string.google_sign_in_failed_message, e.message.orEmpty()),
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    fun requestGoogleSignIn() {
-        if (isGoogleSignInOpen) return
-        isGoogleSignInOpen = true
-        googleSignInClient.revokeAccess().addOnCompleteListener {
-            googleSignInLauncher.launch(googleSignInClient.signInIntent)
-        }
-    }
-
-    var isLoggingOut by remember { mutableStateOf(false) }
-    var logoutStatusText by remember { mutableStateOf("Mencadangkan data ke Cloud...") }
-
-    val performLogout: (String) -> Unit = { successMessage ->
-        if (!isLoggingOut) {
-            isLoggingOut = true
-            logoutStatusText = "Mencadangkan playlist, favorit, dan riwayat ke Cloud..."
-            scope.launch {
-                try {
-                    withContext(Dispatchers.IO) {
-                        if (database != null) {
-                            runCatching {
-                                supabaseClient.syncUserData(database)
-                            }.onFailure {
-                                it.printStackTrace()
-                            }
-                            runCatching {
-                                com.valora.icebeats.utils.icebeatsStatsCloudSync.syncDaily(context, database, nameManager)
-                            }.onFailure {
-                                it.printStackTrace()
-                            }
-                        }
-                        withContext(Dispatchers.Main) {
-                            logoutStatusText = "Menyelesaikan sesi akun..."
-                        }
-                        supabaseClient.signOut()
-                        supabaseAuthManager.clearSession()
-
-                        if (database != null) {
-                            database.clearAllLikes()
-                            database.clearUserPlaylists()
-                            database.clearAllPlaylistSongs()
-                            database.clearAllEvents()
-                            database.clearAllArtistBookmarks()
-                            database.clearAllAlbumBookmarks()
-                        }
-
-                        forgetAccount(context)
-                        playerConnection?.player?.stop()
-                    }
-
-                    onInnerTubeCookieChange("")
-                    onAccountNameChange("")
-                    onAccountEmailChange("")
-                    onAccountChannelHandleChange("")
-                    onVisitorDataChange("")
-                    onDataSyncIdChange("")
-                    nameManager.clearGoogleLoginLock()
-                    nameManager.clearUser()
-                    avatarManager.saveAvatarSelection(AvatarSelection.Default)
-                    RankPreferenceManager(context).resetAll()
-                    com.valora.icebeats.ui.component.BorderPreferenceManager(context).resetBorder()
-                    com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
-                    context.getSharedPreferences("icebeats_global_stats", android.content.Context.MODE_PRIVATE).edit().clear().apply()
-                    context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE).edit().clear().apply()
-                    com.valora.icebeats.ui.component.VipSubscriptionManager(context).resetVipState()
-                    com.valora.icebeats.ui.component.BannerPreferenceManager(context).clearBannerUrl()
-
-                    Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
-                    navController.navigate("onboarding") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    isLoggingOut = false
-                }
-            }
-        }
-    }
-
-    val vipManager = remember { com.valora.icebeats.ui.component.VipSubscriptionManager(context) }
-    val isVip by vipManager.isVip.collectAsState(initial = false)
-    val currentVipPlan by vipManager.vipPlan.collectAsState(initial = "Gratis")
-    val myVerificationType = remember(isVip, currentVipPlan) {
-        com.valora.icebeats.ui.component.VerificationHelper.parseVerificationType(
-            planName = currentVipPlan,
-            isVip = isVip
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Adaptive background: blurred song thumbnail when playing, Library mesh when no song playing
+        val artworkUrl = mediaMetadata?.thumbnailUrl
+        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+            artworkUrl = artworkUrl
         )
-    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F0F0F))
-    ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = stringResource(R.string.account),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(end = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.account),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     },
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
                                 painter = painterResource(R.drawable.arrow_back),
-                                contentDescription = stringResource(R.string.back),
-                                tint = Color.White
+                                contentDescription = stringResource(R.string.back)
                             )
                         }
                     },
+                    modifier = Modifier
+                        .clip(
+                            RoundedCornerShape(
+                                bottomStart = 30.dp,
+                                bottomEnd = 30.dp
+                            )
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 0.6.dp,
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.3f),
+                                    Color.White.copy(alpha = 0.1f),
+                                    Color.White.copy(alpha = 0.3f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(
+                                bottomStart = 30.dp,
+                                bottomEnd = 30.dp
+                            )
+                        ),
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF0F0F0F),
-                        scrolledContainerColor = Color(0xFF0F0F0F)
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
                     ),
                     scrollBehavior = scrollBehavior
                 )
@@ -426,217 +192,6 @@ fun AccountSettings(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                // ☁️ ICEBEATS CLOUD (SUPABASE)
-                SettingsGeneralCategory(
-                    title = "IceBeats Cloud (Supabase)",
-                    items = listOfNotNull(
-                        {
-                            PreferenceEntry(
-                                title = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            if (isSupabaseLoggedIn) {
-                                                supabaseName.ifBlank { supabaseEmail.substringBefore("@") }
-                                            } else {
-                                                "Masuk / Buat Akun Cloud"
-                                            }
-                                        )
-                                        if (isSupabaseLoggedIn && myVerificationType != com.valora.icebeats.ui.component.VerificationType.NONE) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            com.valora.icebeats.ui.component.VerificationBadge(type = myVerificationType, size = 16.dp)
-                                        }
-                                    }
-                                },
-                                description = if (isSupabaseLoggedIn) {
-                                    if (lastSyncTime.isNotBlank()) "Email: $supabaseEmail • Terakhir sinkron: $lastSyncTime"
-                                    else "Email: $supabaseEmail • Belum pernah disinkronkan"
-                                } else {
-                                    "Sinkronkan playlist & lagu favorit otomatis, fitur lupa password & backup"
-                                },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.sync),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                trailingContent = {
-                                    if (isSupabaseLoggedIn) {
-                                        OutlinedButton(
-                                            onClick = {
-                                                performLogout("Berhasil keluar dari Akun Cloud")
-                                            }
-                                        ) {
-                                            Text("Keluar")
-                                        }
-                                    } else {
-                                        Button(
-                                            onClick = { navController.navigate("login") }
-                                        ) {
-                                            Text("Masuk / Daftar")
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    if (!isSupabaseLoggedIn) {
-                                        navController.navigate("login")
-                                    }
-                                }
-                            )
-                        },
-                        if (isSupabaseLoggedIn && database != null) {
-                            {
-                                PreferenceEntry(
-                                    title = { Text("Sinkronkan Sekarang") },
-                                    description = "Kirim lagu favorit dan playlist lokal ke cloud Supabase",
-                                    icon = {
-                                        if (isSyncing) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(24.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                        } else {
-                                            Icon(
-                                                painter = painterResource(R.drawable.favorite),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    },
-                                    onClick = {
-                                        if (!isSyncing) {
-                                            isSyncing = true
-                                            scope.launch {
-                                                supabaseClient.syncCurrentUserStats(context)
-                                                val res = supabaseClient.syncUserData(database)
-                                                isSyncing = false
-                                                res.onSuccess { msg ->
-                                                    Toast.makeText(context, "$msg (Level & Rank tersinkron)", Toast.LENGTH_LONG).show()
-                                                }.onFailure { err ->
-                                                    Toast.makeText(context, "Gagal sinkron: ${err.message}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        } else null,
-                        if (isSupabaseLoggedIn) {
-                            {
-                                PreferenceEntry(
-                                    title = { Text("Tautkan ke Windows Desktop") },
-                                    description = "Pindai kode QR di layar laptop/PC Windows",
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(R.drawable.sync),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    },
-                                    onClick = {
-                                        val scanner = com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(context)
-                                        scanner.startScan()
-                                            .addOnSuccessListener { barcode ->
-                                                val raw = barcode.rawValue.orEmpty()
-                                                val token = if (raw.contains("token")) {
-                                                    try {
-                                                        val json = org.json.JSONObject(raw)
-                                                        json.optString("token", raw)
-                                                    } catch (e: Exception) {
-                                                        if (raw.contains("token=")) {
-                                                            raw.substringAfter("token=").substringBefore("&")
-                                                        } else raw
-                                                    }
-                                                } else raw
-
-                                                if (token.isNotBlank()) {
-                                                    scope.launch {
-                                                        val res = supabaseClient.approveDesktopQrSession(token)
-                                                        if (res.isSuccess) {
-                                                            Toast.makeText(context, "Berhasil masuk ke IceBeats Desktop!", Toast.LENGTH_LONG).show()
-                                                        } else {
-                                                            Toast.makeText(context, "Gagal menautkan: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Toast.makeText(context, "Pemindaian dibatalkan: ${e.message}", Toast.LENGTH_SHORT).show()
-                                            }
-                                    }
-                                )
-                            }
-                        } else null
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 🏆 LEVEL & RANK BADGE PENGGUNA (v7.0.9)
-                val rankPrefManager = remember { com.valora.icebeats.ui.component.RankPreferenceManager(context) }
-                val displayedRank by rankPrefManager.displayedRank.collectAsState(initial = null)
-                val highestEarnedRank by rankPrefManager.highestEarnedRank.collectAsState(initial = null)
-                val statsPrefs = remember { context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
-                val currentAccountEmail by nameManager.accountEmail.collectAsState(initial = "")
-                val savedListenMs = remember(currentAccountEmail, isSupabaseLoggedIn) {
-                    val uid = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserIdBlocking(context, nameManager)
-                    if (!uid.startsWith("device-")) {
-                        statsPrefs.getLong("saved_max_total_listen_ms_$uid", 0L)
-                    } else {
-                        statsPrefs.getLong("saved_max_total_listen_ms_$uid", statsPrefs.getLong("saved_max_total_listen_ms", 0L))
-                    }
-                }
-                val totalHours = remember(savedListenMs) { (savedListenMs / (1000 * 3600)).toInt() }
-                val earnedRank = if (totalHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(totalHours) else null
-                val actualHighestRank = listOfNotNull(earnedRank, highestEarnedRank).maxByOrNull { it.ordinal }
-                val currentRank = displayedRank ?: actualHighestRank
-                val isMaster = (actualHighestRank != null && actualHighestRank.ordinal >= com.valora.icebeats.ui.component.icebeatsRank.Master.ordinal) || totalHours >= 150
-
-                SettingsGeneralCategory(
-                    title = "Level & Badge Akun (v${com.valora.icebeats.BuildConfig.VERSION_NAME})",
-                    items = listOf(
-                        {
-                            PreferenceEntry(
-                                title = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val tierLabel = if (displayedRank != null && actualHighestRank != null && displayedRank != actualHighestRank) {
-                                            "Badge: ${displayedRank?.name} (Level ${actualHighestRank.name})"
-                                        } else {
-                                            "Tier: ${actualHighestRank?.name ?: "Echo"}"
-                                        }
-                                        Text(tierLabel)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        com.valora.icebeats.ui.component.RankBadge(
-                                            rank = actualHighestRank ?: com.valora.icebeats.ui.component.icebeatsRank.Echo,
-                                            displayedRank = displayedRank,
-                                            size = 22.dp
-                                        )
-                                    }
-                                },
-                                description = if (isMaster) "$totalHours Jam Mendengarkan • Level Master Aktif"
-                                else "$totalHours Jam Mendengarkan • Butuh ${maxOf(0, 150 - totalHours)} jam lagi untuk Level Master",
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.auto_awesome),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                trailingContent = {
-                                    Text(
-                                        text = if (isMaster) "MASTER" else "#LEVEL",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isMaster) Color(0xFFFFD700) else MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            )
-                        }
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 SettingsGeneralCategory(
                     title = stringResource(R.string.google),
                     items = listOf(
@@ -645,86 +200,53 @@ fun AccountSettings(
                         {
                             PreferenceEntry(
                                 title = { Text(stringResource(R.string.edit_display_name)) },
-                                description = if (currentDisplayName.isNotBlank() && !currentDisplayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true))
+                                description = if (currentDisplayName.isNotBlank())
                                     stringResource(R.string.current_value, currentDisplayName)
                                 else
-                                    "Hai, selamat datang di IceBeats (Default)",
+                                    stringResource(R.string.not_set),
                                 icon = { Icon(painterResource(R.drawable.person), null) },
                                 onClick = { showEditNameDialog = true }
                             )
                         },
 
-                        // 🔹 STATUS AKUN / AKUN TERHUBUNG
-                        {
-                            val connectedEmail = when {
-                                supabaseEmail.isNotBlank() -> supabaseEmail
-                                currentGoogleEmail.isNotBlank() -> currentGoogleEmail
-                                accountEmail.isNotBlank() -> accountEmail
-                                currentDisplayName.isNotBlank() -> currentDisplayName
-                                else -> ""
-                            }
-                            val providerDesc = when {
-                                authProvider.isNotBlank() -> "Login menggunakan $authProvider"
-                                isSupabaseLoggedIn -> "Login menggunakan IceBeats Cloud"
-                                isLoggedIn -> "Login menggunakan Akun Google / YouTube"
-                                currentGoogleEmail.isNotBlank() -> "Login menggunakan Google"
-                                else -> "Belum ada akun yang terhubung"
-                            }
-                            val providerIcon = when {
-                                authProvider.equals("GitHub", ignoreCase = true) -> R.drawable.github
-                                authProvider.equals("GitLab", ignoreCase = true) -> R.drawable.gitlab
-                                authProvider.equals("Google", ignoreCase = true) || currentGoogleEmail.isNotBlank() -> R.drawable.google
-                                else -> R.drawable.person
-                            }
-
-                            PreferenceEntry(
-                                title = {
-                                    Text(if (isUserLoggedIn && connectedEmail.isNotBlank()) connectedEmail else "Status Akun")
-                                },
-                                description = providerDesc,
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(providerIcon),
-                                        contentDescription = null,
-                                        tint = if (providerIcon == R.drawable.google) androidx.compose.ui.graphics.Color.Unspecified else MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                onClick = {}
-                            )
-                        },
-
                         // 🔹 LOGIN / LOGOUT
                         {
-                            if (!isUserLoggedIn) {
-                                PreferenceEntry(
-                                    title = { Text(stringResource(R.string.login)) },
-                                    description = "Masuk ke akun IceBeats",
-                                    icon = { Icon(painterResource(R.drawable.login), null) },
-                                    trailingContent = {
-                                        Button(onClick = { navController.navigate("login") }) {
-                                            Text(stringResource(R.string.login))
+                            PreferenceEntry(
+                                title = {
+                                    Text(
+                                        if (isLoggedIn) {
+                                            getAccountDisplayName.takeIf { it.isNotBlank() }
+                                                ?: "Login to YouTube"
+                                        } else {
+                                            "Login to YouTube"
                                         }
-                                    },
-                                    onClick = { navController.navigate("login") }
-                                )
-                            } else {
-                                PreferenceEntry(
-                                    title = { Text("Logout Akun") },
-                                    description = "Keluar dari sesi saat ini dan kembali ke mode Guest",
-                                    icon = { Icon(painterResource(R.drawable.logout), null) },
-                                    trailingContent = {
+                                    )
+                                },
+                                description = if (isLoggedIn) getAccountDescription else null,
+                                icon = { Icon(painterResource(R.drawable.login), null) },
+                                trailingContent = {
+                                    if (isLoggedIn) {
                                         OutlinedButton(onClick = {
-                                            performLogout("Berhasil logout")
+                                            onInnerTubeCookieChange("")
+                                            onAccountNameChange("")
+                                            onAccountEmailChange("")
+                                            onAccountChannelHandleChange("")
+                                            onVisitorDataChange("")
+                                            onDataSyncIdChange("")
+                                            forgetAccount(context)
                                         }) {
                                             Text(stringResource(R.string.logout))
                                         }
-                                    },
-                                    onClick = {
-                                        performLogout("Berhasil logout")
                                     }
-                                )
-                            }
+                                },
+                                onClick = {
+                                    if (!isLoggedIn)
+                                        navController.navigate("youtube_login")
+                                }
+                            )
                         },
+
+
 
                         // 🔹 ADVANCED LOGIN
                         {
@@ -790,6 +312,97 @@ fun AccountSettings(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+                
+                // Spotify Group
+                val hasSpotifyCookie by context.dataStore.data.map { it.contains(com.valora.icebeats.constants.SpotifyCookieKey) }.collectAsState(initial = false)
+                SettingsGeneralCategory(
+                    title = "Spotify",
+                    items = listOf(
+                        {
+                            PreferenceEntry(
+                                title = { Text(if (hasSpotifyCookie) "Connected" else "Login to Spotify") },
+                                description = if (hasSpotifyCookie) "Connected to Spotify account" else "Sign in to see your feed and playlists",
+                                icon = { Icon(painterResource(R.drawable.music_note), null) },
+                                trailingContent = {
+                                    if (hasSpotifyCookie) {
+                                        OutlinedButton(onClick = {
+                                            scope.launch {
+                                                context.dataStore.edit { it.remove(com.valora.icebeats.constants.SpotifyCookieKey) }
+                                            }
+                                        }) {
+                                            Text(stringResource(R.string.logout))
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (!hasSpotifyCookie) {
+                                        navController.navigate("spotify_login")
+                                    } else {
+                                        navController.navigate("spotify_account")
+                                    }
+                                }
+                            )
+                        }
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Discord Group
+                val discordToken by context.dataStore.data.map { it[DiscordTokenKey] ?: "" }.collectAsState(initial = "")
+                val hasDiscordToken = discordToken.isNotEmpty()
+                val (discordRPC, onDiscordRPCChange) = rememberPreference(
+                    key = EnableDiscordRPCKey,
+                    defaultValue = true
+                )
+
+                SettingsGeneralCategory(
+                    title = stringResource(R.string.discord_integration),
+                    items = listOf(
+                        {
+                            PreferenceEntry(
+                                title = { Text(if (hasDiscordToken) "Connected" else "Login to Discord") },
+                                description = if (hasDiscordToken) "Connected to Discord account" else "Sign in to enable Rich Presence",
+                                icon = { Icon(painterResource(R.drawable.discord), null) },
+                                trailingContent = {
+                                    if (hasDiscordToken) {
+                                        OutlinedButton(onClick = {
+                                            scope.launch {
+                                                context.dataStore.edit { 
+                                                    it.remove(DiscordTokenKey) 
+                                                    it[EnableDiscordRPCKey] = false
+                                                }
+                                            }
+                                        }) {
+                                            Text(stringResource(R.string.logout))
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (!hasDiscordToken) {
+                                        navController.navigate("settings/discord/login")
+                                    } else {
+                                        navController.navigate("settings/discord")
+                                    }
+                                }
+                            )
+                        },
+                        {
+                            if (hasDiscordToken) {
+                                SwitchPreference(
+                                    title = { Text(stringResource(R.string.enable_discord_rpc)) },
+                                    icon = {
+                                        Icon(painterResource(R.drawable.discord), null)
+                                    },
+                                    checked = discordRPC,
+                                    onCheckedChange = onDiscordRPCChange
+                                )
+                            }
+                        }
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // 🔥 AVATAR SELECTOR
                 GlassCard(
@@ -820,8 +433,7 @@ fun AccountSettings(
     // 🔥 EDIT NAME DIALOG
     if (showEditNameDialog) {
         var newName by remember {
-            val initial = if (currentDisplayName.equals("Hai, selamat datang di IceBeats", ignoreCase = true)) "" else currentDisplayName
-            mutableStateOf(TextFieldValue(initial))
+            mutableStateOf(TextFieldValue(currentDisplayName))
         }
 
         AlertDialog(
@@ -832,20 +444,17 @@ fun AccountSettings(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = {
-                            if (it.text.length <= 30)
+                            if (it.text.length <= 9)
                                 newName = it
                         },
                         label = { Text(stringResource(R.string.your_name)) },
-                        supportingText = {
-                            Text("${newName.text.length} / 30")
-                        },
                         singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Perubahan nama langsung diterapkan di profil",
+                        text = stringResource(R.string.ui_text_changes_will_be_applied_after_restarting_the_app),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -853,18 +462,8 @@ fun AccountSettings(
             confirmButton = {
                 Button(
                     onClick = {
-                        val savedName = newName.text.trim()
-                        val finalName = if (savedName.isNotBlank()) savedName else "Hai, selamat datang di IceBeats"
                         scope.launch {
-                            nameManager.saveUserName(finalName)
-                            onAccountNameChange(finalName)
-                            try {
-                                context.dataStore.edit { prefs ->
-                                    prefs[com.valora.icebeats.constants.AccountNameKey] = finalName
-                                }
-                            } catch (_: Exception) {}
-                            supabaseClient.updateUserProfileFields(name = finalName)
-                            Toast.makeText(context, "Nama profil berhasil disimpan!", Toast.LENGTH_SHORT).show()
+                            nameManager.saveUserName(newName.text)
                         }
                         showEditNameDialog = false
                     }
@@ -883,89 +482,189 @@ fun AccountSettings(
     }
 
     if (showTokenEditor) {
-        var cookieValue by remember { mutableStateOf(TextFieldValue(innerTubeCookie)) }
-        var visitorDataValue by remember { mutableStateOf(TextFieldValue(visitorData)) }
-
-        AlertDialog(
-            onDismissRequest = { showTokenEditor = false },
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            title = { Text(stringResource(R.string.advanced_login)) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = cookieValue,
-                        onValueChange = { cookieValue = it },
-                        label = { Text(stringResource(R.string.inner_tube_cookie)) },
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = visitorDataValue,
-                        onValueChange = { visitorDataValue = it },
-                        label = { Text(stringResource(R.string.visitor_data)) },
-                        singleLine = true
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onInnerTubeCookieChange(cookieValue.text)
-                        onVisitorDataChange(visitorDataValue.text)
-                        showTokenEditor = false
-                    }
-                ) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showTokenEditor = false }
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
+        AdvancedTokenLoginDialog(
+            initialCookie = innerTubeCookie,
+            initialVisitorData = visitorData,
+            onDismiss = { showTokenEditor = false },
+            onSave = { newCookie, newVisitorData ->
+                onInnerTubeCookieChange(newCookie)
+                onVisitorDataChange(newVisitorData)
+                showTokenEditor = false
             }
         )
     }
+}
 
-    if (isLoggingOut) {
-        Dialog(
-            onDismissRequest = { /* Menunggu sampai backup & logout selesai */ },
-            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF1E1E1E),
-                tonalElevation = 8.dp,
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = "Sedang Logout",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = logoutStatusText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+@Composable
+fun AdvancedTokenLoginDialog(
+    initialCookie: String,
+    initialVisitorData: String,
+    onDismiss: () -> Unit,
+    onSave: (cookie: String, visitorData: String) -> Unit,
+) {
+    val existingCookies = remember(initialCookie) { parseCookieString(initialCookie) }
+    var useRawMode by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
+
+    var sapisid by remember { mutableStateOf(existingCookies["SAPISID"].orEmpty()) }
+    var hsid by remember { mutableStateOf(existingCookies["HSID"].orEmpty()) }
+    var ssid by remember { mutableStateOf(existingCookies["SSID"].orEmpty()) }
+    var sid by remember { mutableStateOf(existingCookies["SID"].orEmpty()) }
+    var loginInfo by remember { mutableStateOf(existingCookies["LOGIN_INFO"].orEmpty()) }
+    var rawCookie by remember { mutableStateOf(initialCookie) }
+    var visitorData by remember { mutableStateOf(initialVisitorData) }
+
+    val formattedCookie = remember(sapisid, hsid, ssid, sid, loginInfo, useRawMode, rawCookie) {
+        if (useRawMode) {
+            rawCookie.trim()
+        } else {
+            buildList {
+                if (sapisid.isNotBlank()) add("SAPISID=${sapisid.trim()}")
+                if (hsid.isNotBlank()) add("HSID=${hsid.trim()}")
+                if (ssid.isNotBlank()) add("SSID=${ssid.trim()}")
+                if (sid.isNotBlank()) add("SID=${sid.trim()}")
+                if (loginInfo.isNotBlank()) add("LOGIN_INFO=${loginInfo.trim()}")
+            }.joinToString("; ")
         }
     }
 
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(painterResource(R.drawable.token), contentDescription = null) },
+        title = { Text(stringResource(R.string.advanced_login)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // How-to guide accordion
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showHelp = !showHelp },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.ui_sweep_how_to_get_your_cookies),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = if (showHelp) "▲" else "▼",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        if (showHelp) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.ui_cookie_instruction_step_one) +
+                                        "2. Press F12 -> Application tab -> Cookies -> https://music.youtube.com.\n" +
+                                        "3. Copy the values of SAPISID, HSID, SSID, SID, and LOGIN_INFO into the fields below.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Mode switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { useRawMode = !useRawMode }) {
+                        Text(
+                            text = if (useRawMode) "Switch to Individual Fields" else "Switch to Raw Cookie",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                if (!useRawMode) {
+                    OutlinedTextField(
+                        value = sapisid,
+                        onValueChange = { sapisid = it },
+                        label = { Text(stringResource(R.string.ui_dynamic_cookie_required, "SAPISID")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = hsid,
+                        onValueChange = { hsid = it },
+                        label = { Text(stringResource(R.string.ui_dynamic_cookie_required, "HSID")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = ssid,
+                        onValueChange = { ssid = it },
+                        label = { Text(stringResource(R.string.ui_dynamic_cookie_required, "SSID")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = sid,
+                        onValueChange = { sid = it },
+                        label = { Text(stringResource(R.string.ui_dynamic_cookie_required, "SID")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = loginInfo,
+                        onValueChange = { loginInfo = it },
+                        label = { Text(stringResource(R.string.ui_dynamic_cookie_required, "LOGIN_INFO")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = rawCookie,
+                        onValueChange = { rawCookie = it },
+                        label = { Text(stringResource(R.string.inner_tube_cookie)) },
+                        minLines = 3,
+                        maxLines = 6,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                OutlinedTextField(
+                    value = visitorData,
+                    onValueChange = { visitorData = it },
+                    label = { Text(stringResource(R.string.visitor_data) + " (Optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(formattedCookie, visitorData.trim())
+                }
+            ) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }
+
+
+
+

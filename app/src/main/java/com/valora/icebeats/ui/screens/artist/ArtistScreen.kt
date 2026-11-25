@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.artist
+package com.valora.icebeats.ui.screens.artist
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -147,6 +147,8 @@ fun ArtistScreen(
     val librarySongs by viewModel.librarySongs.collectAsState()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    val effectiveDisableBlur = disableBlur || isLiteMode
 
     val lazyListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -229,7 +231,7 @@ fun ArtistScreen(
                 .background(surfaceColor)
         )
 
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!effectiveDisableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -487,7 +489,7 @@ fun ArtistScreen(
                             ) {
                                 Text(
                                     text = if (!isExpanded && description.length > 100) {
-                                        description.take(100).trimEnd() + "•"
+                                        description.take(100).trimEnd() + "…"
                                     } else {
                                         description
                                     },
@@ -500,7 +502,7 @@ fun ArtistScreen(
 
                                 if (!isExpanded && description.length > 100) {
                                     Text(
-                                        text = "More",
+                                        text = stringResource(R.string.ui_text_more),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Medium,
@@ -763,7 +765,7 @@ fun ArtistScreen(
                                         .padding(horizontal = 16.dp, vertical = 8.dp)
                                 ) {
                                     Text(
-                                        text = "View All",
+                                        text = stringResource(R.string.ui_text_view_all),
                                         style = MaterialTheme.typography.labelLarge,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier
@@ -1017,7 +1019,7 @@ fun ArtistScreen(
                         putExtra(
                             Intent.EXTRA_TEXT,
                             viewModel.artistPage?.artist?.shareLink
-                                ?: "https://icebeats.pages.dev/artist?id=${viewModel.artistId}"
+                                ?: com.valora.icebeats.utils.RemoteConfigManager.getArtistShareUrl(viewModel.artistId)
                         )
                     }
                     context.startActivity(Intent.createChooser(shareIntent, null))

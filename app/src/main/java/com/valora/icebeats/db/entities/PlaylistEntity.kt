@@ -9,7 +9,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import org.apache.commons.lang3.RandomStringUtils
 import java.time.LocalDateTime
 
 @Immutable
@@ -32,13 +31,13 @@ data class PlaylistEntity(
         const val LIKED_PLAYLIST_ID = "LP_LIKED"
         const val DOWNLOADED_PLAYLIST_ID = "LP_DOWNLOADED"
 
-        fun generatePlaylistId() = "LP" + RandomStringUtils.random(8, true, false)
+        fun generatePlaylistId() = "LP" + (1..8).map { (('a'..'z') + ('A'..'Z')).random() }.joinToString("")
     }
 
     val shareLink: String?
         get() {
             return if (browseId != null)
-                "https://icebeats.pages.dev/playlist?id=$browseId"
+                com.valora.icebeats.utils.RemoteConfigManager.getPlaylistShareUrl(browseId)
             else null
         }
 
@@ -46,11 +45,18 @@ data class PlaylistEntity(
         bookmarkedAt = if (bookmarkedAt != null) null else LocalDateTime.now()
     )
 
-    fun toggleLike() = localToggleLike().also {
+    fun toggleLike() = localToggleLike().also { updated ->
+        val isSaved = updated.bookmarkedAt != null
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
-                if (browseId != null)
-                    YouTube.likePlaylist(browseId, bookmarkedAt == null)
+                val pid = browseId ?: id
+                if (!pid.isNullOrBlank()) {
+                    com.valora.icebeats.data.artist.ArtistInnertubeClient.ratePlaylist(pid.removePrefix("VL"), isSaved)
+                }
+            }.onFailure {
+                if (browseId != null) {
+                    runCatching { YouTube.likePlaylist(browseId, isSaved) }
+                }
             }
         }
     }

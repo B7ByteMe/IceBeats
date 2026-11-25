@@ -37,41 +37,56 @@ fun AvatarDisplay(
     borderColor: Color = MaterialTheme.colorScheme.primary,
     borderWidth: Dp = 2.dp,
     modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-    userRank: icebeatsRank? = null,
-    totalListenMs: Long? = null,
-    forceShowMaster: Boolean = false,
-    enableMasterBorder: Boolean = true
+    contentDescription: String? = null
 ) {
     val context = LocalContext.current
     val avatarManager = remember { AvatarPreferenceManager(context) }
     val currentSelection by avatarManager.getAvatarSelection.collectAsState(initial = AvatarSelection.Default)
 
-    val innerAvatar: @Composable () -> Unit = {
-        val displayModifier = if (showBorder) {
-            Modifier
-                .size(size)
-                .clip(CircleShape)
-                .border(borderWidth, borderColor, CircleShape)
-        } else {
-            Modifier
-                .size(size)
-                .clip(CircleShape)
-        }
+    val displayModifier = if (showBorder) {
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .border(borderWidth, borderColor, CircleShape)
+    } else {
+        modifier
+            .size(size)
+            .clip(CircleShape)
+    }
 
-        Box(
-            modifier = displayModifier,
-            contentAlignment = Alignment.Center
-        ) {
+    val customAvatarRequest = remember(
+        (currentSelection as? AvatarSelection.Custom)?.uri
+    ) {
+        (currentSelection as? AvatarSelection.Custom)?.uri?.toUri()?.let { uri ->
+            ImageRequest.Builder(context)
+                .data(uri)
+                .crossfade(true)
+                .error(R.drawable.person)
+                .placeholder(R.drawable.person)
+                .build()
+        }
+    }
+    val diceBearAvatarRequest = remember(
+        (currentSelection as? AvatarSelection.DiceBear)?.url
+    ) {
+        (currentSelection as? AvatarSelection.DiceBear)?.url?.let { url ->
+            ImageRequest.Builder(context)
+                .data(url)
+                .crossfade(true)
+                .error(R.drawable.person)
+                .placeholder(R.drawable.person)
+                .build()
+        }
+    }
+
+    Box(
+        modifier = displayModifier,
+        contentAlignment = Alignment.Center
+    ) {
         when (currentSelection) {
             is AvatarSelection.Custom -> {
                 AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data((currentSelection as AvatarSelection.Custom).uri.toUri())
-                        .crossfade(true)
-                        .error(R.drawable.person)
-                        .placeholder(R.drawable.person)
-                        .build(),
+                    model = customAvatarRequest,
                     contentDescription = contentDescription
                         ?: stringResource(id = R.string.custom_avatar),
                     modifier = Modifier.fillMaxSize(),
@@ -81,12 +96,7 @@ fun AvatarDisplay(
 
             is AvatarSelection.DiceBear -> {
                 AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data((currentSelection as AvatarSelection.DiceBear).url)
-                        .crossfade(true)
-                        .error(R.drawable.person)
-                        .placeholder(R.drawable.person)
-                        .build(),
+                    model = diceBearAvatarRequest,
                     contentDescription = contentDescription ?: "Avatar DiceBear",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -100,15 +110,7 @@ fun AvatarDisplay(
     }
 }
 
-    Box(
-        modifier = modifier.size(size),
-        contentAlignment = Alignment.Center
-    ) {
-        innerAvatar()
-    }
-}
-
-/** Variante peque•a para usar en listas o elementos compactos */
+/** Variante pequeña para usar en listas o elementos compactos */
 @Composable
 fun SmallAvatarDisplay(
     modifier: Modifier = Modifier,
@@ -174,7 +176,7 @@ fun AvatarWithStatus(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.person),
-                        contentDescription = "Online",
+                        contentDescription = stringResource(R.string.together_online),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -196,12 +198,12 @@ private fun DefaultAvatarIcon(contentDescription: String? = null) {
 }
 
 /**
- * Utilidad para obtener el avatar actual de manera s•ncrona (para casos
+ * Utilidad para obtener el avatar actual de manera síncrona (para casos
  * especiales)
  */
 class AvatarUtils {
     companion object {
-        /** Obtiene la URI del avatar personalizado si est• seleccionado */
+        /** Obtiene la URI del avatar personalizado si está seleccionado */
         fun getCustomAvatarUri(selection: AvatarSelection): String? {
             return when (selection) {
                 is AvatarSelection.Custom -> selection.uri
@@ -209,7 +211,7 @@ class AvatarUtils {
             }
         }
 
-        /** Obtiene la URL del avatar DiceBear si est• seleccionado */
+        /** Obtiene la URL del avatar DiceBear si está seleccionado */
         fun getDiceBearAvatarUrl(selection: AvatarSelection): String? {
             return when (selection) {
                 is AvatarSelection.DiceBear -> selection.url

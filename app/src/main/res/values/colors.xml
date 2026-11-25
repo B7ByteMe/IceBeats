@@ -1,5 +1,9 @@
 <resources>
     <!-- Fallback colors (usados en Android < 12 o cuando no hay palette) -->
+    <color name="black">#000000</color>
+    <color name="ic_launcher_winter_background">#061838</color>
+    <color name="ic_launcher_melody_hearts_background">#3B0505</color>
+    <color name="ic_launcher_gta6_background">#1A032A</color>
     <color name="md_sys_color_primary">#6750A4</color>
     <color name="md_sys_color_onPrimary">#FFFFFF</color>
     <color name="md_sys_color_surface">#FFFFFF</color>

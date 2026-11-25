@@ -1,5 +1,9 @@
 package com.valora.icebeats.ui.screens
 
+import com.valora.icebeats.R
+
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -82,7 +86,7 @@ fun ContributorProfileScreen(
                 title = { Text(profile?.name ?: username, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -108,7 +112,7 @@ fun ContributorProfileScreen(
                     ) {
                         AsyncImage(
                             model = profile?.avatar_url,
-                            contentDescription = "Avatar",
+                            contentDescription = stringResource(R.string.ui_a11y_avatar),
                             modifier = Modifier
                                 .size(80.dp)
                                 .clip(CircleShape),
@@ -120,12 +124,12 @@ fun ContributorProfileScreen(
                             Text(text = "@${profile?.login}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.height(4.dp))
                             Row {
-                                Text(text = "${profile?.followers} Followers", style = MaterialTheme.typography.labelSmall)
+                                Text(text = stringResource(R.string.ui_dynamic_followers, profile?.followers ?: 0), style = MaterialTheme.typography.labelSmall)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "${profile?.following} Following", style = MaterialTheme.typography.labelSmall)
+                                Text(text = stringResource(R.string.ui_dynamic_following, profile?.following ?: 0), style = MaterialTheme.typography.labelSmall)
                             }
                             if (!profile?.location.isNullOrBlank()) {
-                                Text(text = "?? ${profile?.location}", style = MaterialTheme.typography.labelSmall)
+                                Text(text = "📍 ${profile?.location}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -138,7 +142,7 @@ fun ContributorProfileScreen(
                         onClick = { profile?.html_url?.let { uriHandler.openUri(it) } },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("View on GitHub")
+                        Text(stringResource(R.string.ui_text_view_on_github))
                     }
                 }
 
@@ -150,16 +154,19 @@ fun ContributorProfileScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Contributions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.ui_text_contributions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
+                            val contributionGraphRequest = remember(username) {
+                                ImageRequest.Builder(context)
+                                    .data("https://ghchart.rshah.org/1DB954/$username")
+                                    .crossfade(true)
+                                    .build()
+                            }
                             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                                 AsyncImage(
-                                    model = ImageRequest.Builder(context)
-                                        .data("https://ghchart.rshah.org/1DB954/$username")
-                                        .crossfade(true)
-                                        .build(),
+                                    model = contributionGraphRequest,
                                     imageLoader = svgImageLoader,
-                                    contentDescription = "Contribution Graph",
+                                    contentDescription = stringResource(R.string.ui_a11y_contribution_graph),
                                     modifier = Modifier.height(100.dp)
                                 )
                             }
@@ -167,10 +174,10 @@ fun ContributorProfileScreen(
                     }
                 }
 
-                // icebeats COMMITS
+                // AIRBEATS COMMITS
                 if (commits.isNotEmpty()) {
                     item {
-                        Text("icebeats Commits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ui_text_airbeats_commits), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     items(commits.take(5)) { commitWrap ->
                         Card(
@@ -191,7 +198,7 @@ fun ContributorProfileScreen(
                 // REPOSITORIES
                 if (repos.isNotEmpty()) {
                     item {
-                        Text("Repositories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ui_text_repositories), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -209,9 +216,9 @@ fun ContributorProfileScreen(
                                         Text(repo.description ?: "No description", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("? ${repo.stargazers_count}", style = MaterialTheme.typography.labelSmall)
+                                            Text("⭐ ${repo.stargazers_count}", style = MaterialTheme.typography.labelSmall)
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("?? ${repo.forks_count}", style = MaterialTheme.typography.labelSmall)
+                                            Text("🍴 ${repo.forks_count}", style = MaterialTheme.typography.labelSmall)
                                             if (repo.language != null) {
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(repo.language, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -227,11 +234,11 @@ fun ContributorProfileScreen(
                 // RECENT ACTIVITY
                 if (events.isNotEmpty()) {
                     item {
-                        Text("Recent Activity", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ui_text_recent_activity), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     items(events.take(5)) { event ->
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("??", modifier = Modifier.padding(end = 8.dp))
+                            Text("🔹", modifier = Modifier.padding(end = 8.dp))
                             Column {
                                 Text(event.type.replace("Event", ""), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                 Text(event.repo.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
@@ -244,7 +251,7 @@ fun ContributorProfileScreen(
                 if (!readme.isNullOrBlank()) {
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Profile README", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ui_text_profile_readme), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)

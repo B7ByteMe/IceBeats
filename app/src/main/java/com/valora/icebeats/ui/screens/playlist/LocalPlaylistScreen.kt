@@ -116,11 +116,12 @@ import com.valora.icebeats.extensions.toMediaItem
 import com.valora.icebeats.extensions.togglePlayPause
 import com.valora.icebeats.innertube.YouTube
 import com.valora.icebeats.innertube.models.SongItem
-import com.valora.icebeats.innertube.utils.completed
+import com.valora.icebeats.innertube.utils.completedPlaylistPage
 import com.valora.icebeats.models.toMediaMetadata
 import com.valora.icebeats.playback.ExoDownloadService
 import com.valora.icebeats.playback.queues.ListQueue
 import com.valora.icebeats.ui.component.DefaultDialog
+import com.valora.icebeats.ui.component.DownloadQualityDialog
 import com.valora.icebeats.ui.component.DraggableScrollbar
 import com.valora.icebeats.ui.component.EmptyPlaceholder
 import com.valora.icebeats.ui.component.IconButton
@@ -176,6 +177,8 @@ fun LocalPlaylistScreen(
     )
     var locked by rememberPreference(PlaylistEditLockKey, defaultValue = true)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
+    val effectiveDisableBlur = disableBlur || isLiteMode
 
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -224,6 +227,30 @@ fun LocalPlaylistScreen(
 
     val downloadUtil = LocalDownloadUtil.current
     var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
+    var showQualityDialog by remember { mutableStateOf(false) }
+
+    val exportPlaylistLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain")
+        ) { uri ->
+            if (uri != null && playlist != null) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    val result = com.valora.icebeats.utils.PlaylistFileHelper.exportPlaylistToUri(
+                        context = context,
+                        uri = uri,
+                        playlistName = playlist!!.playlist.name,
+                        songs = songs.map { it.song }
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (result.isSuccess) {
+                            android.widget.Toast.makeText(context, R.string.playlist_exported, android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            android.widget.Toast.makeText(context, result.exceptionOrNull()?.message ?: "Export failed", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
 
     val editable: Boolean = playlist?.playlist?.isEditable == true
 
@@ -478,7 +505,7 @@ fun LocalPlaylistScreen(
 
     val transparentAppBar by remember {
         derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle
+            !effectiveDisableBlur && !selection && !showTopBarTitle
         }
     }
 
@@ -487,7 +514,7 @@ fun LocalPlaylistScreen(
             .fillMaxSize()
             .background(surfaceColor),
     ) {
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!effectiveDisableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -848,19 +875,7 @@ fun LocalPlaylistScreen(
                                                     }
                                                 }
                                                 else -> {
-                                                    songs.forEach { song ->
-                                                        val downloadRequest = DownloadRequest
-                                                            .Builder(song.song.id, song.song.id.toUri())
-                                                            .setCustomCacheKey(song.song.id)
-                                                            .setData(song.song.song.title.toByteArray())
-                                                            .build()
-                                                        DownloadService.sendAddDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            downloadRequest,
-                                                            false,
-                                                        )
-                                                    }
+                                                    showQualityDialog = true
                                                 }
                                             }
                                         },
@@ -899,6 +914,27 @@ fun LocalPlaylistScreen(
                                             }
                                         }
                                     }
+                                    if (showQualityDialog) {
+                                        DownloadQualityDialog(
+                                            onDismiss = { showQualityDialog = false },
+                                            onQualitySelected = {
+                                                showQualityDialog = false
+                                                songs.forEach { song ->
+                                                    val downloadRequest = DownloadRequest
+                                                        .Builder(song.song.id, song.song.id.toUri())
+                                                        .setCustomCacheKey(song.song.id)
+                                                        .setData(song.song.song.title.toByteArray())
+                                                        .build()
+                                                    DownloadService.sendAddDownload(
+                                                        context,
+                                                        ExoDownloadService::class.java,
+                                                        downloadRequest,
+                                                        false,
+                                                    )
+                                                }
+                                            },
+                                        )
+                                    }
 
                                     Surface(
                                         onClick = {
@@ -907,7 +943,7 @@ fun LocalPlaylistScreen(
                                             } else if (playlist.playlist.browseId != null) {
                                                 coroutineScope.launch(Dispatchers.IO) {
                                                     val playlistPage = YouTube.playlist(playlist.playlist.browseId!!)
-                                                        .completed()
+                                                        .completedPlaylistPage()
                                                         .getOrNull() ?: return@launch
                                                     database.transaction {
                                                         clearPlaylist(playlist.id)
@@ -1396,6 +1432,19 @@ fun LocalPlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
+                    IconButton(
+                        onClick = {
+                            val safeName = playlist?.playlist?.name?.replace(Regex("[\\\\/:*?\"<>|]"), "_")?.trim()?.ifEmpty { "playlist" } ?: "playlist"
+                            exportPlaylistLauncher.launch("$safeName.txt")
+                        },
+                        onLongClick = {}
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.export),
+                            contentDescription = stringResource(R.string.export_playlist)
+                        )
+                    }
+
                     IconButton(
                         onClick = { isSearching = true },
                         onLongClick = {}

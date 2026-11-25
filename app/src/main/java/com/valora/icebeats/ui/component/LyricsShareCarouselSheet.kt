@@ -1,5 +1,5 @@
-﻿/*
- * icebeats Project Original (2026)
+/*
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,21 +46,21 @@ import androidx.compose.ui.unit.sp
 import com.valora.icebeats.R
 import com.valora.icebeats.models.MediaMetadata
 
-// -----------------------------------------------------------------------------
-// API p•blica
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// API pública
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Bottom sheet que permite al usuario:
  *  1. Previsualizar en tiempo real la tarjeta de letras.
  *  2. Seleccionar un layout en el carrusel horizontal.
  *  3. Elegir el estilo de vidrio/color.
- *  4. Ajustar tama•o de texto, alineaci•n, visibilidad y padding.
- *  5. Compartir o guardar la configuraci•n resultante.
+ *  4. Ajustar tamaño de texto, alineación, visibilidad y padding.
+ *  5. Compartir o guardar la configuración resultante.
  *
  * @param onShare  Se llama con el [LyricsCardConfig] final cuando el usuario pulsa "Compartir".
  *                 El caller es responsable de capturar el composable como bitmap y lanzar el Intent.
- * @param onSave   Opcional. Si se provee, aparece el bot•n "Guardar".
+ * @param onSave   Opcional. Si se provee, aparece el botón "Guardar".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +89,9 @@ fun LyricsShareCarouselSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
 
-            // -- T•tulo del sheet ------------------------------------------
+            // ── Título del sheet ──────────────────────────────────────────
             Text(
-                text       = "Compartir letra",
+                text       = stringResource(R.string.share_lyrics),
                 style      = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier   = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
@@ -98,7 +99,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(18.dp))
 
-            // -- Preview principal -----------------------------------------
+            // ── Preview principal ─────────────────────────────────────────
             // AnimatedContent hace fade entre cambios de config
             AnimatedContent(
                 targetState  = config,
@@ -115,8 +116,8 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(22.dp))
 
-            // -- Carrusel de layouts ---------------------------------------
-            SheetSectionLabel("Dise•o")
+            // ── Carrusel de layouts ───────────────────────────────────────
+            SheetSectionLabel(stringResource(R.string.lyrics_share_layout))
 
             Row(
                 modifier = Modifier
@@ -139,8 +140,8 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(18.dp))
 
-            // -- Selector de estilo de vidrio ------------------------------
-            SheetSectionLabel("Estilo")
+            // ── Selector de estilo de vidrio ──────────────────────────────
+            SheetSectionLabel(stringResource(R.string.lyrics_share_style))
 
             Row(
                 modifier = Modifier
@@ -160,7 +161,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(14.dp))
 
-            // -- Panel de personalizaci•n (expandible) ---------------------
+            // ── Panel de personalización (expandible) ─────────────────────
             CustomizationPanel(
                 config        = config,
                 onConfigChange = { config = it },
@@ -171,7 +172,7 @@ fun LyricsShareCarouselSheet(
 
             Spacer(Modifier.height(26.dp))
 
-            // -- Botones de acci•n -----------------------------------------
+            // ── Botones de acción ─────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -184,7 +185,7 @@ fun LyricsShareCarouselSheet(
                         modifier = Modifier.weight(1f),
                         shape    = RoundedCornerShape(14.dp),
                     ) {
-                        Text("Guardar")
+                        Text(stringResource(R.string.save))
                     }
                 } else {
                     OutlinedButton(
@@ -192,7 +193,7 @@ fun LyricsShareCarouselSheet(
                         modifier = Modifier.weight(1f),
                         shape    = RoundedCornerShape(14.dp),
                     ) {
-                        Text("Cancelar")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
                 Button(
@@ -206,16 +207,16 @@ fun LyricsShareCarouselSheet(
                         modifier           = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Compartir")
+                    Text(stringResource(R.string.share))
                 }
             }
         }
     }
 }
 
-// -----------------------------------------------------------------------------
-// Preview principal • box con la tarjeta escalada
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Preview principal — box con la tarjeta escalada
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun CardPreviewBox(
@@ -257,9 +258,9 @@ private fun CardPreviewBox(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Thumbnail de layout en el carrusel
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun LayoutStyleThumbnail(
@@ -290,7 +291,7 @@ private fun LayoutStyleThumbnail(
                 .clickable(onClick = onSelect),
             contentAlignment = Alignment.Center,
         ) {
-            // Preview escalada • Coil cachea la imagen, cloudy corre en GPU
+            // Preview escalada — Coil cachea la imagen, cloudy corre en GPU
             Box(
                 modifier = Modifier
                     .requiredSize(340.dp)
@@ -308,7 +309,7 @@ private fun LayoutStyleThumbnail(
                 )
             }
 
-            // Indicador de selecci•n
+            // Indicador de selección
             if (isSelected) {
                 Box(
                     modifier = Modifier
@@ -320,7 +321,7 @@ private fun LayoutStyleThumbnail(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text      = "?",
+                        text      = "✓",
                         color     = MaterialTheme.colorScheme.onPrimary,
                         fontSize  = 8.sp,
                         fontWeight = FontWeight.Bold,
@@ -331,7 +332,7 @@ private fun LayoutStyleThumbnail(
 
         Spacer(Modifier.height(5.dp))
         Text(
-            text       = style.displayName,
+            text       = stringResource(style.titleRes),
             style      = MaterialTheme.typography.labelSmall,
             color      = if (isSelected) MaterialTheme.colorScheme.primary
                          else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
@@ -343,9 +344,9 @@ private fun LayoutStyleThumbnail(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Chip de estilo de vidrio
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun GlassStyleChip(
@@ -380,7 +381,7 @@ private fun GlassStyleChip(
                 .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
         )
         Text(
-            text       = preset.name,
+            text       = stringResource(preset.nameRes),
             style      = MaterialTheme.typography.labelMedium,
             color      = if (isSelected) MaterialTheme.colorScheme.primary
                          else MaterialTheme.colorScheme.onSurface,
@@ -389,9 +390,9 @@ private fun GlassStyleChip(
     }
 }
 
-// -----------------------------------------------------------------------------
-// Panel de personalizaci•n (expandible)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel de personalización (expandible)
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun CustomizationPanel(
@@ -407,7 +408,7 @@ private fun CustomizationPanel(
 
     Column(modifier = modifier) {
 
-        // Cabecera • toca para abrir/cerrar
+        // Cabecera – toca para abrir/cerrar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -418,7 +419,7 @@ private fun CustomizationPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text       = "Personalizaci•n",
+                text       = stringResource(R.string.lyrics_share_customization),
                 style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -444,7 +445,7 @@ private fun CustomizationPanel(
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
 
-                // -- Tama•o de texto ---------------------------------------
+                // ── Tamaño de texto ───────────────────────────────────────
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -452,7 +453,7 @@ private fun CustomizationPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Tama•o de texto",
+                            stringResource(R.string.lyrics_share_text_size),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )
@@ -471,10 +472,10 @@ private fun CustomizationPanel(
                     )
                 }
 
-                // -- Alineaci•n del texto ----------------------------------
+                // ── Alineación del texto ──────────────────────────────────
                 Column {
                     Text(
-                        text       = "Alineaci•n",
+                        text       = stringResource(R.string.lyrics_share_alignment),
                         style      = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         modifier   = Modifier.padding(bottom = 8.dp),
@@ -485,43 +486,43 @@ private fun CustomizationPanel(
                     ) {
                         AlignButton(
                             painter = painterResource(R.drawable.format_align_left),
-                            label = "Izquierda",
+                            label = stringResource(R.string.lyrics_align_left),
                             isSelected = config.textAlign == TextAlign.Start,
                             onClick = { onConfigChange(config.copy(textAlign = TextAlign.Start)) },
                         )
                         AlignButton(
                             painter = painterResource(R.drawable.format_align_center),
-                            label = "Izquierda",
-                            isSelected = config.textAlign == TextAlign.Start,
-                            onClick = { onConfigChange(config.copy(textAlign = TextAlign.Start)) },
+                            label = stringResource(R.string.lyrics_align_center),
+                            isSelected = config.textAlign == TextAlign.Center,
+                            onClick = { onConfigChange(config.copy(textAlign = TextAlign.Center)) },
                         )
                         AlignButton(
                             painter = painterResource(R.drawable.format_align_right),
-                            label = "Izquierda",
-                            isSelected = config.textAlign == TextAlign.Start,
-                            onClick = { onConfigChange(config.copy(textAlign = TextAlign.Start)) },
+                            label = stringResource(R.string.lyrics_align_right),
+                            isSelected = config.textAlign == TextAlign.End,
+                            onClick = { onConfigChange(config.copy(textAlign = TextAlign.End)) },
                         )
                     }
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
 
-                // -- Visibilidad de elementos ------------------------------
+                // ── Visibilidad de elementos ──────────────────────────────
                 Text(
-                    text       = "Visibilidad",
+                    text       = stringResource(R.string.lyrics_share_visibility),
                     style      = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    ToggleRow("Mostrar t•tulo",    config.showTitle)   { onConfigChange(config.copy(showTitle   = it)) }
-                    ToggleRow("Mostrar artista",   config.showArtist)  { onConfigChange(config.copy(showArtist  = it)) }
-                    ToggleRow("Mostrar portada",   config.showCoverArt){ onConfigChange(config.copy(showCoverArt = it)) }
-                    ToggleRow("Mostrar icebeats",  config.showBranding){ onConfigChange(config.copy(showBranding = it)) }
+                    ToggleRow(stringResource(R.string.lyrics_share_show_title),    config.showTitle)   { onConfigChange(config.copy(showTitle   = it)) }
+                    ToggleRow(stringResource(R.string.lyrics_share_show_artist),   config.showArtist)  { onConfigChange(config.copy(showArtist  = it)) }
+                    ToggleRow(stringResource(R.string.lyrics_share_show_cover_art),config.showCoverArt){ onConfigChange(config.copy(showCoverArt = it)) }
+                    ToggleRow(stringResource(R.string.lyrics_share_show_branding), config.showBranding){ onConfigChange(config.copy(showBranding = it)) }
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
 
-                // -- Padding -----------------------------------------------
+                // ── Padding ───────────────────────────────────────────────
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -529,7 +530,7 @@ private fun CustomizationPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Espaciado",
+                            stringResource(R.string.lyrics_share_spacing),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )
@@ -552,9 +553,9 @@ private fun CustomizationPanel(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Componentes internos auxiliares
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun AlignButton(
     painter: Painter,

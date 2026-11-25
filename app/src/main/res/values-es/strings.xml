@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <!-- Bottom navigation -->
     <string name="home">Inicio</string>
     <string name="songs">Canciones</string>
@@ -393,7 +393,7 @@
     <string name="disable_screenshot">Desactivar captura de pantalla</string>
     <string name="disable_screenshot_desc">Cuando esta opción está activada, se desactivan las capturas de pantalla y la vista de la aplicación en Recientes.</string>
     <string name="discord_integration">integración con discord</string>
-    <string name="discord_information">icebeats utiliza la biblioteca KizzyRPC para establecer el estado de su cuenta de Discord. Esto implica el uso de la conexión Discord Gateway, que puede considerarse una violación de las condiciones de servicio de Discord. Sin embargo, no se conocen casos de cuentas de usuario suspendidas por este motivo. Utilícelo bajo su propia responsabilidad.  icebeats sólo extraerá tu token, y todo lo demás se almacena localmente.</string>
+    <string name="discord_information">IceBeats utiliza la biblioteca KizzyRPC para establecer el estado de su cuenta de Discord. Esto implica el uso de la conexión Discord Gateway, que puede considerarse una violación de las condiciones de servicio de Discord. Sin embargo, no se conocen casos de cuentas de usuario suspendidas por este motivo. Utilícelo bajo su propia responsabilidad.  IceBeats sólo extraerá tu token, y todo lo demás se almacena localmente.</string>
     <string name="dismiss">Descartar</string>
     <string name="options">Opciones</string>
     <string name="preview">"Vista previa "</string>
@@ -558,7 +558,7 @@
     <string name="playing_from">"Reproduciendo desde: "</string>
     <string name="SmallButtonsShape">Forma de Botones pequeños</string>
     <string name="cloud_upload_title">Carga automática en la nube</string>
-    <string name="cloud_upload_enabled_description">Las copias de seguridad se cargarán en database.icebeats.app</string>
+    <string name="cloud_upload_enabled_description">Las copias de seguridad se cargarán en database.IceBeats.app</string>
     <string name="cloud_upload_disabled_description">Las copias de seguridad solo se guardarán localmente</string>
     <string name="backup_with_cloud">Crear copia de seguridad local y cargarla en la nube</string>
     <string name="uploading_backup">Cargando copia de seguridad...</string>
@@ -570,5 +570,31 @@
     <string name="processing_songs">Procesando canciones...</string>
     <string name="understood">Entendido</string>
 
-
+    <!-- Lyrics Share Carousel Sheet -->
+    <string name="lyrics_share_layout">Diseño</string>
+    <string name="lyrics_share_style">Estilo</string>
+    <string name="lyrics_share_customization">Personalización</string>
+    <string name="lyrics_share_text_size">Tamaño de texto</string>
+    <string name="lyrics_share_alignment">Alineación</string>
+    <string name="lyrics_align_left">Izquierda</string>
+    <string name="lyrics_align_center">Centro</string>
+    <string name="lyrics_align_right">Derecha</string>
+    <string name="lyrics_share_visibility">Visibilidad</string>
+    <string name="lyrics_share_show_title">Mostrar título</string>
+    <string name="lyrics_share_show_artist">Mostrar artista</string>
+    <string name="lyrics_share_show_cover_art">Mostrar portada</string>
+    <string name="lyrics_share_show_branding">Mostrar IceBeats</string>
+    <string name="lyrics_share_spacing">Espaciado</string>
+    <string name="lyrics_layout_glass_card">Glass Card</string>
+    <string name="lyrics_layout_minimal">Minimal</string>
+    <string name="lyrics_layout_cover_focus">Cover Focus</string>
+    <string name="lyrics_layout_centered">Centrado</string>
+    <string name="lyrics_layout_blur_wash">Blur Wash</string>
+    <string name="lyrics_layout_streaming">Streaming</string>
+    <string name="lyrics_glass_frosted_dark">Frosted Dark</string>
+    <string name="lyrics_glass_frosted_light">Frosted Light</string>
+    <string name="lyrics_glass_clear_glass">Clear Glass</string>
+    <string name="lyrics_glass_deep_blur">Deep Blur</string>
+    <string name="lyrics_glass_vivid_glow">Vivid Glow</string>
+    <string name="lyrics_glass_album_tint">Color del álbum</string>
 </resources>

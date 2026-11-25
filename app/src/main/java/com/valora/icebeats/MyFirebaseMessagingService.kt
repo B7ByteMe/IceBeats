@@ -14,8 +14,20 @@ import kotlin.random.Random
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        val from = remoteMessage.from ?: ""
+        if (from.startsWith("/topics/")) {
+            val topic = from.removePrefix("/topics/")
+            val rawTopic = topic.removePrefix("v").removeSuffix("-nightly")
+            // Check if this is a version-based topic (e.g. 6.1.1, 6.1.2)
+            if (rawTopic.matches(Regex("""^\d+\.\d+.*""")) && rawTopic != BuildConfig.VERSION_NAME) {
+                // Device is on a different/newer version, so unsubscribe immediately from this outdated topic
+                com.google.firebase.messaging.FirebaseMessaging.getInstance().unsubscribeFromTopic(topic)
+                android.util.Log.w("FCM", "Unsubscribed and dropped message for obsolete version topic: $topic")
+                return
+            }
+        }
 
-        val title = remoteMessage.notification?.title ?: "icebeats"
+        val title = remoteMessage.notification?.title ?: "IceBeats"
         val body = remoteMessage.notification?.body ?: "New message"
 
         showNotification(title, body)
@@ -28,13 +40,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun showNotification(title: String, message: String) {
 
-        val channelId = "icebeats_channel"
-        val channelName = "icebeats Notifications"
+        val channelId = "airbeats_channel"
+        val channelName = "IceBeats Notifications"
 
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // ?? Create channel (Android 8+)
+        // 🔔 Create channel (Android 8+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
@@ -44,7 +56,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // ?? Open app when clicked
+        // 🔥 Open app when clicked
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
@@ -55,7 +67,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // ?? Build notification
+        // 🔔 Build notification
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
             .setContentText(message)
@@ -65,7 +77,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        // ?? Show notification
+        // 🔥 Show notification
         notificationManager.notify(Random.nextInt(), notification)
     }
 }

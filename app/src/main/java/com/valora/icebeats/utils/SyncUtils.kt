@@ -5,27 +5,58 @@ import com.valora.icebeats.innertube.models.AlbumItem
 import com.valora.icebeats.innertube.models.ArtistItem
 import com.valora.icebeats.innertube.models.PlaylistItem
 import com.valora.icebeats.innertube.models.SongItem
-import com.valora.icebeats.innertube.utils.completed
 import com.valora.icebeats.innertube.utils.completedLibraryPage
+import com.valora.icebeats.innertube.utils.completedPlaylistPage
 import com.valora.icebeats.db.MusicDatabase
 import com.valora.icebeats.db.entities.ArtistEntity
 import com.valora.icebeats.db.entities.PlaylistEntity
 import com.valora.icebeats.db.entities.PlaylistSongMap
 import com.valora.icebeats.db.entities.SongEntity
 import com.valora.icebeats.models.toMediaMetadata
+import android.content.Context
+import com.valora.icebeats.constants.SpotifyCookieKey
+import com.valora.icebeats.spotify.Spotify
+import com.valora.icebeats.spotify.SpotifyAuth
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
-
 @Singleton
 class SyncUtils @Inject constructor(
+    @ApplicationContext val context: Context,
     val database: MusicDatabase,
 ) {
     suspend fun syncLikedSongs() {
-        YouTube.playlist("LM").completed().onSuccess { page ->
+        val cookie = context.dataStore.get(com.valora.icebeats.constants.InnerTubeCookieKey, "")
+        if (com.valora.icebeats.data.auth.hasApiSid(cookie)) {
+            val remoteTracks = runCatching {
+                val root = com.valora.icebeats.data.artist.ArtistInnertubeClient.browse("FEmusic_liked_videos", anonymous = false)
+                com.valora.icebeats.data.auth.YouTubeAccountParsers.parseTracks(root).first
+            }.getOrDefault(emptyList()).ifEmpty {
+                runCatching {
+                    val root = com.valora.icebeats.data.artist.ArtistInnertubeClient.browse("VLLM", anonymous = false)
+                    com.valora.icebeats.data.auth.YouTubeAccountParsers.parseTracks(root).first
+                }.getOrDefault(emptyList())
+            }
+
+            if (remoteTracks.isNotEmpty()) {
+                remoteTracks.forEach { item ->
+                    val songItem = item.toSongItem()
+                    val dbSong = database.song(songItem.id).firstOrNull()
+                    database.transaction {
+                        when (dbSong) {
+                            null -> insert(songItem.toMediaMetadata(), SongEntity::localToggleLike)
+                            else -> if (!dbSong.song.liked) update(dbSong.song.localToggleLike())
+                        }
+                    }
+                }
+            }
+        }
+
+        YouTube.playlist("LM").completedPlaylistPage().onSuccess { page ->
             val songs = page.songs.reversed()
 
             database.likedSongsByNameAsc().first()
@@ -91,6 +122,41 @@ class SyncUtils @Inject constructor(
     }
 
     suspend fun syncArtistsSubscriptions() {
+        val cookie = context.dataStore.get(com.valora.icebeats.constants.InnerTubeCookieKey, "")
+        if (com.valora.icebeats.data.auth.hasApiSid(cookie)) {
+            val remoteArtists = runCatching {
+                val root = com.valora.icebeats.data.artist.ArtistInnertubeClient.browse("FEmusic_library_corpus_artists", anonymous = false)
+                com.valora.icebeats.data.auth.YouTubeAccountParsers.parseLibraryArtists(root).first
+            }.getOrDefault(emptyList()).ifEmpty {
+                runCatching {
+                    val root = com.valora.icebeats.data.artist.ArtistInnertubeClient.browse("FEmusic_library_corpus_track_artists", anonymous = false)
+                    com.valora.icebeats.data.auth.YouTubeAccountParsers.parseLibraryArtists(root).first
+                }.getOrDefault(emptyList())
+            }
+
+            if (remoteArtists.isNotEmpty()) {
+                remoteArtists.forEach { artistItem ->
+                    val id = artistItem.browseId ?: return@forEach
+                    val dbArtist = database.artist(id).firstOrNull()
+                    database.transaction {
+                        if (dbArtist == null) {
+                            insert(
+                                ArtistEntity(
+                                    id = id,
+                                    name = artistItem.title,
+                                    thumbnailUrl = artistItem.thumbnailUrl,
+                                    channelId = id,
+                                    bookmarkedAt = LocalDateTime.now()
+                                )
+                            )
+                        } else if (dbArtist.artist.bookmarkedAt == null) {
+                            update(dbArtist.artist.localToggleLike())
+                        }
+                    }
+                }
+            }
+        }
+
         YouTube.library("FEmusic_library_corpus_artists").completedLibraryPage().onSuccess { page ->
             val artists = page.items.filterIsInstance<ArtistItem>()
 
@@ -122,19 +188,44 @@ class SyncUtils @Inject constructor(
     }
 
     suspend fun syncSavedPlaylists() {
+        val cookie = context.dataStore.get(com.valora.icebeats.constants.InnerTubeCookieKey, "")
+        if (com.valora.icebeats.data.auth.hasApiSid(cookie)) {
+            val remotePlaylists = runCatching {
+                val root = com.valora.icebeats.data.artist.ArtistInnertubeClient.browse("FEmusic_liked_playlists", anonymous = false)
+                com.valora.icebeats.data.auth.YouTubeAccountParsers.parseLibraryPlaylists(root).first
+            }.getOrDefault(emptyList())
+
+            if (remotePlaylists.isNotEmpty()) {
+                val dbPlaylists = database.playlistsByNameAsc().first()
+                remotePlaylists.forEach { item ->
+                    val cleanId = item.watchPlaylistId ?: item.browseId?.removePrefix("VL") ?: return@forEach
+                    val browseId = "VL$cleanId"
+                    var playlistEntity = dbPlaylists.find { cleanId == it.playlist.browseId || browseId == it.playlist.browseId }?.playlist
+                    if (playlistEntity == null) {
+                        playlistEntity = PlaylistEntity(
+                            name = item.title,
+                            browseId = cleanId,
+                            bookmarkedAt = LocalDateTime.now(),
+                            isEditable = false,
+                        )
+                        database.transaction {
+                            insert(playlistEntity)
+                        }
+                    } else if (playlistEntity.bookmarkedAt == null) {
+                        database.transaction {
+                            update(playlistEntity.copy(bookmarkedAt = LocalDateTime.now()))
+                        }
+                    }
+                }
+            }
+        }
+
         YouTube.library("FEmusic_liked_playlists").completedLibraryPage()
             .onSuccess { page ->
                 val playlistList = page.items.filterIsInstance<PlaylistItem>()
                     .filterNot { it.id == "LM" ||  it.id == "SE" }
                     .reversed()
                 val dbPlaylists = database.playlistsByNameAsc().first()
-
-                val validOnlineIds = playlistList.map(PlaylistItem::id).toSet()
-                dbPlaylists
-                    .filterNot { it.playlist.isEditable }
-                    .filterNot { it.playlist.browseId.isNullOrBlank() || it.playlist.browseId == "null" || it.playlist.browseId!!.startsWith("Success(") }
-                    .filterNot { it.playlist.browseId in validOnlineIds }
-                    .forEach { database.update(it.playlist.localToggleLike()) }
 
                 playlistList.onEach { playlist ->
                     var playlistEntity = dbPlaylists.find { playlist.id == it.playlist.browseId }?.playlist
@@ -161,8 +252,7 @@ class SyncUtils @Inject constructor(
     }
 
     suspend fun syncPlaylist(browseId: String, playlistId: String) {
-        if (browseId.isBlank() || browseId == "null" || browseId.startsWith("Success(")) return
-        val playlistPage = YouTube.playlist(browseId).completed().getOrNull() ?: return
+        val playlistPage = YouTube.playlist(browseId).completedPlaylistPage().getOrNull() ?: return
         database.transaction {
             clearPlaylist(playlistId)
             playlistPage.songs
@@ -176,6 +266,51 @@ class SyncUtils @Inject constructor(
                         setVideoId = song.setVideoId
                     )
                 }.forEach(::insert)
+        }
+    }
+
+    suspend fun syncSpotifyPlaylists() {
+        val spDc = context.dataStore.data.first()[SpotifyCookieKey]
+        if (spDc.isNullOrBlank()) return
+
+        val cleanSpDc = if (spDc.startsWith("sp_dc=")) spDc.substringAfter("sp_dc=").substringBefore(";") else spDc
+        if (Spotify.accessToken.isNullOrBlank()) {
+            SpotifyAuth.fetchAccessToken(cleanSpDc).onSuccess { token ->
+                Spotify.accessToken = token.accessToken
+            }.onFailure {
+                reportException(it)
+                return
+            }
+        }
+
+        Spotify.myPlaylists(limit = 50).onSuccess { paging ->
+            val dbPlaylists = database.playlistsByNameAsc().first()
+            paging.items.forEach { spPlaylist ->
+                val browseId = "sp:${spPlaylist.id}"
+                val count = spPlaylist.tracks?.total ?: 0
+                val existing = dbPlaylists.find { it.playlist.browseId == browseId }?.playlist
+
+                if (existing == null) {
+                    val entity = PlaylistEntity(
+                        id = "sp_${spPlaylist.id}",
+                        name = spPlaylist.name,
+                        browseId = browseId,
+                        isEditable = false,
+                        bookmarkedAt = LocalDateTime.now(),
+                        remoteSongCount = count
+                    )
+                    database.insert(entity)
+                } else {
+                    database.update(
+                        existing.copy(
+                            name = spPlaylist.name,
+                            remoteSongCount = count
+                        )
+                    )
+                }
+            }
+        }.onFailure {
+            reportException(it)
         }
     }
 }

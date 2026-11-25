@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -87,16 +87,19 @@ fun OnlineSearchScreen(
         viewModel.query.value = query
     }
 
-    LazyColumn(
-        state = lazyListState,
-        contentPadding = PaddingValues(
-            top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
-        ),
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        com.valora.icebeats.ui.component.ScreenAdaptiveBackground(
+            artworkUrl = mediaMetadata?.thumbnailUrl
+        )
+
+        LazyColumn(
+            state = lazyListState,
+            contentPadding = PaddingValues(
+                top = 8.dp,
+                bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
+            ),
+            modifier = Modifier.fillMaxSize()
+        ) {
         items(viewState.history, key = { "history_${it.query}" }) { history ->
             SuggestionItem(
                 query = history.query,
@@ -284,6 +287,7 @@ fun OnlineSearchScreen(
                     .animateItem()
             )
         }
+    }
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * icebeats Project Original (2026)
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -11,6 +11,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -119,7 +122,6 @@ fun OnlineSearchResult(
         defaultValue = com.valora.icebeats.constants.HomeScreenStyle.CLASSIC
     )
     val isPlayful = homeScreenStyle == com.valora.icebeats.constants.HomeScreenStyle.PLAYFUL
-    val isNeon = homeScreenStyle == com.valora.icebeats.constants.HomeScreenStyle.NEON
     val content: @Composable () -> Unit = {
 
     LaunchedEffect(lazyListState) {
@@ -220,6 +222,93 @@ fun OnlineSearchResult(
             .add(WindowInsets(top = SearchFilterHeight + 8.dp))
             .asPaddingValues(),
     ) {
+        val showJioSaavn = (searchFilter == null || searchFilter == FILTER_SONG) && viewModel.jioSaavnSongs.isNotEmpty()
+        if (showJioSaavn) {
+            item(key = "jiosaavn_header") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(3.dp)
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.ui_text_jiosaavn),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    ) {
+                        Text(
+                            text = "320kbps",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
+
+            val visibleJio = if (viewModel.isJioSaavnExpanded) {
+                viewModel.jioSaavnSongs
+            } else {
+                viewModel.jioSaavnSongs.take(3)
+            }
+
+            items(
+                items = visibleJio,
+                key = { "jiosaavn_${it.id}" },
+                itemContent = ytItemContent,
+            )
+
+            if (viewModel.jioSaavnSongs.size > 3) {
+                item(key = "jiosaavn_show_more") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.isJioSaavnExpanded = !viewModel.isJioSaavnExpanded }
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (viewModel.isJioSaavnExpanded) "Show less" else "Show more (${viewModel.jioSaavnSongs.size - 3})",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            painter = painterResource(
+                                if (viewModel.isJioSaavnExpanded) R.drawable.expand_less else R.drawable.expand_more
+                            ),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            item(key = "jiosaavn_divider") {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                )
+            }
+        }
+
         if (searchFilter == null) {
             searchSummary?.summaries?.forEachIndexed { index, summary ->
                 if (index > 0) {
@@ -311,8 +400,13 @@ fun OnlineSearchResult(
         }
     }
 
+    val (pureBlack, _) = com.valora.icebeats.utils.rememberPreference(
+        com.valora.icebeats.constants.PureBlackKey,
+        defaultValue = false
+    )
+    val chipsBg = if (pureBlack) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.surface
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = chipsBg,
         tonalElevation = 0.dp,
         shadowElevation = 1.dp,
         modifier = Modifier
@@ -368,28 +462,19 @@ fun OnlineSearchResult(
                 }
             }
         }
-    } else if (isNeon) {
-        val isDark = MaterialTheme.colorScheme.background.red < 0.5f
-        val neonBg = if (isDark) com.valora.icebeats.ui.screens.NeonDarkBg else MaterialTheme.colorScheme.background
-        val textColor = if (isDark) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
-        val variantColor = if (isDark) androidx.compose.ui.graphics.Color.LightGray else androidx.compose.ui.graphics.Color.DarkGray
-        MaterialTheme(
-            colorScheme = MaterialTheme.colorScheme.copy(
-                background = neonBg,
-                surface = neonBg,
-                onBackground = textColor,
-                onSurface = textColor,
-                onSurfaceVariant = variantColor
-            )
-        ) {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides textColor) {
-                Box(modifier = Modifier.fillMaxSize().background(neonBg)) {
-                    content()
-                }
-            }
-        }
     } else {
-        content()
+        val (pureBlackPref, _) = com.valora.icebeats.utils.rememberPreference(
+            com.valora.icebeats.constants.PureBlackKey,
+            defaultValue = false
+        )
+        val plainBg = if (pureBlackPref) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.background
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(plainBg)
+        ) {
+            content()
+        }
     }
 }
 

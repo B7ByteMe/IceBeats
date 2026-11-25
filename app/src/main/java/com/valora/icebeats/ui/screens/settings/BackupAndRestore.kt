@@ -7,6 +7,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -16,9 +17,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -69,6 +76,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.annotation.ExperimentalCoilApi
@@ -81,10 +89,14 @@ import com.valora.icebeats.ui.component.PreferenceEntry
 import com.valora.icebeats.ui.component.SettingsGeneralCategory
 import com.valora.icebeats.ui.component.SettingsPage
 import com.valora.icebeats.ui.component.SwitchPreference
+import com.valora.icebeats.ui.component.isFrostedGlassUiEnabled
+import com.valora.icebeats.ui.component.settingsCardContainerColor
+import com.valora.icebeats.ui.component.settingsCardBorder
 import com.valora.icebeats.ui.menu.OnlinePlaylistAdder
 import com.valora.icebeats.ui.utils.backToMain
 import com.valora.icebeats.ui.utils.formatFileSize
 import com.valora.icebeats.viewmodels.BackupRestoreViewModel
+import com.valora.icebeats.utils.AutoBackupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -114,7 +126,6 @@ fun BackupAndRestore(
     val playerCache = LocalPlayerConnection.current?.service?.playerCache
 
     // Statuses
-    var uploadStatus by remember { mutableStateOf<UploadStatus?>(null) }
     var showVisitorDataDialog by remember { mutableStateOf(false) }
     var showVisitorDataResetDialog by remember { mutableStateOf(false) }
     var importedTitle by remember { mutableStateOf("") }
@@ -123,13 +134,13 @@ fun BackupAndRestore(
     var isProgressStarted by remember { mutableStateOf(false) }
     var progressPercentage by remember { mutableIntStateOf(0) }
 
-    // NEW: Status to control automatic upload to the cloud
-    var enableCloudUpload by remember {
-        mutableStateOf(
-            context.getSharedPreferences("backup_settings", Context.MODE_PRIVATE)
-                .getBoolean("enable_cloud_upload", true)
-        )
+    LaunchedEffect(Unit) {
+        viewModel.loadStorageBackupState(context)
     }
+
+    val isAutoBackupToStorage by viewModel.isAutoBackupToStorage.collectAsState()
+    var showStorageRestoreConfirmDialog by remember { mutableStateOf(false) }
+
 
     // Cache stats
     var playerCacheSize by remember { mutableLongStateOf(tryOrNull { playerCache?.cacheSpace } ?: 0L) }
@@ -153,27 +164,6 @@ fun BackupAndRestore(
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
             if (uri != null) {
                 viewModel.backup(context, uri)
-
-                // MODIFIED: Only upload to the cloud if the user has enabled it.
-                if (enableCloudUpload) {
-                    coroutineScope.launch {
-                        uploadStatus = UploadStatus.Uploading
-                        val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
-                        val email = nameManager.accountEmail.first()
-                        val name = nameManager.userName.first()
-                        
-                        if (!email.isNullOrBlank()) {
-                            val result = viewModel.backupToDrive(context, email, name)
-                            uploadStatus = if (result is com.valora.icebeats.utils.DriveResult.Success) {
-                                UploadStatus.Success("Cloud Database")
-                            } else {
-                                UploadStatus.Failure
-                            }
-                        } else {
-                            uploadStatus = UploadStatus.Failure
-                        }
-                    }
-                }
             }
         }
 
@@ -181,6 +171,20 @@ fun BackupAndRestore(
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
                 viewModel.restore(context, uri)
+            }
+        }
+
+    val backupCacheLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+            if (uri != null) {
+                viewModel.backupCache(context, uri)
+            }
+        }
+
+    val restoreCacheLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                viewModel.restoreCache(context, uri)
             }
         }
 
@@ -215,44 +219,10 @@ fun BackupAndRestore(
         SettingsGeneralCategory(
             title = stringResource(R.string.backup_restore),
             items = listOf(
-                {SwitchPreference(
-                    title = { Text(stringResource(R.string.cloud_upload_title)) },
-                    icon = { Icon(painterResource(R.drawable.cloud_lock), null) },
-                    checked = enableCloudUpload,
-                    description = stringResource(
-                        if (enableCloudUpload) {
-                            R.string.cloud_upload_enabled_description
-                        } else {
-                            R.string.cloud_upload_disabled_description
-                        }
-                    ),
-                    onCheckedChange = { isEnabled ->
-                        enableCloudUpload = isEnabled
-                        // Save preference
-                        context.getSharedPreferences("backup_settings", Context.MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("enable_cloud_upload", isEnabled)
-                            .apply()
-                            
-                        if (isEnabled) {
-                            val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.valora.icebeats.worker.DailyBackupWorker>(1, java.util.concurrent.TimeUnit.DAYS)
-                                .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
-                                .build()
-                            androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                                "DailyBackupWorker",
-                                androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-                                workRequest
-                            )
-                        } else {
-                            androidx.work.WorkManager.getInstance(context).cancelUniqueWork("DailyBackupWorker")
-                        }
-                    }
-                )},
                 {PreferenceEntry(
                     title = { Text(stringResource(R.string.backup)) },
                     icon = { Icon(painterResource(R.drawable.backup), null) },
-                    description = stringResource(if (enableCloudUpload) R.string.backup_with_cloud else R.string.backup_description),
-                    isEnabled = uploadStatus !is UploadStatus.Uploading,
+                    description = stringResource(R.string.backup_description),
                     onClick = {
                         val formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
                         backupLauncher.launch(
@@ -266,18 +236,29 @@ fun BackupAndRestore(
                     title = { Text(stringResource(R.string.restore)) },
                     icon = { Icon(painterResource(R.drawable.restore), null) },
                     description = stringResource(R.string.restore_description),
-                    isEnabled = uploadStatus !is UploadStatus.Uploading,
                     onClick = {
                         restoreLauncher.launch(arrayOf("application/octet-stream"))
                     }
                 )},
-                {AnimatedVisibility(
-                    visible = uploadStatus != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {MinimalUploadStatus(uploadStatus) {
-                    copyToClipboard(context, (uploadStatus as UploadStatus.Success).fileUrl)
-                }}}
+                {PreferenceEntry(
+                    title = { Text(stringResource(R.string.backup_cached_songs)) },
+                    icon = { Icon(painterResource(R.drawable.cached), null) },
+                    description = stringResource(R.string.backup_cached_songs_desc),
+                    onClick = {
+                        val formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                        backupCacheLauncher.launch(
+                            "IceBeats_Cache_${LocalDateTime.now().format(formatter)}.airbeatscache"
+                        )
+                    }
+                )},
+                {PreferenceEntry(
+                    title = { Text(stringResource(R.string.restore_cached_songs)) },
+                    icon = { Icon(painterResource(R.drawable.restore), null) },
+                    description = stringResource(R.string.restore_cached_songs_desc),
+                    onClick = {
+                        restoreCacheLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                    }
+                )}
             )
         )
 
@@ -290,6 +271,7 @@ fun BackupAndRestore(
             onInfoClick = { showVisitorDataDialog = true }
         )
     }
+
 
     // Dialogs
     if (showVisitorDataDialog) {
@@ -364,6 +346,24 @@ fun BackupAndRestore(
     if (isProgressStarted) {
         MinimalLoadingOverlay(progress = progressPercentage)
     }
+
+    if (showStorageRestoreConfirmDialog) {
+        MinimalConfirmDialog(
+            icon = painterResource(R.drawable.restore),
+            title = stringResource(R.string.ui_heading_restore_from_documents_airbeats),
+            message = "This will restore your complete database, accounts, playlists, and preferences from Documents/IceBeats and reboot the app.",
+            confirmText = stringResource(R.string.backup_restore_action),
+            onConfirm = {
+                showStorageRestoreConfirmDialog = false
+                viewModel.restoreFromStorageNow(context) { success ->
+                    if (!success) {
+                        Toast.makeText(context, "Failed to restore from storage", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onDismiss = { showStorageRestoreConfirmDialog = false }
+        )
+    }
 }
 
 
@@ -375,14 +375,16 @@ private fun MinimalVisitorDataCard(
     onResetClick: () -> Unit,
     onInfoClick: () -> Unit
 ) {
+    val isFrosted = isFrostedGlassUiEnabled()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = if (isFrosted) settingsCardContainerColor(true) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         ),
+        border = settingsCardBorder(isFrosted),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -503,116 +505,7 @@ private fun MinimalVisitorDataCard(
     }
 }
 
-@Composable
-private fun MinimalUploadStatus(
-    uploadStatus: UploadStatus?,
-    onCopyClick: () -> Unit
-) {
-    when (uploadStatus) {
-        is UploadStatus.Uploading -> {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Text(
-                        text = stringResource(R.string.uploading_backup),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
 
-        is UploadStatus.Success -> {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.check_circle),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.backup_success),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Text(
-                        text = uploadStatus.fileUrl,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-
-                    Button(
-                        onClick = onCopyClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.content_copy),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.copy_link))
-                    }
-                }
-            }
-        }
-
-        is UploadStatus.Failure -> {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.errorContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.error),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.backup_upload_error),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-        }
-
-        null -> {}
-    }
-}
 
 @Composable
 private fun MinimalLoadingOverlay(progress: Int) {
@@ -729,19 +622,5 @@ private fun MinimalConfirmDialog(
     )
 }
 
-@SuppressLint("LogNotTimber")
-fun copyToClipboard(context: Context, text: String) {
-    try {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("Backup URL", text)
-        clipboard.setPrimaryClip(clip)
-    } catch (e: Exception) {
-        Log.e("BackupRestore", "Error copying to clipboard: ${e.message}")
-    }
-}
 
-sealed class UploadStatus {
-    data object Uploading : UploadStatus()
-    data class Success(val fileUrl: String) : UploadStatus()
-    data object Failure : UploadStatus()
-}
+

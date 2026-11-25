@@ -27,7 +27,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun SettingsCategory(
@@ -43,24 +46,29 @@ fun SettingsCategory(
         title?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 0.dp, bottom = 8.dp, top = 8.dp)
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 12.dp),
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp
+                ),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
             )
         }
 
         // Settings card
+        val isFrosted = isFrostedGlassUiEnabled()
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = settingsCardContainerColor(isFrosted)
             ),
+            border = settingsCardBorder(isFrosted),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
                 items.forEachIndexed { index, item ->
                     Material3SettingsItemRow(
                         item = item,
@@ -86,34 +94,39 @@ fun SettingsGeneralCategory(
         title?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 0.dp, bottom = 8.dp, top = 8.dp)
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 12.dp),
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp
+                ),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
             )
         }
 
         // Settings card
+        val isFrosted = isFrostedGlassUiEnabled()
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = settingsCardContainerColor(isFrosted)
             ),
+            border = settingsCardBorder(isFrosted),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
                 items.forEachIndexed { index, item ->
                     item()
                     if (index < items.size - 1) {
                         HorizontalDivider(
                             modifier = Modifier.padding(
-                                start = 76.dp,
-                                end = 20.dp
+                                start = 72.dp,
+                                end = 16.dp
                             ),
                             thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            color = Color.White.copy(alpha = 0.08f)
                         )
                     }
                 }

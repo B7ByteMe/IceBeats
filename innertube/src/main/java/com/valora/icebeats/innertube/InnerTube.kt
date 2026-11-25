@@ -1,6 +1,5 @@
-﻿/*
- * OpenTune Project Original (2026)
- * Arturo254 (github.com/Arturo254)
+/*
+ * AirBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -473,7 +472,7 @@ class InnerTube {
         videoId: String,
     ) = withRetry {
         httpClient.post("https://music.youtube.com/youtubei/v1/get_transcript") {
-            parameter("key", "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX3")
+            // No embedded Google API key: transcript requests use the public endpoint configuration.
             headers {
                 append("Content-Type", "application/json")
             }

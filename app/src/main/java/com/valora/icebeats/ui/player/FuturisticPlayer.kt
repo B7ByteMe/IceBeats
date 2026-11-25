@@ -1,5 +1,7 @@
 package com.valora.icebeats.ui.player
 
+import androidx.compose.ui.res.stringResource
+
 import com.valora.icebeats.ui.component.BottomSheetState
 import com.valora.icebeats.ui.component.bottomSheetDraggable
 import android.annotation.SuppressLint
@@ -54,9 +56,9 @@ import com.valora.icebeats.utils.rememberEnumPreference
 import com.valora.icebeats.utils.rememberPreference
 import kotlin.math.*
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 //  WHITE PAPER PLAYER (CloudGlow, LiquidGlass & Configurable Backgrounds)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 private val ActiveRed   = Color(0xFFE53935)
 private val ActiveBlue  = Color(0xFF007AFF)
@@ -118,7 +120,7 @@ fun FuturisticPlayer(
 
     Box(modifier = Modifier.fillMaxSize().bottomSheetDraggable(state)
     ) {
-        // -- BACKGROUND LAYER (DEFAULT / GRADIENT / BLUR) ---------------------
+        // ── BACKGROUND LAYER (DEFAULT / GRADIENT / BLUR) ─────────────────────
         if (!isDark) {
             when (playerBackground) {
                 PlayerBackgroundStyle.BLUR -> {
@@ -176,7 +178,7 @@ fun FuturisticPlayer(
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // -- 1. HEADER ROW ------------------------------------------------
+            // ── 1. HEADER ROW ────────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,7 +196,7 @@ fun FuturisticPlayer(
 
             Spacer(Modifier.height(16.dp))
 
-            // -- 2. U-SHAPED ARTWORK & PROGRESS ARC CONTAINER -----------------
+            // ── 2. U-SHAPED ARTWORK & PROGRESS ARC CONTAINER ─────────────────
             Box(
                 modifier = Modifier
                     .width(280.dp)
@@ -226,7 +228,7 @@ fun FuturisticPlayer(
 
             Spacer(Modifier.height(20.dp))
 
-            // -- 3. CENTERED TIMESTAMP ----------------------------------------
+            // ── 3. CENTERED TIMESTAMP ────────────────────────────────────────
             Text(
                 text = makeTimeString(position),
                 color = iconColor,
@@ -237,7 +239,7 @@ fun FuturisticPlayer(
 
             Spacer(Modifier.weight(1f))
 
-            // -- 4. MAIN CONTROLS ROW (Shuffle, Pill, Queue) ------------------
+            // ── 4. MAIN CONTROLS ROW (Shuffle, Pill, Queue) ──────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -249,7 +251,7 @@ fun FuturisticPlayer(
                 IconButton(onClick = onShuffle) {
                     Icon(
                         painter = painterResource(if (shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle),
-                        contentDescription = "Shuffle",
+                        contentDescription = stringResource(R.string.shuffle),
                         tint = if (shuffleModeEnabled) ActiveBlue else iconColor,
                         modifier = Modifier.size(24.dp)
                     )
@@ -285,7 +287,7 @@ fun FuturisticPlayer(
                     IconButton(onClick = onPrevious, enabled = canSkipPrevious) {
                         Icon(
                             painter = painterResource(R.drawable.skip_previous),
-                            contentDescription = "Previous",
+                            contentDescription = stringResource(R.string.ui_a11y_previous),
                             tint = if (canSkipPrevious) iconColor else iconFaintColor,
                             modifier = Modifier.size(20.dp)
                         )
@@ -311,7 +313,7 @@ fun FuturisticPlayer(
                     IconButton(onClick = onNext, enabled = canSkipNext) {
                         Icon(
                             painter = painterResource(R.drawable.skip_next),
-                            contentDescription = "Next",
+                            contentDescription = stringResource(R.string.ui_a11y_next),
                             tint = if (canSkipNext) iconColor else iconFaintColor,
                             modifier = Modifier.size(20.dp)
                         )
@@ -322,7 +324,7 @@ fun FuturisticPlayer(
                 IconButton(onClick = onOpenQueue) {
                     Icon(
                         painter = painterResource(R.drawable.queue_music),
-                        contentDescription = "Queue",
+                        contentDescription = stringResource(R.string.queue),
                         tint = iconColor,
                         modifier = Modifier.size(24.dp)
                     )
@@ -331,7 +333,7 @@ fun FuturisticPlayer(
 
             Spacer(Modifier.height(28.dp))
 
-            // -- 5. BOTTOM ACTIONS ROW (Lyrics, Like, Repeat) -----------------
+            // ── 5. BOTTOM ACTIONS ROW (Lyrics, Like, Repeat) ─────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -344,7 +346,7 @@ fun FuturisticPlayer(
                 IconButton(onClick = onOpenLyrics) {
                     Icon(
                         painter = painterResource(R.drawable.lyrics),
-                        contentDescription = "Lyrics",
+                        contentDescription = stringResource(R.string.lyrics),
                         tint = iconMutedColor,
                         modifier = Modifier.size(24.dp)
                     )
@@ -354,7 +356,7 @@ fun FuturisticPlayer(
                 IconButton(onClick = { playerConnection.toggleLike() }) {
                     Icon(
                         painter = painterResource(if (isLiked) R.drawable.favorite else R.drawable.favorite_border),
-                        contentDescription = "Like",
+                        contentDescription = stringResource(R.string.action_like),
                         tint = if (isLiked) ActiveRed else iconMutedColor,
                         modifier = Modifier.size(24.dp)
                     )
@@ -364,12 +366,13 @@ fun FuturisticPlayer(
                 val repeatActive = repeatMode != androidx.media3.common.Player.REPEAT_MODE_OFF
                 val repeatIcon = when (repeatMode) {
                     androidx.media3.common.Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                    androidx.media3.common.Player.REPEAT_MODE_ALL -> R.drawable.repeat_on
                     else -> R.drawable.repeat
                 }
                 IconButton(onClick = onRepeat) {
                     Icon(
                         painter = painterResource(repeatIcon),
-                        contentDescription = "Repeat",
+                        contentDescription = stringResource(R.string.ui_a11y_repeat),
                         tint = if (repeatActive) ActiveBlue else iconMutedColor,
                         modifier = Modifier.size(24.dp)
                     )
@@ -379,9 +382,9 @@ fun FuturisticPlayer(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 //  DEFAULT BACKGROUND COMPOSABLE (CloudGlow / Pure Black)
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun DefaultBackground(isDark: Boolean) {
     if (isDark) {
@@ -420,9 +423,9 @@ private fun DefaultBackground(isDark: Boolean) {
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 //  U-SHAPED ARTWORK CARD
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun UShapedArtworkCard(
     artworkUrl: String?,
@@ -501,9 +504,9 @@ fun UShapedArtworkCard(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 //  CONCENTRIC PROGRESS ARC
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun ConcentricArcProgressBar(
     position: Long,
@@ -644,9 +647,9 @@ private fun arcFraction(
     }
 }
 
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 //  CUSTOM CANVAS DRAWN CHEVRON AND MENU ICONS
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun ChevronLeftIcon(tint: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.size(24.dp)) {

@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.utils
+package com.valora.icebeats.utils
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -28,9 +28,11 @@ import com.valora.icebeats.utils.get
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -42,8 +44,21 @@ import java.io.FileOutputStream
 
 object SaveToStorageUtil {
     private const val TAG = "SaveToStorageUtil"
-    private const val CHANNEL_ID = "IceBeats_storage_downloads"
+    private const val CHANNEL_ID = "airbeats_storage_downloads"
     private const val CHANNEL_NAME = "Storage Downloads"
+
+    const val ACTION_CANCEL_SAVE = "com.valora.icebeats.action.CANCEL_SAVE_TO_STORAGE"
+    const val EXTRA_NOTIFICATION_ID = "notification_id"
+
+    val activeSaveJobs = java.util.concurrent.ConcurrentHashMap<Int, kotlinx.coroutines.Job>()
+    val cancelledNotificationIds = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
+
+    fun cancelSave(context: Context, notificationId: Int) {
+        cancelledNotificationIds.add(notificationId)
+        activeSaveJobs.remove(notificationId)?.cancel()
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        notificationManager?.cancel(notificationId)
+    }
 
     // Global application coroutine scope that survives Compose lifecycle / menu dismissals
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -52,7 +67,7 @@ object SaveToStorageUtil {
         .proxy(YouTube.proxy)
         .build()
 
-    private fun detectExtension(bytes: ByteArray): String {
+    fun detectExtension(bytes: ByteArray): String {
         if (bytes.size >= 8) {
             // Check for ftyp (mp4/m4a)
             if (bytes[4] == 'f'.code.toByte() && bytes[5] == 't'.code.toByte() && bytes[6] == 'y'.code.toByte() && bytes[7] == 'p'.code.toByte()) {
@@ -77,7 +92,7 @@ object SaveToStorageUtil {
         return "m4a"
     }
 
-    private fun getCachedAudioBytes(context: Context, mediaId: String): Pair<ByteArray, String>? {
+    fun getCachedAudioBytes(context: Context, mediaId: String): Pair<ByteArray, String>? {
         try {
             val downloadCache = PlayerConnection.instance?.service?.downloadCache
                 ?: MusicService.instance?.downloadCache
@@ -176,6 +191,23 @@ object SaveToStorageUtil {
             if (!subText.isNullOrEmpty()) {
                 builder.setSubText(subText)
             }
+
+            val cancelIntent = Intent(context, SaveToStorageCancelReceiver::class.java).apply {
+                action = ACTION_CANCEL_SAVE
+                putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            }
+            val cancelPendingIntent = PendingIntent.getBroadcast(
+                context,
+                notificationId,
+                cancelIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+            )
+
+            builder.addAction(
+                R.drawable.close,
+                context.getString(android.R.string.cancel),
+                cancelPendingIntent
+            )
 
             notificationManager.notify(notificationId, builder.build())
         } catch (e: Exception) {
@@ -289,7 +321,7 @@ object SaveToStorageUtil {
         context: Context,
         playlistName: String,
         mediaList: List<MediaMetadata>,
-    ): Result<Int> = withContext(Dispatchers.IO + NonCancellable) {
+    ): Result<Int> = withContext(Dispatchers.IO) {
         runCatching {
             val subFolder = playlistName.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().take(50)
             val relativeSubPath = if (subFolder.isNotEmpty()) "IceBeats/$subFolder" else "IceBeats"
@@ -297,22 +329,32 @@ object SaveToStorageUtil {
             val total = mediaList.size
 
             mediaList.forEachIndexed { index, mediaMetadata ->
+                if (!currentCoroutineContext().isActive) {
+                    throw CancellationException("Playlist download canceled")
+                }
                 try {
                     val subText = "${index + 1}/$total"
                     val notificationId = 20000 + (mediaMetadata.id.hashCode() and 0x7FFF)
-                    saveToFolder(
+                    val result = saveToFolder(
                         context = context.applicationContext,
                         mediaMetadata = mediaMetadata,
                         relativeFolder = relativeSubPath,
                         notificationId = notificationId,
                         subText = subText,
-                    ).onSuccess {
+                    )
+                    if (result.isSuccess) {
                         savedCount++
+                    } else {
+                        val error = result.exceptionOrNull()
+                        if (error is CancellationException) {
+                            throw error
+                        }
                     }
                 } catch (e: Exception) {
-                    if (e !is CancellationException) {
-                        Timber.tag(TAG).e(e, "Error saving song ${mediaMetadata.title} in playlist")
+                    if (e is CancellationException) {
+                        throw e
                     }
+                    Timber.tag(TAG).e(e, "Error saving song ${mediaMetadata.title} in playlist")
                 }
             }
             savedCount
@@ -336,111 +378,133 @@ object SaveToStorageUtil {
         relativeFolder: String,
         notificationId: Int = 20000 + (mediaMetadata.id.hashCode() and 0x7FFF),
         subText: String? = null,
-    ): Result<String> = withContext(Dispatchers.IO + NonCancellable) {
-        runCatching {
-            val appContext = context.applicationContext
-            Timber.tag(TAG).d("Starting save for: ${mediaMetadata.title} into $relativeFolder")
-            showProgressNotification(appContext, notificationId, mediaMetadata.title, 0, subText)
+    ): Result<String> = withContext(Dispatchers.IO) {
+        if (cancelledNotificationIds.contains(notificationId)) {
+            cancelledNotificationIds.remove(notificationId)
+            return@withContext Result.failure(CancellationException("Download canceled"))
+        }
 
-            var audioBytes: ByteArray? = null
-            var extension: String = "m4a"
+        val currentJob = currentCoroutineContext().job
+        activeSaveJobs[notificationId] = currentJob
 
-            val desiredQuality = appContext.dataStore[DownloadQualityKey]
-                ?.let { runCatching { AudioQuality.valueOf(it) }.getOrNull() } ?: AudioQuality.HIGH
+        try {
+            runCatching {
+                val appContext = context.applicationContext
+                Timber.tag(TAG).d("Starting save for: ${mediaMetadata.title} into $relativeFolder")
+                showProgressNotification(appContext, notificationId, mediaMetadata.title, 0, subText)
 
-            // 1. Check if song is already cached locally at the desired quality (for 100% offline export)
-            val cachedData = getCachedAudioBytes(appContext, mediaMetadata.id)
-                ?.takeIf { cachedMatchesQuality(mediaMetadata.id, desiredQuality) }
-            if (cachedData != null) {
-                Timber.tag(TAG).d("Extracting song from local cache (offline mode) for: ${mediaMetadata.title}")
-                audioBytes = cachedData.first
-                extension = cachedData.second
-                showProgressNotification(appContext, notificationId, mediaMetadata.title, 50, subText)
-            } else {
-                // 2. Resolve stream URL and download if online
-                val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                val playbackData = YTPlayerUtils.playerResponseForPlayback(
-                    videoId = mediaMetadata.id,
-                    playlistId = null,
-                    audioQuality = desiredQuality,
-                    connectivityManager = connectivityManager
-                ).getOrThrow()
+                var audioBytes: ByteArray? = null
+                var extension: String = "m4a"
 
-                val format = playbackData.format
-                val streamUrl = playbackData.streamUrl
+                val desiredQuality = appContext.dataStore[DownloadQualityKey]
+                    ?.let { runCatching { AudioQuality.valueOf(it) }.getOrNull() } ?: AudioQuality.HIGH
 
-                Timber.tag(TAG).d("Stream URL resolved, format: ${format.mimeType}, bitrate: ${format.bitrate}")
-
-                extension = when {
-                    format.mimeType.contains("opus") || format.mimeType.contains("webm") -> "opus"
-                    format.mimeType.contains("mp4") || format.mimeType.contains("m4a") -> "m4a"
-                    else -> "m4a"
-                }
-
-                // Add range parameter to bypass YouTube's bandwidth throttling for maximum download speed
-                val unthrottledStreamUrl = if (!streamUrl.contains("range=")) {
-                    val length = format.contentLength ?: 15000000L
-                    "${streamUrl}&range=0-$length"
+                // 1. Check if song is already cached locally at the desired quality (for 100% offline export)
+                val cachedData = getCachedAudioBytes(appContext, mediaMetadata.id)
+                    ?.takeIf { cachedMatchesQuality(mediaMetadata.id, desiredQuality) }
+                if (cachedData != null) {
+                    if (cancelledNotificationIds.contains(notificationId) || !currentCoroutineContext().isActive) {
+                        throw CancellationException("Download canceled")
+                    }
+                    Timber.tag(TAG).d("Extracting song from local cache (offline mode) for: ${mediaMetadata.title}")
+                    audioBytes = cachedData.first
+                    extension = cachedData.second
+                    showProgressNotification(appContext, notificationId, mediaMetadata.title, 50, subText)
                 } else {
-                    streamUrl
-                }
-
-                val request = Request.Builder()
-                    .url(unthrottledStreamUrl)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .header("Accept", "*/*")
-                    .header("Connection", "keep-alive")
-                    .build()
-
-                val response = httpClient.newCall(request).execute()
-                response.use { resp ->
-                    if (!resp.isSuccessful) {
-                        throw Exception("Download failed: HTTP ${resp.code}")
+                    if (cancelledNotificationIds.contains(notificationId) || !currentCoroutineContext().isActive) {
+                        throw CancellationException("Download canceled")
                     }
-                    val body = resp.body ?: throw Exception("Response body is null")
-                    val contentLength = body.contentLength()
-                    val inputStream = body.byteStream()
-                    val outputBuffer = ByteArrayOutputStream(
-                        if (contentLength > 0 && contentLength < Int.MAX_VALUE) contentLength.toInt() else 1024 * 1024
-                    )
+                    // 2. Resolve stream URL and download if online
+                    val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                    val playbackData = YTPlayerUtils.playerResponseForPlayback(
+                        videoId = mediaMetadata.id,
+                        playlistId = null,
+                        audioQuality = desiredQuality,
+                        connectivityManager = connectivityManager
+                    ).getOrThrow()
 
-                    val buffer = ByteArray(65536) // 64 KB buffer for high-speed streaming
-                    var bytesRead: Int
-                    var totalBytesRead = 0L
-                    var lastUpdateMs = 0L
+                    val format = playbackData.format
+                    val streamUrl = playbackData.streamUrl
 
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        outputBuffer.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
+                    Timber.tag(TAG).d("Stream URL resolved, format: ${format.mimeType}, bitrate: ${format.bitrate}")
 
-                        val now = System.currentTimeMillis()
-                        if (contentLength > 0 && (now - lastUpdateMs >= 150 || totalBytesRead == contentLength)) {
-                            lastUpdateMs = now
-                            val percent = ((totalBytesRead * 100) / contentLength).toInt().coerceIn(0, 100)
-                            showProgressNotification(
-                                context = appContext,
-                                notificationId = notificationId,
-                                title = mediaMetadata.title,
-                                progress = percent,
-                                subText = subText,
-                            )
+                    extension = when {
+                        format.mimeType.contains("opus") || format.mimeType.contains("webm") -> "opus"
+                        format.mimeType.contains("mp4") || format.mimeType.contains("m4a") -> "m4a"
+                        else -> "m4a"
+                    }
+
+                    // Add range parameter to bypass YouTube's bandwidth throttling for maximum download speed
+                    val unthrottledStreamUrl = if (!streamUrl.contains("range=")) {
+                        val length = format.contentLength ?: 15000000L
+                        "${streamUrl}&range=0-$length"
+                    } else {
+                        streamUrl
+                    }
+
+                    val request = Request.Builder()
+                        .url(unthrottledStreamUrl)
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                        .header("Accept", "*/*")
+                        .header("Connection", "keep-alive")
+                        .build()
+
+                    val response = httpClient.newCall(request).execute()
+                    response.use { resp ->
+                        if (!resp.isSuccessful) {
+                            throw Exception("Download failed: HTTP ${resp.code}")
                         }
+                        val body = resp.body ?: throw Exception("Response body is null")
+                        val contentLength = body.contentLength()
+                        val inputStream = body.byteStream()
+                        val outputBuffer = ByteArrayOutputStream(
+                            if (contentLength > 0 && contentLength < Int.MAX_VALUE) contentLength.toInt() else 1024 * 1024
+                        )
+
+                        val buffer = ByteArray(65536) // 64 KB buffer for high-speed streaming
+                        var bytesRead: Int
+                        var totalBytesRead = 0L
+                        var lastUpdateMs = 0L
+
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            if (cancelledNotificationIds.contains(notificationId) || !currentCoroutineContext().isActive) {
+                                throw CancellationException("Download canceled")
+                            }
+                            outputBuffer.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+
+                            val now = System.currentTimeMillis()
+                            if (contentLength > 0 && (now - lastUpdateMs >= 150 || totalBytesRead == contentLength)) {
+                                lastUpdateMs = now
+                                val percent = ((totalBytesRead * 100) / contentLength).toInt().coerceIn(0, 100)
+                                showProgressNotification(
+                                    context = appContext,
+                                    notificationId = notificationId,
+                                    title = mediaMetadata.title,
+                                    progress = percent,
+                                    subText = subText,
+                                )
+                            }
+                        }
+                        audioBytes = outputBuffer.toByteArray()
                     }
-                    audioBytes = outputBuffer.toByteArray()
                 }
-            }
 
-            val finalAudioBytes = audioBytes ?: throw Exception("No audio data available")
+                if (cancelledNotificationIds.contains(notificationId) || !currentCoroutineContext().isActive) {
+                    throw CancellationException("Download canceled")
+                }
 
-            // 3. Sanitise file name
-            val sanitisedTitle = mediaMetadata.title
-                .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                .take(200)
-            val artistName = mediaMetadata.artists.joinToString(", ") { it.name }
-                .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                .take(100)
-            val fileName = "${sanitisedTitle} - ${artistName}.$extension"
-            Timber.tag(TAG).d("Writing ${finalAudioBytes.size} bytes for $fileName")
+                val finalAudioBytes = audioBytes ?: throw Exception("No audio data available")
+
+                // 3. Sanitise file name
+                val sanitisedTitle = mediaMetadata.title
+                    .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                    .take(200)
+                val artistName = mediaMetadata.artists.joinToString(", ") { it.name }
+                    .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                    .take(100)
+                val fileName = "${sanitisedTitle} - ${artistName}.$extension"
+                Timber.tag(TAG).d("Writing ${finalAudioBytes.size} bytes for $fileName")
 
                 // 5. Write to Music folder
                 val mimeType = when (extension) {
@@ -509,36 +573,44 @@ object SaveToStorageUtil {
                     Timber.tag(TAG).d("Saved via direct file write: ${outputFile.absolutePath}")
                 }
 
-            val openFileIntent = PendingIntent.getActivity(
-                appContext,
-                notificationId,
-                Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(savedFileUri, mimeType)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                },
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
+                val openFileIntent = PendingIntent.getActivity(
+                    appContext,
+                    notificationId,
+                    Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(savedFileUri, mimeType)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
 
-            showCompleteNotification(
-                context = appContext,
-                notificationId = notificationId,
-                title = mediaMetadata.title,
-                success = true,
-                message = "${mediaMetadata.title} saved to Music/$relativeFolder",
-                openFileIntent = openFileIntent,
-            )
-            fileName
-        }.onFailure { e ->
-            if (e !is CancellationException) {
-                Timber.tag(TAG).e(e, "Failed to save song to local storage")
                 showCompleteNotification(
-                    context = context.applicationContext,
+                    context = appContext,
                     notificationId = notificationId,
                     title = mediaMetadata.title,
-                    success = false,
-                    message = "Failed to download: ${e.message}",
+                    success = true,
+                    message = "${mediaMetadata.title} saved to Music/$relativeFolder",
+                    openFileIntent = openFileIntent,
                 )
+                fileName
+            }.onFailure { e ->
+                if (e !is CancellationException) {
+                    Timber.tag(TAG).e(e, "Failed to save song to local storage")
+                    showCompleteNotification(
+                        context = context.applicationContext,
+                        notificationId = notificationId,
+                        title = mediaMetadata.title,
+                        success = false,
+                        message = "Failed to download: ${e.message}",
+                    )
+                } else {
+                    Timber.tag(TAG).i("Download was canceled for ${mediaMetadata.title}")
+                    val notificationManager = context.applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                    notificationManager?.cancel(notificationId)
+                }
             }
+        } finally {
+            activeSaveJobs.remove(notificationId)
+            cancelledNotificationIds.remove(notificationId)
         }
     }
 }

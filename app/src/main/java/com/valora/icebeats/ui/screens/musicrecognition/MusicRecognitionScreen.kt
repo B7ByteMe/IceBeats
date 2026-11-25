@@ -1,5 +1,5 @@
-﻿/*
- * icebeats Project Original (2026)
+/*
+ * IceBeats Project Original (2026)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -11,6 +11,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -51,8 +52,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -112,6 +116,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -233,6 +238,46 @@ fun MusicRecognitionScreen(
                         }
                     }
                 },
+                actions = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        Surface(
+                            modifier =
+                                Modifier
+                                    .padding(horizontal = 8.dp)
+                                    .size(40.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            onClick = {
+                                val statusBarManager =
+                                    context.getSystemService(android.app.StatusBarManager::class.java)
+                                statusBarManager?.requestAddTileService(
+                                    android.content.ComponentName(
+                                        context,
+                                        com.valora.icebeats.service.MusicRecognitionTileService::class.java,
+                                    ),
+                                    context.getString(R.string.identify_music),
+                                    android.graphics.drawable.Icon.createWithResource(context, R.drawable.mic),
+                                    context.mainExecutor,
+                                ) { result ->
+                                    if (result == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED) {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            context.getString(R.string.quick_settings_tile_added),
+                                            android.widget.Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                }
+                            },
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(R.drawable.add),
+                                    contentDescription = stringResource(R.string.quick_settings_add_tile),
+                                )
+                            }
+                        }
+                    }
+                },
                 colors =
                     TopAppBarDefaults.largeTopAppBarColors(
                         containerColor = Color.Transparent,
@@ -287,6 +332,9 @@ fun MusicRecognitionScreen(
                         .align(Alignment.TopCenter)
                         .then(contentWidthModifier)
                         .fillMaxWidth()
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
+                        )
                         .verticalScroll(scrollState)
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -566,7 +614,7 @@ private suspend fun recordMicPcm16Mono(
             minBuffer,
         )
 
-        // Verificar si AudioRecord est• inicializado correctamente
+        // Verificar si AudioRecord está inicializado correctamente
         if (record.state != AudioRecord.STATE_INITIALIZED) {
             return@withContext ShortArray(0) to sampleRateHz
         }
@@ -578,7 +626,7 @@ private suspend fun recordMicPcm16Mono(
         try {
             record.startRecording()
 
-            // Verificar que est• grabando
+            // Verificar que está grabando
             if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                 return@withContext ShortArray(0) to sampleRateHz
             }
@@ -610,7 +658,7 @@ private suspend fun recordMicPcm16Mono(
             runCatching { record.release() }
         }
     } catch (e: SecurityException) {
-        // Permiso denegado en tiempo de ejecuci•n
+        // Permiso denegado en tiempo de ejecución
         e.printStackTrace()
         ShortArray(0) to sampleRateHz
     }
@@ -1133,17 +1181,22 @@ private fun CoverArt(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val coverImageRequest = remember(coverUrl) {
+        coverUrl?.takeIf { it.isNotBlank() }?.let {
+            ImageRequest.Builder(context)
+                .data(it)
+                .build()
+        }
+    }
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 2.dp,
     ) {
-        if (!coverUrl.isNullOrBlank()) {
+        if (coverImageRequest != null) {
             AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(coverUrl)
-                    .build(),
+                model = coverImageRequest,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -1226,7 +1279,7 @@ private data class ChipData(
 )
 
 const val MusicRecognitionRoute = "music_recognition"
-const val ACTION_MUSIC_RECOGNITION = "moe.koiverse.archivetune.action.MUSIC_RECOGNITION"
+const val ACTION_MUSIC_RECOGNITION = "com.valora.icebeats.action.MUSIC_RECOGNITION"
 const val MusicRecognitionAutoStartRequestKey = "music_recognition_auto_start_request"
 
 fun NavHostController.openMusicRecognition(

@@ -36,8 +36,8 @@ android {
         applicationId = "com.valora.icebeats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 189
-        versionName = "7.2.0"
+        versionCode = 190
+        versionName = "8.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_API_KEY", googleApiKey.asBuildConfigString())
         buildConfigField("String", "STATS_API_KEY", statsApiKey.asBuildConfigString())
@@ -143,14 +143,6 @@ ksp {
 }
 
 dependencies {
-    // Firebase & Auth
-    implementation("com.google.firebase:firebase-database")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.android.gms:play-services-auth:21.2.0")
-    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    implementation("dev.chrisbanes.haze:haze:0.7.3")
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
@@ -184,8 +176,13 @@ dependencies {
     implementation(libs.media3)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
-    implementation("androidx.media3:media3-ui:1.8.0")
+    implementation(libs.media3.ui)
     implementation(libs.squigglyslider)
+
+    // Google Cast & local streaming proxy
+    implementation("com.google.android.gms:play-services-cast-framework:22.3.1")
+    implementation("androidx.mediarouter:mediarouter:1.7.0")
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
 
     implementation(libs.room.runtime)
     implementation(libs.kotlinx.serialization.json)
@@ -198,16 +195,15 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.constraintlayout)
     implementation(libs.constraintlayout.compose)
-    implementation(libs.itextg)
-    implementation(libs.mpandroidchart)
     implementation(libs.foundation)
     implementation(libs.ui.graphics)
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-config")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
-
-    implementation(libs.apache.lang3)
 
     implementation(libs.hilt)
     implementation("org.jsoup:jsoup:1.18.1")
@@ -218,6 +214,7 @@ dependencies {
     implementation("androidx.credentials:credentials:1.3.0-rc01")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0-rc01")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
     implementation("com.google.api-client:google-api-client-android:1.33.0") {
         exclude(group = "org.apache.httpcomponents")
     }
@@ -229,22 +226,24 @@ dependencies {
     }
 
     implementation(projects.innertube)
+    // StreamBackend directly uses NewPipeExtractor stream model types.
+    implementation(libs.newpipe.extractor)
     implementation(projects.kugou)
     implementation(projects.lrclib)
-    implementation(projects.kizzy)
-    implementation(project(":jossredconnect"))
+    implementation(projects.discordrpc)
+    implementation(projects.spotify)
+    implementation(project(":airconnect"))
     implementation(project(":shazamkit"))
     implementation(project(":betterlyrics"))
 
     implementation(libs.ktor.client.core)
 
-    coreLibraryDesugaring(libs.desugaring)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     implementation(libs.haze)
     implementation(libs.haze.materials)
     implementation(libs.liquid.glass)
     implementation(libs.liquid.glass.shape)
 
     implementation(libs.timber)
+    testImplementation(libs.junit)
 }
-
-

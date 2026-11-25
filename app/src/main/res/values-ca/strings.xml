@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Bottom navigation -->
@@ -366,7 +366,7 @@ Treu el m'agrada a tot"</string>
     <string name="backup_create_failed">"No s'ha pogut crear la còpia de seguretat"</string>
     <string name="restore_failed">"No s'ha pogut recuperar la còpia de seguretat"</string>
     <string name="discord_integration">"Integració amb Discord"</string>
-    <string name="discord_information">"icebeats utiliza la biblioteca KizzyRPC para establecer el estado de su cuenta de Discord. Esto implica el uso de la conexión Discord Gateway, que puede considerarse una violación de las condiciones de servicio de Discord. Sin embargo, no se conocen casos de cuentas de usuario suspendidas por este motivo. Utilícelo bajo su propia responsabilidad. icebeats sólo extraerá tu token, y todo lo demás se almacena localmente."</string>
+    <string name="discord_information">"IceBeats utiliza la biblioteca KizzyRPC para establecer el estado de su cuenta de Discord. Esto implica el uso de la conexión Discord Gateway, que puede considerarse una violación de las condiciones de servicio de Discord. Sin embargo, no se conocen casos de cuentas de usuario suspendidas por este motivo. Utilícelo bajo su propia responsabilidad. IceBeats sólo extraerá tu token, y todo lo demás se almacena localmente."</string>
     <string name="dismiss">"Ignora"</string>
     <string name="options">"Opcions"</string>
     <string name="preview">"Previsualització"</string>

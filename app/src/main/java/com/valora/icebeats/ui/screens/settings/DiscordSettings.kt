@@ -1,4 +1,4 @@
-﻿package com.valora.icebeats.ui.screens.settings
+package com.valora.icebeats.ui.screens.settings
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -97,7 +97,7 @@ import com.valora.icebeats.ui.utils.backToMain
 import com.valora.icebeats.utils.makeTimeString
 import com.valora.icebeats.utils.rememberEnumPreference
 import com.valora.icebeats.utils.rememberPreference
-import com.valora.icebeats.kizzy.rpc.KizzyRPC
+import com.valora.icebeats.discordrpc.rpc.DiscordRpcClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -135,7 +135,7 @@ fun DiscordSettings(
         val token = discordToken
         if (token.isEmpty()) return@LaunchedEffect
         coroutineScope.launch(Dispatchers.IO) {
-            KizzyRPC.getUserInfo(token).onSuccess {
+            DiscordRpcClient.getUserInfo(token).onSuccess {
                 discordUsername = it.username
                 discordName = it.name
             }
@@ -248,7 +248,7 @@ fun DiscordSettings(
             }
         }
 
-        // Secci•n de cuenta mejorada
+        // Sección de cuenta mejorada
         PreferenceGroupTitle(title = stringResource(R.string.account))
 
         Card(
@@ -391,7 +391,7 @@ fun EnhancedRichPresence(
 ) {
     val context = LocalContext.current
 
-    // Animaci•n para el gradiente
+    // Animación para el gradiente
     val gradientAlpha by animateFloatAsState(
         targetValue = if (song != null) 0.15f else 0f,
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
@@ -427,13 +427,13 @@ fun EnhancedRichPresence(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header - Redise•ado
+                // Header - Rediseñado
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Logo y t•tulo mejorados
+                    // Logo y título mejorados
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Logo con contenedor circular y gradiente
                         Box(
@@ -458,7 +458,7 @@ fun EnhancedRichPresence(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.discord),
-                                contentDescription = "Discord",
+                                contentDescription = stringResource(R.string.discord),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -468,20 +468,20 @@ fun EnhancedRichPresence(
 
                         Column {
                             Text(
-                                text = "icebeats",
+                                text = stringResource(R.string.ui_text_airbeats),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Listening on Discord",
+                                text = stringResource(R.string.ui_text_listening_on_discord),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    // Indicador de reproducci•n mejorado
+                    // Indicador de reproducción mejorado
                     if (song != null && isPlaying) {
                         Surface(
                             shape = RoundedCornerShape(16.dp),
@@ -505,7 +505,7 @@ fun EnhancedRichPresence(
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    text = "LIVE",
+                                    text = stringResource(R.string.ui_text_live),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.Bold,
@@ -523,7 +523,7 @@ fun EnhancedRichPresence(
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Thumbnail con dise•o mejorado
+                    // Thumbnail con diseño mejorado
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -568,7 +568,7 @@ fun EnhancedRichPresence(
                                         .align(Alignment.BottomEnd)
                                         .padding(8.dp)
                                 ) {
-                                    // Logo de icebeats como fallback mejorado
+                                    // Logo de IceBeats como fallback mejorado
                                     val artistAvatar = song?.artists?.firstOrNull()?.thumbnailUrl
 
                                     Card(
@@ -586,12 +586,12 @@ fun EnhancedRichPresence(
                                             if (artistAvatar != null) {
                                                 AsyncImage(
                                                     model = artistAvatar,
-                                                    contentDescription = "Artist",
+                                                    contentDescription = stringResource(R.string.sort_by_artist),
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Crop
                                                 )
                                             } else {
-                                                // Logo de icebeats con estilo mejorado
+                                                // Logo de IceBeats con estilo mejorado
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxSize()
@@ -606,8 +606,8 @@ fun EnhancedRichPresence(
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Image(
-                                                        painter = painterResource(R.drawable.icebeats),
-                                                        contentDescription = "icebeats",
+                                                        painter = painterResource(R.drawable.airbeats),
+                                                        contentDescription = stringResource(R.string.ui_text_airbeats),
                                                         modifier = Modifier
                                                             .size(20.dp)
                                                             .alpha(0.9f),
@@ -624,7 +624,7 @@ fun EnhancedRichPresence(
 
                     Spacer(Modifier.width(16.dp))
 
-                    // Informaci•n de la canci•n
+                    // Información de la canción
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
@@ -674,18 +674,18 @@ fun EnhancedRichPresence(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Botones de acci•n mejorados
+                // Botones de acción mejorados
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Bot•n YouTube Music mejorado
+                    // Botón YouTube Music mejorado
                     FilledTonalButton(
                         enabled = song != null,
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                "https://icebeats.pages.dev/song?id=${song?.id}".toUri()
+                                com.valora.icebeats.utils.RemoteConfigManager.getSongShareUrl(song?.id ?: "").toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -696,21 +696,26 @@ fun EnhancedRichPresence(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.play),
-                            contentDescription = "YouTube Music",
+                            contentDescription = stringResource(R.string.ui_text_youtube_music),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("YouTube Music", maxLines = 1, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.ui_text_youtube_music), maxLines = 1, fontWeight = FontWeight.Medium)
                     }
 
-                    // Bot•n icebeats mejorado
+                    // Botón IceBeats mejorado
                     OutlinedButton(
                         onClick = {
-                            val intent = Intent(
-                                Intent.ACTION_VIEW,
-                                "https://icebeats.pages.dev".toUri()
-                            )
-                            context.startActivity(intent)
+                            val targetUrl = com.valora.icebeats.utils.RemoteConfigManager.websiteUrl.ifBlank {
+                                com.valora.icebeats.utils.RemoteConfigManager.getReleasesPageUrl()
+                            }
+                            if (targetUrl.isNotBlank()) {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    targetUrl.toUri()
+                                )
+                                context.startActivity(intent)
+                            }
                         },
                         modifier = Modifier.weight(1f),
                         border = BorderStroke(
@@ -733,14 +738,14 @@ fun EnhancedRichPresence(
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
-                                painter = painterResource(R.drawable.icebeats),
-                                contentDescription = "icebeats",
+                                painter = painterResource(R.drawable.airbeats),
+                                contentDescription = stringResource(R.string.ui_text_airbeats),
                                 modifier = Modifier.size(12.dp),
                                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
                             )
                         }
                         Spacer(Modifier.width(8.dp))
-                        Text("icebeats", maxLines = 1, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.ui_text_airbeats), maxLines = 1, fontWeight = FontWeight.Medium)
                     }
                 }
             }

@@ -33,8 +33,7 @@ class SleepTimer(
             sleepTimerJob =
                 scope.launch {
                     delay(minute.minutes)
-                    player.pause()
-                    triggerTime = -1L
+                    stopAndClear()
                 }
         }
     }
@@ -51,8 +50,7 @@ class SleepTimer(
         reason: Int,
     ) {
         if (pauseWhenSongEnd) {
-            pauseWhenSongEnd = false
-            player.pause()
+            stopAndClear()
         }
     }
 
@@ -60,8 +58,15 @@ class SleepTimer(
         @Player.State playbackState: Int,
     ) {
         if (playbackState == Player.STATE_ENDED && pauseWhenSongEnd) {
-            pauseWhenSongEnd = false
-            player.pause()
+            stopAndClear()
         }
+    }
+
+    private fun stopAndClear() {
+        player.pause()
+        pauseWhenSongEnd = false
+        triggerTime = -1L
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
     }
 }

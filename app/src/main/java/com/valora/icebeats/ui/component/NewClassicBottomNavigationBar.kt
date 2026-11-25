@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
@@ -109,19 +111,24 @@ fun NewClassicBottomNavigationBar(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_horiz),
-                            contentDescription = "More"
+                            contentDescription = stringResource(R.string.ui_text_more)
                         )
                     }
 
+                    val isFrosted = isFrostedGlassUiEnabled()
                     DropdownMenu(
                         expanded = overflowExpanded,
                         onDismissRequest = { overflowExpanded = false },
                         shape = RoundedCornerShape(24.dp),
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        containerColor = if (isFrosted) Color(0xFF181818).copy(alpha = 0.90f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.then(
+                            if (isFrosted) Modifier.border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), RoundedCornerShape(24.dp))
+                            else Modifier
+                        ),
                         tonalElevation = 6.dp
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Downloads") },
+                            text = { Text(stringResource(R.string.ui_text_downloads)) },
                             onClick = {
                                 overflowExpanded = false
                                 onNavigateRoute("auto_playlist/downloaded")
@@ -143,7 +150,7 @@ fun NewClassicBottomNavigationBar(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Cached") },
+                            text = { Text(stringResource(R.string.cached_playlist)) },
                             onClick = {
                                 overflowExpanded = false
                                 onNavigateRoute("cache_playlist/cached")
@@ -165,7 +172,7 @@ fun NewClassicBottomNavigationBar(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Search") },
+                            text = { Text(stringResource(R.string.search)) },
                             onClick = {
                                 overflowExpanded = false
                                 val searchIndex = items.indexOfFirst { it.titleId == R.string.search }
@@ -188,10 +195,10 @@ fun NewClassicBottomNavigationBar(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Library") },
+                            text = { Text(stringResource(R.string.android_auto_library)) },
                             onClick = {
                                 overflowExpanded = false
-                                val libraryIndex = items.indexOfFirst { it.titleId == R.string.filter_library || it.titleId == R.string.library }
+                                val libraryIndex = items.indexOfFirst { it.titleId == R.string.library }
                                 if (libraryIndex != -1) onItemSelected(libraryIndex) else onNavigateRoute("library")
                             },
                             leadingIcon = {
@@ -216,7 +223,7 @@ fun NewClassicBottomNavigationBar(
             modifier = Modifier.widthIn(max = 480.dp),
             colors = toolbarColors
         ) {
-            icebeatsToolbarItemsContainer(
+            IceBeatsToolbarItemsContainer(
                 items = items,
                 selectedIndex = selectedIndex,
                 showSelectedLabels = showSelectedLabels,
@@ -227,7 +234,7 @@ fun NewClassicBottomNavigationBar(
 }
 
 @Composable
-private fun icebeatsToolbarItemsContainer(
+private fun IceBeatsToolbarItemsContainer(
     items: List<CurvedBottomNavigationItem>,
     selectedIndex: Int,
     showSelectedLabels: Boolean,
@@ -275,7 +282,7 @@ private fun icebeatsToolbarItemsContainer(
         Row(verticalAlignment = Alignment.CenterVertically) {
             items.forEachIndexed { index, item ->
                 val selected = selectedIndex == index
-                icebeatsToolbarItem(
+                IceBeatsToolbarItem(
                     item = item,
                     selected = selected,
                     showSelectedLabel = showSelectedLabels,
@@ -291,7 +298,7 @@ private fun icebeatsToolbarItemsContainer(
 }
 
 @Composable
-private fun icebeatsToolbarItem(
+private fun IceBeatsToolbarItem(
     item: CurvedBottomNavigationItem,
     selected: Boolean,
     showSelectedLabel: Boolean,
