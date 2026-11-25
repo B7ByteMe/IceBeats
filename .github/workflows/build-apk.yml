@@ -65,7 +65,15 @@ jobs:
           echo "App version: $VERSION_NAME"
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --console=plain 2>&1 | tee build.log || {
+            echo "=== GRADLE ERRORS ==="
+            grep -E "^(e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Caused by:)" build.log | head -n 60
+            echo "=== TAIL OF LOG ==="
+            tail -n 60 build.log
+            exit 1
+          }
 
       - name: Prepare and Name APKs for Release
         run: |
