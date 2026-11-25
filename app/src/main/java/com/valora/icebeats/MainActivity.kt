@@ -868,15 +868,15 @@ class MainActivity : FragmentActivity() {
 
                             val navigationItems = remember(homeScreenStyle, navBarStyle, enableLiquidGlass) { 
                                 if (navBarStyle == NavBarStyle.LIQUID_GLASS || enableLiquidGlass || isBetterNavBar) {
-                                    listOf(Screens.Home, Screens.Search, Screens.Explore, Screens.Library)
+                                    listOf(Screens.Home, Screens.Stats, Screens.Search, Screens.Explore, Screens.Library)
                                 } else {
                                     when (navBarStyle) {
-                                        NavBarStyle.LIQUID_GLASS -> listOf(Screens.Home, Screens.Search, Screens.Explore, Screens.Library)
-                                        NavBarStyle.SPOTIFY -> listOf(Screens.Home, Screens.Search, Screens.Explore, Screens.Library)
+                                        NavBarStyle.LIQUID_GLASS -> listOf(Screens.Home, Screens.Stats, Screens.Search, Screens.Explore, Screens.Library)
+                                        NavBarStyle.SPOTIFY -> listOf(Screens.Home, Screens.Stats, Screens.Search, Screens.Explore, Screens.Library)
                                         NavBarStyle.APPLE -> listOf(Screens.Home, Screens.Stats, Screens.Explore, Screens.Library, Screens.Search)
-                                        NavBarStyle.NEW_CLASSIC -> listOf(Screens.Home, Screens.Search, Screens.Explore, Screens.Library)
-                                        NavBarStyle.MATERIAL -> listOf(Screens.Home, Screens.Explore, Screens.Library, Screens.Search)
-                                        NavBarStyle.BETTER -> listOf(Screens.Home, Screens.Search, Screens.Explore, Screens.Library)
+                                        NavBarStyle.NEW_CLASSIC -> listOf(Screens.Home, Screens.Stats, Screens.Search, Screens.Explore, Screens.Library)
+                                        NavBarStyle.MATERIAL -> listOf(Screens.Home, Screens.Stats, Screens.Explore, Screens.Library, Screens.Search)
+                                        NavBarStyle.BETTER -> listOf(Screens.Home, Screens.Stats, Screens.Search, Screens.Explore, Screens.Library)
                                     }
                                 }
                             }
