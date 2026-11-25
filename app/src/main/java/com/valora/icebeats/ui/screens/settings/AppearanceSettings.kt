@@ -121,7 +121,7 @@ fun AppearanceSettings(
     val (homeScreenStyle, onHomeScreenStyleChange) =
         rememberEnumPreference(
             HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC,
+            defaultValue = HomeScreenStyle.SPOTIFY,
         )
     val (navBarStyle, onNavBarStyleChange) =
         rememberEnumPreference(

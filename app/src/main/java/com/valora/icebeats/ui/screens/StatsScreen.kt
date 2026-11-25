@@ -664,11 +664,13 @@ private fun GlobalStatsBoardCard(
     onRefresh: () -> Unit,
 ) {
     val users = state.board.users
-    val topUser = users.firstOrNull()
+    val top100Users = remember(users) { users.take(100) }
+    val topUser = top100Users.firstOrNull()
     val currentUser = users.firstOrNull { it.id == state.currentUserId }
         ?: if (state.currentUserName.isNotBlank() && !state.currentUserName.equals("IceBeats User", ignoreCase = true)) {
             users.firstOrNull { it.name.trim().equals(state.currentUserName.trim(), ignoreCase = true) }
         } else null
+    val isCurrentUserOutsideTop100 = currentUser != null && top100Users.none { it.id == currentUser.id }
 
     val isFrosted = isFrostedGlassUiEnabled()
     Card(
@@ -698,7 +700,7 @@ private fun GlobalStatsBoardCard(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = topUser?.let { "Most listened: ${it.name} • Top ${users.size}" } ?: "Waiting for daily cloud stats",
+                        text = topUser?.let { "Most listened: ${it.name} • Top ${top100Users.size}" } ?: "Waiting for daily cloud stats",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -735,13 +737,26 @@ private fun GlobalStatsBoardCard(
                     .fillMaxWidth()
                     .heightIn(max = 400.dp)
             ) {
-                items(users, key = { it.id }) { user ->
+                items(top100Users, key = { it.id }) { user ->
                     val isCurrent = user.id == state.currentUserId || (currentUser != null && user.id == currentUser.id)
                     GlobalUserRankRow(
                         user = user,
                         isCurrentUser = isCurrent,
                     )
                 }
+            }
+
+            if (isCurrentUserOutsideTop100 && currentUser != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                GlobalUserRankRow(
+                    user = currentUser,
+                    isCurrentUser = true,
+                )
             }
 
             state.error?.let { error ->

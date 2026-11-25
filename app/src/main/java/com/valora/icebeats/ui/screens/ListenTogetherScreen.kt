@@ -338,7 +338,7 @@ fun ListenTogetherScreen(
                 Text(
                     text = stringResource(R.string.together_kick_confirm, participant.name),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                 )
             },
             confirmButton = {
@@ -361,9 +361,7 @@ fun ListenTogetherScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        ScreenAdaptiveBackground(
-            artworkUrl = mediaMetadata?.thumbnailUrl ?: session?.state?.thumbnailUrl
-        )
+        Box(modifier = Modifier.fillMaxSize().background(com.valora.icebeats.ui.component.bitChordSettingsBackground()))
 
         val scrollState = rememberScrollState()
 
@@ -736,7 +734,7 @@ private fun StatusCard(
     val accent = when {
         displayError != null && !isActive && !isSuccessMessage -> MaterialTheme.colorScheme.error
         isActive || isSuccessMessage -> Color(0xFF4CAF50)
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
     }
 
     Card(
@@ -827,7 +825,7 @@ private fun StatusCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
                 ) {
                     Column(
                         modifier = Modifier.padding(MusicTogetherSpacing.sm),
@@ -841,7 +839,7 @@ private fun StatusCard(
                         Text(
                             text = session.code,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -924,7 +922,7 @@ private fun PlaybackCard(
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -932,12 +930,12 @@ private fun PlaybackCard(
                 }
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
                     modifier = Modifier
                         .size(54.dp)
                         .border(
                             width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                            color = com.valora.icebeats.ui.component.bitChordSettingsOutlineColor().copy(alpha = 0.4f),
                             shape = RoundedCornerShape(12.dp)
                         )
                 ) {
@@ -954,7 +952,7 @@ private fun PlaybackCard(
                                 painter = painterResource(R.drawable.music_note),
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                             )
                         }
                     }
@@ -1005,7 +1003,7 @@ private fun PlaybackCard(
                         Icon(
                             painter = painterResource(R.drawable.skip_previous),
                             contentDescription = stringResource(R.string.ui_a11y_previous_track),
-                            tint = if (controlsEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            tint = if (controlsEnabled) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.38f),
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -1016,14 +1014,14 @@ private fun PlaybackCard(
                         onClick = onPlayPause,
                         enabled = controlsEnabled,
                         shape = CircleShape,
-                        color = if (controlsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (controlsEnabled) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
                         modifier = Modifier.size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
                                 contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = if (controlsEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                tint = if (controlsEnabled) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White) else com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.5f),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -1038,7 +1036,7 @@ private fun PlaybackCard(
                         Icon(
                             painter = painterResource(R.drawable.skip_next),
                             contentDescription = stringResource(R.string.ui_a11y_next_track),
-                            tint = if (controlsEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            tint = if (controlsEnabled) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.38f),
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -1070,7 +1068,7 @@ private fun HostControlsCard(
         iconResId = R.drawable.fire,
         titleResId = R.string.together_host_section,
         subtitle = displayName,
-        accent = MaterialTheme.colorScheme.primary,
+        accent = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
         isCollapsible = true,
         isExpanded = isExpanded,
         onHeaderClick = onToggleExpand,
@@ -1145,7 +1143,7 @@ private fun HostControlsCard(
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White),
                 )
                 Spacer(Modifier.width(MusicTogetherSpacing.xs))
                 Text(text = stringResource(R.string.connecting))
@@ -1269,11 +1267,11 @@ private fun JoinControlsCard(
                     Text(
                         text = "AVAILABLE HOSTS (${discoveredHosts.size})",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                     )
                     discoveredHosts.forEach { host ->
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color = com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.5f),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -1288,7 +1286,7 @@ private fun JoinControlsCard(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Surface(
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.15f),
                                         shape = CircleShape,
                                         modifier = Modifier.size(36.dp)
                                     ) {
@@ -1297,7 +1295,7 @@ private fun JoinControlsCard(
                                                 painter = painterResource(R.drawable.ic_wifi),
                                                 contentDescription = null,
                                                 modifier = Modifier.size(18.dp),
-                                                tint = MaterialTheme.colorScheme.primary
+                                                tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                                             )
                                         }
                                     }
@@ -1312,7 +1310,7 @@ private fun JoinControlsCard(
                                         Text(
                                             text = "${host.address} • ${host.participants} in room",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                                         )
                                     }
                                 }
@@ -1338,7 +1336,7 @@ private fun JoinControlsCard(
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 )
                 Spacer(Modifier.width(MusicTogetherSpacing.xs))
                 Text(text = stringResource(R.string.connecting))
@@ -1365,7 +1363,7 @@ private fun RoomPermissionsCard(
         iconResId = R.drawable.lock,
         titleResId = R.string.together_room_permissions,
         subtitle = if (isHost) "Host Controls" else "Host Permissions",
-        accent = MaterialTheme.colorScheme.secondary,
+        accent = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
     ) {
         if (isHost) {
             ToggleRow(
@@ -1394,14 +1392,14 @@ private fun RoomPermissionsCard(
                     )
                 },
                 leadingContent = {
-                    AccentIcon(iconResId = R.drawable.play, accent = MaterialTheme.colorScheme.secondary, size = 40.dp)
+                    AccentIcon(iconResId = R.drawable.play, accent = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(), size = 40.dp)
                 },
                 trailingContent = {
                     Surface(
                         color = if (session.settings.allowGuestsToControlPlayback)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.15f)
                         else
-                            MaterialTheme.colorScheme.surfaceVariant,
+                            com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
@@ -1412,9 +1410,9 @@ private fun RoomPermissionsCard(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (session.settings.allowGuestsToControlPlayback)
-                                MaterialTheme.colorScheme.primary
+                                (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
+                                com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -1430,14 +1428,14 @@ private fun RoomPermissionsCard(
                     )
                 },
                 leadingContent = {
-                    AccentIcon(iconResId = R.drawable.playlist_add, accent = MaterialTheme.colorScheme.secondary, size = 40.dp)
+                    AccentIcon(iconResId = R.drawable.playlist_add, accent = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(), size = 40.dp)
                 },
                 trailingContent = {
                     Surface(
                         color = if (session.settings.allowGuestsToAddTracks)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.15f)
                         else
-                            MaterialTheme.colorScheme.surfaceVariant,
+                            com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
@@ -1448,9 +1446,9 @@ private fun RoomPermissionsCard(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (session.settings.allowGuestsToAddTracks)
-                                MaterialTheme.colorScheme.primary
+                                (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
+                                com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -1482,7 +1480,7 @@ private fun SharedQueueCard(
         } else {
             "${queue.size} upcoming • ${if (isExpanded) "Tap to collapse" else "Tap to expand"}"
         },
-        accent = MaterialTheme.colorScheme.primary,
+        accent = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
         isCollapsible = true,
         isExpanded = isExpanded,
         onHeaderClick = { isExpanded = !isExpanded },
@@ -1502,7 +1500,7 @@ private fun SharedQueueCard(
                     Text(
                         text = stringResource(R.string.ui_sweep_hold_drag_handle_or_use_arrows_to_reorder_upcoming_songs),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.85f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                     )
                 }
@@ -1535,14 +1533,14 @@ private fun SharedQueueCard(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    color = com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
                                     shape = RoundedCornerShape(6.dp),
                                 ) {
                                     Text(
                                         text = "#${idx + 1}",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                         modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                     )
                                 }
@@ -1570,7 +1568,7 @@ private fun SharedQueueCard(
                                             painter = painterResource(R.drawable.play),
                                             contentDescription = stringResource(R.string.ui_a11y_play_track),
                                             modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.primary,
+                                            tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                                         )
                                     }
                                 }
@@ -1584,7 +1582,7 @@ private fun SharedQueueCard(
                                                 painter = painterResource(R.drawable.arrow_upward),
                                                 contentDescription = stringResource(R.string.ui_a11y_move_up),
                                                 modifier = Modifier.size(16.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                             )
                                         }
                                     }
@@ -1597,7 +1595,7 @@ private fun SharedQueueCard(
                                                 painter = painterResource(R.drawable.arrow_downward),
                                                 contentDescription = stringResource(R.string.ui_a11y_move_down),
                                                 modifier = Modifier.size(16.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                             )
                                         }
                                     }
@@ -1622,7 +1620,7 @@ private fun SharedQueueCard(
                                             painter = painterResource(R.drawable.drag_handle),
                                             contentDescription = stringResource(R.string.ui_a11y_hold_to_drag),
                                             modifier = Modifier.size(18.dp),
-                                            tint = if (isItemDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            tint = if (isItemDragging) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.6f),
                                         )
                                     }
                                 }
@@ -1630,7 +1628,7 @@ private fun SharedQueueCard(
                         },
                         colors = ListItemDefaults.colors(
                             containerColor = if (isItemDragging) {
-                                MaterialTheme.colorScheme.surfaceContainerHigh
+                                com.valora.icebeats.ui.component.bitChordSettingsCardColor()
                             } else {
                                 Color.Transparent
                             }
@@ -1644,7 +1642,7 @@ private fun SharedQueueCard(
                             .clip(RoundedCornerShape(12.dp))
                             .then(
                                 if (isItemDragging) {
-                                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                                    Modifier.border(1.dp, (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black), RoundedCornerShape(12.dp))
                                 } else Modifier
                             )
                             .then(
@@ -1690,7 +1688,7 @@ private fun SharedQueueCard(
                     Text(
                         text = "+${queue.size - 25} more in queue",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(vertical = 4.dp),
@@ -1712,7 +1710,7 @@ private fun ParticipantsCard(
         iconResId = R.drawable.multi_user,
         titleResId = R.string.together_participants,
         subtitle = stringResource(R.string.together_connected_count, participants.size),
-        accent = MaterialTheme.colorScheme.secondary,
+        accent = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
     ) {
         if (participants.isEmpty()) {
             EmptyPanel(
@@ -1734,7 +1732,7 @@ private fun ParticipantsCard(
                     )
                     if (index < participants.size - 1) {
                         HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            color = com.valora.icebeats.ui.component.bitChordSettingsOutlineColor().copy(alpha = 0.5f),
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
                     }
@@ -1773,13 +1771,13 @@ private fun ParticipantRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
             )
         },
         leadingContent = {
             AccentIcon(
                 iconResId = if (isAdmin) R.drawable.fire else R.drawable.person,
-                accent = if (participant.isHost) MaterialTheme.colorScheme.primary else if (allowGuestsControl) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.tertiary,
+                accent = if (participant.isHost) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else if (allowGuestsControl) com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor() else MaterialTheme.colorScheme.tertiary,
                 size = 40.dp,
             )
         },
@@ -1790,27 +1788,27 @@ private fun ParticipantRow(
             ) {
                 if (participant.isHost) {
                     Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.12f),
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.ui_text_host),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 } else if (allowGuestsControl) {
                     Surface(
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.12f),
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.ui_text_admin),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -1885,7 +1883,7 @@ private fun SectionCard(
                         Text(
                             text = subtitleText,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1898,7 +1896,7 @@ private fun SectionCard(
                                 if (isExpanded) R.drawable.expand_less else R.drawable.expand_more
                             ),
                             contentDescription = if (isExpanded) "Collapse" else "Expand",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                         )
                     }
                 }
@@ -1933,14 +1931,14 @@ private fun SettingsRow(
             )
         },
         leadingContent = {
-            AccentIcon(iconResId = iconResId, accent = MaterialTheme.colorScheme.primary, size = 40.dp)
+            AccentIcon(iconResId = iconResId, accent = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black), size = 40.dp)
         },
         trailingContent = {
             if (onClick != null) {
                 Icon(
                     painter = painterResource(R.drawable.navigate_next),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                 )
             }
         },
@@ -1966,7 +1964,7 @@ private fun ToggleRow(
             )
         },
         leadingContent = {
-            AccentIcon(iconResId = iconResId, accent = MaterialTheme.colorScheme.primary, size = 40.dp)
+            AccentIcon(iconResId = iconResId, accent = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black), size = 40.dp)
         },
         trailingContent = {
             Switch(
@@ -2012,12 +2010,12 @@ private fun AccentIcon(
 private fun InfoPill(text: String) {
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
             modifier = Modifier.padding(horizontal = MusicTogetherSpacing.sm, vertical = MusicTogetherSpacing.xs),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -2034,14 +2032,14 @@ private fun EmptyPanel(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = com.valora.icebeats.ui.component.bitChordSettingsCardColor(),
     ) {
         Row(
             modifier = Modifier.padding(MusicTogetherSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(MusicTogetherSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AccentIcon(iconResId = iconResId, accent = MaterialTheme.colorScheme.onSurfaceVariant, size = 40.dp)
+            AccentIcon(iconResId = iconResId, accent = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(), size = 40.dp)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(titleResId),
@@ -2051,7 +2049,7 @@ private fun EmptyPanel(
                 Text(
                     text = stringResource(bodyResId),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                 )
             }
         }

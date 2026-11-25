@@ -1151,8 +1151,10 @@ fun AppleStatsScreen(
         title = stringResource(R.string.stats),
         navController = navController
     ) {
-        val topUser = globalStats.board.users.firstOrNull()
+        val top100Users = remember(globalStats.board.users) { globalStats.board.users.take(100) }
+        val topUser = top100Users.firstOrNull()
         val currentUser = globalStats.board.users.firstOrNull { it.id == globalStats.currentUserId }
+        val isCurrentUserOutsideTop100 = currentUser != null && top100Users.none { it.id == currentUser.id }
 
         item {
             AppleSectionTitle("Global Rankings")
@@ -1167,7 +1169,7 @@ fun AppleStatsScreen(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.leaderboard), color = AppleText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text(stringResource(R.string.top_users, globalStats.board.users.size), color = AppleText.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(stringResource(R.string.top_users, top100Users.size), color = AppleText.copy(alpha = 0.7f), fontSize = 14.sp)
                     }
                     androidx.compose.material3.Button(
                         onClick = { viewModel.refreshGlobalStats() },
@@ -1210,7 +1212,7 @@ fun AppleStatsScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)
                 ) {
-                    items(globalStats.board.users, key = { it.id }) { user ->
+                    items(top100Users, key = { it.id }) { user ->
                         val isCurrentUser = user.id == globalStats.currentUserId
                         val userHours = user.totalListenMs.toDouble() / (3600.0 * 1000.0)
                         
@@ -1259,6 +1261,43 @@ fun AppleStatsScreen(
                                 fontSize = 14.sp
                             )
                         }
+                    }
+                }
+
+                if (isCurrentUserOutsideTop100 && currentUser != null) {
+                    val currentHours = currentUser.totalListenMs.toDouble() / (3600.0 * 1000.0)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFA233B).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "#${currentUser.rank}",
+                            modifier = Modifier.width(44.dp),
+                            color = AppleText,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp
+                        )
+                        AvatarDisplay(size = 32.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = currentUser.name,
+                            color = AppleText,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "${currentHours.toInt()}h",
+                            color = AppleText.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
                     }
                 }
             }

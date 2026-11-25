@@ -459,21 +459,7 @@ Scaffold(
                     }
                 }
 
-                // 8. Community & Contribution Hub
-                item {
-                    SectionHeaderRow(
-                        title = stringResource(R.string.ui_heading_community_support),
-                        icon = painterResource(R.drawable.resource_public),
-                        actionText = null,
-                        onActionClick = null
-                    )
-                }
 
-                item {
-                    CommunityHubCard(
-                        onOpenUrl = { url -> uriHandler.openUri(url) }
-                    )
-                }
 
                 item {
                     Spacer(modifier = Modifier.height(32.dp))
@@ -492,15 +478,15 @@ private fun AppInfoHeaderCard(
     val isFrosted = isFrostedGlassUiEnabled()
     val isNightly = BuildConfig.IS_NIGHTLY
 
-    val channelColor = if (isNightly) Color(0xFFFFB74D) else MaterialTheme.colorScheme.primary
-    val channelBg = if (isNightly) Color(0xFFFFB74D).copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    val channelColor = if (isNightly) Color(0xFFFFB74D) else (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
+    val channelBg = if (isNightly) Color(0xFFFFB74D).copy(alpha = 0.12f) else (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.12f)
     val channelText = if (isNightly) "NIGHTLY CHANNEL" else "STABLE RELEASE"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-        border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
+        colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Column(
             modifier = Modifier
@@ -520,7 +506,7 @@ private fun AppInfoHeaderCard(
                         .background(
                             Brush.radialGradient(
                                 listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                    (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.25f),
                                     Color.Transparent
                                 )
                             )
@@ -530,14 +516,14 @@ private fun AppInfoHeaderCard(
                     modifier = Modifier
                         .size(50.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background((if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.airbeats_monochrome),
-                        contentDescription = stringResource(R.string.ui_a11y_airbeats_logo),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(30.dp)
+                        painter = painterResource(R.drawable.icebeats_logo),
+                        contentDescription = "IceBeats",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(34.dp)
                     )
                 }
             }
@@ -546,12 +532,12 @@ private fun AppInfoHeaderCard(
 
             // App Name
             Text(
-                text = stringResource(R.string.ui_text_airbeats),
+                text = "IceBeats",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.4.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface
+                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -572,7 +558,7 @@ private fun AppInfoHeaderCard(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                     )
                 }
@@ -651,7 +637,7 @@ private fun InfoChip(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -662,7 +648,7 @@ private fun InfoChip(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 11.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -680,9 +666,9 @@ private fun RealtimeUpdateCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-        border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
+        colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Column(
             modifier = Modifier
@@ -704,13 +690,13 @@ private fun RealtimeUpdateCard(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
+                            .background((if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.update),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -718,14 +704,14 @@ private fun RealtimeUpdateCard(
                         Text(
                             text = stringResource(R.string.ui_text_check_for_updates),
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = stringResource(R.string.ui_sweep_real_time_github_release_check),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -737,8 +723,8 @@ private fun RealtimeUpdateCard(
                     enabled = updateCheckState !is UpdateCheckUiState.Checking,
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                        containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
+                        contentColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White)
                     ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     modifier = Modifier.heightIn(min = 32.dp, max = 36.dp)
@@ -747,7 +733,7 @@ private fun RealtimeUpdateCard(
                         CircularProgressIndicator(
                             modifier = Modifier.size(14.dp),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White)
                         )
                     } else {
                         Text(
@@ -767,7 +753,7 @@ private fun RealtimeUpdateCard(
                     Text(
                         text = stringResource(R.string.ui_sweep_tap_check_now_to_verify_if_your_airbeats_is_running_the_latest_bu),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     )
                 }
                 UpdateCheckUiState.Checking -> {
@@ -779,7 +765,7 @@ private fun RealtimeUpdateCard(
                         Text(
                             text = stringResource(R.string.ui_sweep_querying_latest_github_release_information),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                         )
                     }
                 }
@@ -804,7 +790,7 @@ private fun RealtimeUpdateCard(
                             Text(
                                 text = "You are on the latest version! (v${updateCheckState.versionName})",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                             )
                         }
                     }
@@ -813,8 +799,8 @@ private fun RealtimeUpdateCard(
                     val info = updateCheckState.info
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)).copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.45f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
@@ -829,14 +815,14 @@ private fun RealtimeUpdateCard(
                                     Text(
                                         text = "Update Available: v${info.versionName}",
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = "Current: v${BuildConfig.VERSION_NAME}",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -848,8 +834,8 @@ private fun RealtimeUpdateCard(
                                     },
                                     shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                        containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
+                                        contentColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White)
                                     ),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                     modifier = Modifier.heightIn(min = 32.dp, max = 36.dp)
@@ -910,9 +896,9 @@ private fun ActiveDownloadCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier
@@ -935,7 +921,7 @@ private fun ActiveDownloadCard(
                             Text(
                                 text = stringResource(R.string.ui_sweep_downloading_update),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -944,7 +930,7 @@ private fun ActiveDownloadCard(
                             Text(
                                 text = "${(downloadState.progress * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
+                                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                             )
                         }
                     }
@@ -957,7 +943,7 @@ private fun ActiveDownloadCard(
                             .fillMaxWidth()
                             .height(5.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                     )
 
@@ -976,7 +962,7 @@ private fun ActiveDownloadCard(
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     )
                 }
                 is UpdateDownloadState.Completed -> {
@@ -993,21 +979,21 @@ private fun ActiveDownloadCard(
                             Icon(
                                 painter = painterResource(R.drawable.check_circle),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                                 modifier = Modifier.size(22.dp)
                             )
                             Column {
                                 Text(
                                     text = stringResource(R.string.ui_text_update_ready_to_install),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = stringResource(R.string.ui_sweep_apk_verified_downloaded),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -1018,8 +1004,8 @@ private fun ActiveDownloadCard(
                             onClick = { onInstall(downloadState.apkFile) },
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
+                                contentColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White)
                             ),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             modifier = Modifier.heightIn(min = 34.dp, max = 36.dp)
@@ -1061,7 +1047,7 @@ private fun ActiveDownloadCard(
                                 Text(
                                     text = downloadState.error,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -1099,9 +1085,9 @@ private fun ChannelSwitcherCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-        border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
+        colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Column(
             modifier = Modifier
@@ -1119,14 +1105,14 @@ private fun ChannelSwitcherCard(
                         .clip(CircleShape)
                         .background(
                             if (isNightly) Color(0xFFFFB74D).copy(alpha = 0.15f)
-                            else MaterialTheme.colorScheme.secondaryContainer
+                            else (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(if (isNightly) R.drawable.deployed_code_update else R.drawable.cloud_download),
                         contentDescription = null,
-                        tint = if (isNightly) Color(0xFFFFB74D) else MaterialTheme.colorScheme.secondary,
+                        tint = if (isNightly) Color(0xFFFFB74D) else com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1135,7 +1121,7 @@ private fun ChannelSwitcherCard(
                     Text(
                         text = if (isNightly) "Nightly Channel Active" else "Switch to Nightly Builds",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1145,7 +1131,7 @@ private fun ChannelSwitcherCard(
                         else
                             "Experience latest features and fixes as soon as committed.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     )
                 }
             }
@@ -1217,8 +1203,8 @@ private fun ChannelSwitcherCard(
                         enabled = !isPreparing,
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
+                            contentColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White)
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.heightIn(min = 32.dp, max = 36.dp)
@@ -1227,7 +1213,7 @@ private fun ChannelSwitcherCard(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(14.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -1265,18 +1251,18 @@ private fun DesktopEcosystemSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionHeaderRow(
-            title = stringResource(R.string.ui_heading_airbeats_for_desktop),
+            title = "IceBeats for Desktop",
             icon = painterResource(R.drawable.desktop_windows),
-            actionText = stringResource(R.string.ui_extra_desktop_repo),
-            onActionClick = { onOpenUrl("https://github.com/B7ByteMe/IceBeats") }
+            actionText = "icebeats.my.id",
+            onActionClick = { onOpenUrl("https://icebeats.my.id") }
         )
 
         // Desktop Repository Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-            border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            shape = com.valora.icebeats.ui.component.BitChordGroupShape,
+            colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+            border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
         ) {
             Column(
                 modifier = Modifier
@@ -1284,14 +1270,14 @@ private fun DesktopEcosystemSection(
                     .padding(14.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.ui_text_airbeats_desktop_repository),
+                    text = "IceBeats Official Website",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                 )
                 Text(
                     text = stringResource(R.string.ui_sweep_official_cross_platform_desktop_application_with_synchronized_pla),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -1301,28 +1287,28 @@ private fun DesktopEcosystemSection(
                     // Windows Card
                     PlatformCard(
                         icon = painterResource(R.drawable.ic_platform_windows),
-                        title = stringResource(R.string.ui_heading_airbeats_for_windows),
+                        title = "IceBeats for Windows",
                         subtitle = stringResource(R.string.ui_heading_windows_10_11_64_bit_exe_portable),
                         actionText = stringResource(R.string.ui_extra_get_windows),
-                        onClick = { onOpenUrl("https://github.com/B7ByteMe/IceBeats/releases") }
+                        onClick = { onOpenUrl("https://icebeats.my.id") }
                     )
 
                     // Mac Card
                     PlatformCard(
                         icon = painterResource(R.drawable.ic_platform_mac),
-                        title = stringResource(R.string.ui_heading_airbeats_for_mac),
+                        title = "IceBeats for Mac",
                         subtitle = stringResource(R.string.ui_heading_macos_apple_silicon_intel_dmg),
                         actionText = stringResource(R.string.ui_extra_get_macos),
-                        onClick = { onOpenUrl("https://github.com/B7ByteMe/IceBeats/releases") }
+                        onClick = { onOpenUrl("https://icebeats.my.id") }
                     )
 
                     // Linux Card
                     PlatformCard(
                         icon = painterResource(R.drawable.ic_platform_linux),
-                        title = stringResource(R.string.ui_heading_airbeats_for_linux),
+                        title = "IceBeats for Linux",
                         subtitle = stringResource(R.string.ui_heading_snap_store_appimage_debian_ubuntu_deb),
                         actionText = stringResource(R.string.ui_extra_snap_store),
-                        onClick = { onOpenUrl("") }
+                        onClick = { onOpenUrl("https://icebeats.my.id") }
                     )
                 }
             }
@@ -1378,14 +1364,14 @@ private fun PlatformCard(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1394,12 +1380,12 @@ private fun PlatformCard(
 
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.12f)
             ) {
                 Text(
                     text = actionText,
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     maxLines = 1,
                     softWrap = false
@@ -1424,9 +1410,9 @@ private fun AppReleaseCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-        border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
+        colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Column(
             modifier = Modifier
@@ -1449,7 +1435,7 @@ private fun AppReleaseCard(
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                     )
 
                     if (release.prerelease) {
@@ -1470,7 +1456,7 @@ private fun AppReleaseCard(
                 Text(
                     text = formatIsoDate(release.published_at),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                 )
             }
 
@@ -1479,7 +1465,7 @@ private fun AppReleaseCard(
                 Text(
                     text = release.name,
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1502,7 +1488,7 @@ private fun AppReleaseCard(
                         MarkdownText(
                             markdown = release.body,
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                             )
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -1513,7 +1499,7 @@ private fun AppReleaseCard(
                     text = if (isExpanded) "Hide Changelog ▲" else "View Changelog ▼",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     ),
                     modifier = Modifier
                         .clickable { isExpanded = !isExpanded }
@@ -1579,8 +1565,8 @@ private fun AppCommitCard(
             .clip(RoundedCornerShape(14.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-        border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Row(
             modifier = Modifier
@@ -1591,8 +1577,8 @@ private fun AppCommitCard(
         ) {
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)).copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.3f))
             ) {
                 Text(
                     text = shortSha,
@@ -1601,7 +1587,7 @@ private fun AppCommitCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.sp
                     ),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
@@ -1610,7 +1596,7 @@ private fun AppCommitCard(
                 Text(
                     text = commit.commit.message.lines().firstOrNull() ?: "Commit",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1622,19 +1608,19 @@ private fun AppCommitCard(
                     Text(
                         text = commit.author?.login ?: commit.commit.author.name,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "•",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     )
                     Text(
                         text = formatIsoDate(commit.commit.author.date),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     )
                 }
             }
@@ -1642,7 +1628,7 @@ private fun AppCommitCard(
             Icon(
                 painter = painterResource(R.drawable.open_in_new),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.6f),
                 modifier = Modifier.size(14.dp)
             )
         }
@@ -1658,9 +1644,9 @@ private fun CommunityHubCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = settingsCardContainerColor(isFrosted)),
-        border = settingsCardBorder(isFrosted) ?: BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
+        colors = CardDefaults.cardColors(containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()),
+        border = BorderStroke(1.dp, com.valora.icebeats.ui.component.bitChordSettingsOutlineColor())
     ) {
         Column(
             modifier = Modifier
@@ -1672,7 +1658,7 @@ private fun CommunityHubCard(
                 icon = painterResource(R.drawable.github),
                 title = stringResource(R.string.ui_heading_github_repository),
                 subtitle = stringResource(R.string.ui_heading_browse_source_code_branches_and_pull_requests),
-                onClick = { onOpenUrl("https://github.com/B7ByteMe/IceBeats") }
+                onClick = { onOpenUrl("https://icebeats.my.id") }
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
@@ -1681,7 +1667,7 @@ private fun CommunityHubCard(
                 icon = painterResource(R.drawable.star),
                 title = stringResource(R.string.ui_heading_give_a_star_on_github),
                 subtitle = stringResource(R.string.ui_heading_show_your_support_and_help_airbeats_grow),
-                onClick = { onOpenUrl("https://github.com/B7ByteMe/IceBeats") }
+                onClick = { onOpenUrl("https://icebeats.my.id") }
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
@@ -1708,7 +1694,7 @@ private fun CommunityHubCard(
                 icon = painterResource(R.drawable.globe_search),
                 title = stringResource(R.string.ui_heading_community_airbeats_org),
                 subtitle = stringResource(R.string.ui_heading_official_web_community_forum_documentation),
-                onClick = { onOpenUrl("") }
+                onClick = { onOpenUrl("https://icebeats.my.id") }
             )
         }
     }
@@ -1734,13 +1720,13 @@ private fun CommunityLinkItem(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                .background((if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = icon,
                 contentDescription = title,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -1749,14 +1735,14 @@ private fun CommunityLinkItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1765,7 +1751,7 @@ private fun CommunityLinkItem(
         Icon(
             painter = painterResource(R.drawable.arrow_forward),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.5f),
             modifier = Modifier.size(16.dp)
         )
     }
@@ -1793,7 +1779,7 @@ private fun SectionHeaderRow(
             Icon(
                 painter = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 modifier = Modifier.size(18.dp)
             )
             Text(
@@ -1802,7 +1788,7 @@ private fun SectionHeaderRow(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.2.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1813,7 +1799,7 @@ private fun SectionHeaderRow(
                 text = actionText,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                 ),
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -1843,7 +1829,7 @@ private fun SectionLoadingCard(message: String) {
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
             )
         }
     }

@@ -76,7 +76,7 @@ fun NavGraphBuilder.navigationBuilder(
                 val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
                 val (rawHomeScreenStyle, _) = rememberEnumPreference(
                     HomeScreenStyleKey,
-                    defaultValue = HomeScreenStyle.CLASSIC
+                    defaultValue = HomeScreenStyle.SPOTIFY
                 )
                 val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
                 when (screen.route) {
@@ -129,7 +129,7 @@ fun NavGraphBuilder.navigationBuilder(
             val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
             val (rawHomeScreenStyle, _) = rememberEnumPreference(
                 HomeScreenStyleKey,
-                defaultValue = HomeScreenStyle.CLASSIC
+                defaultValue = HomeScreenStyle.SPOTIFY
             )
             val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
 
@@ -159,7 +159,7 @@ fun NavGraphBuilder.navigationBuilder(
         val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
         val (rawHomeScreenStyle, _) = rememberEnumPreference(
             HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
+            defaultValue = HomeScreenStyle.SPOTIFY
         )
         val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
 
@@ -183,7 +183,7 @@ fun NavGraphBuilder.navigationBuilder(
         val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
         val (rawHomeScreenStyle, _) = rememberEnumPreference(
             HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
+            defaultValue = HomeScreenStyle.SPOTIFY
         )
         val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
 
@@ -224,7 +224,7 @@ fun NavGraphBuilder.navigationBuilder(
         val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
         val (rawHomeScreenStyle, _) = rememberEnumPreference(
             HomeScreenStyleKey,
-            defaultValue = HomeScreenStyle.CLASSIC
+            defaultValue = HomeScreenStyle.SPOTIFY
         )
         val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
         if (homeScreenStyle == HomeScreenStyle.APPLE) {

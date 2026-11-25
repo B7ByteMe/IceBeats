@@ -624,7 +624,7 @@ fun ModernMiniPlayer(
 
     val (homeScreenStyle, _) = com.valora.icebeats.utils.rememberEnumPreference(
         com.valora.icebeats.constants.HomeScreenStyleKey,
-        defaultValue = com.valora.icebeats.constants.HomeScreenStyle.CLASSIC
+        defaultValue = com.valora.icebeats.constants.HomeScreenStyle.SPOTIFY
     )
     val isPlayful = homeScreenStyle == com.valora.icebeats.constants.HomeScreenStyle.PLAYFUL
 

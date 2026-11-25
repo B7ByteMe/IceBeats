@@ -643,13 +643,13 @@ class MainActivity : FragmentActivity() {
 
             val isLiteMode = com.valora.icebeats.utils.isLiteModeActive()
 
-            val rawPlayerScreenStyle by rememberEnumPreference<PlayerScreenStyle>(PlayerScreenStyleKey, defaultValue = PlayerScreenStyle.BETTER)
+            val rawPlayerScreenStyle by rememberEnumPreference<PlayerScreenStyle>(PlayerScreenStyleKey, defaultValue = PlayerScreenStyle.IOS_STYLED)
             val playerScreenStyle = if (isLiteMode) PlayerScreenStyle.BETTER else rawPlayerScreenStyle
 
-            val rawHomeScreenStyle by rememberEnumPreference(HomeScreenStyleKey, defaultValue = HomeScreenStyle.CLASSIC)
+            val rawHomeScreenStyle by rememberEnumPreference(HomeScreenStyleKey, defaultValue = HomeScreenStyle.SPOTIFY)
             val homeScreenStyle = if (isLiteMode) HomeScreenStyle.CLASSIC else rawHomeScreenStyle
 
-            val rawNavBarStyle by rememberEnumPreference(NavBarStyleKey, defaultValue = NavBarStyle.NEW_CLASSIC)
+            val rawNavBarStyle by rememberEnumPreference(NavBarStyleKey, defaultValue = NavBarStyle.APPLE)
             val navBarStyle = if (isLiteMode) NavBarStyle.NEW_CLASSIC else rawNavBarStyle
 
             val isBetterNavBar = navBarStyle == NavBarStyle.BETTER

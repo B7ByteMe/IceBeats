@@ -46,13 +46,16 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,6 +72,13 @@ import com.valora.icebeats.LocalPlayerAwareWindowInsets
 import com.valora.icebeats.constants.DefaultHiddenHomeSections
 import com.valora.icebeats.constants.HiddenHomeSectionsKey
 import com.valora.icebeats.constants.MaterialHomeSection
+import com.valora.icebeats.ui.component.BitChordGroupShape
+import com.valora.icebeats.ui.component.BitChordIosSwitch
+import com.valora.icebeats.ui.component.bitChordSettingsBackground
+import com.valora.icebeats.ui.component.bitChordSettingsCardColor
+import com.valora.icebeats.ui.component.bitChordSettingsOutlineColor
+import com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor
+import com.valora.icebeats.ui.component.isBitChordDarkTheme
 import com.valora.icebeats.utils.rememberPreference
 
 private fun MaterialHomeSection.icon(): ImageVector = when (this) {
@@ -96,9 +107,18 @@ fun MaterialHomeSectionsScreen(
 ) {
     var hiddenSections by rememberPreference(HiddenHomeSectionsKey, defaultValue = DefaultHiddenHomeSections)
     val visibleCount = MaterialHomeSection.entries.size - hiddenSections.size
+    val dark = isBitChordDarkTheme()
+    val bgColor = bitChordSettingsBackground()
+    val cardColor = bitChordSettingsCardColor()
+    val outlineColor = bitChordSettingsOutlineColor()
+    val secondaryColor = bitChordSettingsSecondaryTextColor()
+    val primaryTextColor = if (dark) Color.White else Color.Black
+    val iconBg = if (dark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor),
         contentAlignment = Alignment.TopCenter,
     ) {
         Column(
@@ -107,66 +127,65 @@ fun MaterialHomeSectionsScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
         ) {
             // Header
-            Surface(
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(bgColor)
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = primaryTextColor,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.ui_text_home_sections),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = primaryTextColor,
+                        )
+                        Text(
+                            text = "$visibleCount of ${MaterialHomeSection.entries.size} visible",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = secondaryColor,
+                        )
+                    }
+
+                    TextButton(
+                        onClick = { hiddenSections = emptySet() },
+                        enabled = hiddenSections.isNotEmpty(),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = primaryTextColor,
+                            disabledContentColor = secondaryColor.copy(alpha = 0.5f),
+                        ),
                     ) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.back),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.ui_text_home_sections),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = "$visibleCount of ${MaterialHomeSection.entries.size} visible",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        TextButton(
-                            onClick = { hiddenSections = emptySet() },
-                            enabled = hiddenSections.isNotEmpty(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.RestartAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.ui_text_show_all))
-                        }
+                        Icon(
+                            imageVector = Icons.Filled.RestartAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.ui_text_show_all))
                     }
                 }
             }
+            HorizontalDivider(thickness = 0.5.dp, color = outlineColor)
 
             Text(
                 text = stringResource(R.string.ui_sweep_choose_which_sections_to_display_on_your_material_home_screen_cha),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = secondaryColor,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
 
@@ -191,10 +210,11 @@ fun MaterialHomeSectionsScreen(
                                 hiddenSections - section.id
                             }
                         },
-                        shape = RoundedCornerShape(20.dp),
+                        shape = BitChordGroupShape,
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            containerColor = cardColor,
                         ),
+                        border = BorderStroke(1.dp, outlineColor),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
@@ -205,14 +225,14 @@ fun MaterialHomeSectionsScreen(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                color = iconBg,
                                 modifier = Modifier.size(44.dp),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = section.icon(),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        tint = primaryTextColor,
                                         modifier = Modifier.size(22.dp),
                                     )
                                 }
@@ -225,19 +245,19 @@ fun MaterialHomeSectionsScreen(
                                     text = section.title,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = primaryTextColor,
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     text = section.subtitle,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = secondaryColor,
                                 )
                             }
 
                             Spacer(Modifier.width(10.dp))
 
-                            Switch(
+                            BitChordIosSwitch(
                                 checked = isVisible,
                                 onCheckedChange = { checked ->
                                     hiddenSections = if (checked) {

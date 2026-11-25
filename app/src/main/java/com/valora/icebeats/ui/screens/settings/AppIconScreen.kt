@@ -199,13 +199,13 @@ Scaffold(
                             text = stringResource(R.string.ui_text_app_icons),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                             )
                         )
                         Text(
                             text = stringResource(R.string.ui_sweep_official_app_launcher_icons_tap_to_switch_directly),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                         )
                     }
                 }
@@ -251,13 +251,13 @@ Scaffold(
                                 text = stringResource(R.string.ui_text_community_icons),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.secondary
+                                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                                 )
                             )
                             Text(
                                 text = stringResource(R.string.ui_sweep_submitted_by_community_pin_as_shortcut_until_in_app_update),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -265,7 +265,7 @@ Scaffold(
                                 Text(
                                     text = "${shortcutIcons.size} available",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                                 )
                                 Spacer(Modifier.width(4.dp))
                             }
@@ -280,14 +280,14 @@ Scaffold(
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(18.dp),
                                         strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                                     )
                                 } else {
                                     Icon(
                                         painter = painterResource(R.drawable.sync),
                                         contentDescription = stringResource(R.string.ui_a11y_refresh_from_github),
                                         modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                                     )
                                 }
                             }
@@ -300,7 +300,7 @@ Scaffold(
                     item {
                         Surface(
                             shape = RoundedCornerShape(18.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            color = com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.35f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(
@@ -312,7 +312,7 @@ Scaffold(
                                 Text(
                                     text = if (isRefreshingCommunity) "Checking GitHub for icons..." else "No community shortcut icons right now. All verified icons are in App Icons above!",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -399,7 +399,7 @@ private fun HomeScreenMockupCard(
             .shadow(elevation = 10.dp, shape = RoundedCornerShape(28.dp)),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.5f)
         )
     ) {
         Box(
@@ -408,7 +408,7 @@ private fun HomeScreenMockupCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.7f),
                             MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
                         )
                     )
@@ -417,9 +417,9 @@ private fun HomeScreenMockupCard(
                     width = 1.dp,
                     brush = Brush.horizontalGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                            (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.35f),
                             Color.Transparent,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black).copy(alpha = 0.2f)
                         )
                     ),
                     shape = RoundedCornerShape(28.dp)
@@ -434,7 +434,7 @@ private fun HomeScreenMockupCard(
                 // Active badge
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)),
                     modifier = Modifier.padding(bottom = 4.dp)
                 ) {
                     Row(
@@ -451,7 +451,7 @@ private fun HomeScreenMockupCard(
                         Text(
                             text = stringResource(R.string.ui_text_live_launcher_preview),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                         )
                     }
                 }
@@ -460,23 +460,17 @@ private fun HomeScreenMockupCard(
                 Box(
                     modifier = Modifier
                         .size(88.dp)
-                        .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = MaterialTheme.colorScheme.primary)
+                        .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black))
                         .clip(RoundedCornerShape(22.dp))
                         .background(Brush.linearGradient(icon.bgColors))
                         .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(22.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (icon.id == "default") {
+                    if (icon.id == "default" || icon.id == "icebeats_winters") {
                         Image(
                             painter = painterResource(R.mipmap.ic_launcher_foreground),
                             contentDescription = icon.title,
                             modifier = Modifier.fillMaxSize(0.72f)
-                        )
-                    } else if (icon.id == "airbeats_winters") {
-                        Image(
-                            painter = painterResource(R.mipmap.ic_launcher_winter_foreground),
-                            contentDescription = icon.title,
-                            modifier = Modifier.fillMaxSize()
                         )
                     } else if (icon.id == "melody_hearts") {
                         Image(
@@ -526,12 +520,12 @@ private fun HomeScreenMockupCard(
                     Text(
                         text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                     )
                     Text(
                         text = "${icon.title} (${icon.subtitle})",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 2.dp)
                     )
@@ -542,7 +536,7 @@ private fun HomeScreenMockupCard(
                         onClick = { onPinToHomeScreen(icon) },
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                         ),
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
@@ -582,19 +576,19 @@ private fun InAppIconCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(com.valora.icebeats.ui.component.BitChordGroupShape)
             .clickable(onClick = onClick)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(20.dp)
+                color = if (isSelected) (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black) else com.valora.icebeats.ui.component.bitChordSettingsOutlineColor().copy(alpha = 0.4f),
+                shape = com.valora.icebeats.ui.component.BitChordGroupShape
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)).copy(alpha = 0.25f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.35f)
             }
         )
     ) {
@@ -614,17 +608,11 @@ private fun InAppIconCard(
                     .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (icon.id == "default") {
+                if (icon.id == "default" || icon.id == "icebeats_winters") {
                     Image(
                         painter = painterResource(R.mipmap.ic_launcher_foreground),
                         contentDescription = icon.title,
                         modifier = Modifier.fillMaxSize(0.72f)
-                    )
-                } else if (icon.id == "airbeats_winters") {
-                    Image(
-                        painter = painterResource(R.mipmap.ic_launcher_winter_foreground),
-                        contentDescription = icon.title,
-                        modifier = Modifier.fillMaxSize()
                     )
                 } else if (icon.id == "melody_hearts") {
                     Image(
@@ -667,12 +655,12 @@ private fun InAppIconCard(
                 Text(
                     text = icon.title,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                 )
                 Text(
                     text = icon.subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                 )
             }
 
@@ -681,13 +669,13 @@ private fun InAppIconCard(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background((if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = stringResource(R.string.ui_a11y_active_icon),
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.Black else Color.White),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -696,7 +684,7 @@ private fun InAppIconCard(
                     onClick = onClick,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                     ),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                 ) {
@@ -727,19 +715,19 @@ private fun CommunityIconCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(com.valora.icebeats.ui.component.BitChordGroupShape)
             .clickable(onClick = onClick)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(20.dp)
+                color = if (isSelected) com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor() else com.valora.icebeats.ui.component.bitChordSettingsOutlineColor().copy(alpha = 0.4f),
+                shape = com.valora.icebeats.ui.component.BitChordGroupShape
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f)
+                (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)).copy(alpha = 0.25f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.35f)
             }
         )
     ) {
@@ -788,7 +776,7 @@ private fun CommunityIconCard(
                             .offset(x = 6.dp, y = (-6).dp)
                             .size(22.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.secondary),
+                            .background(com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -812,7 +800,7 @@ private fun CommunityIconCard(
                 Text(
                     text = "by ${icon.author}",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -823,7 +811,7 @@ private fun CommunityIconCard(
                 onClick = onPin,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
+                    containerColor = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                 ),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -853,20 +841,20 @@ private fun CommunitySubmissionBanner(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(com.valora.icebeats.ui.component.BitChordGroupShape)
             .border(
                 width = 1.dp,
                 brush = Brush.horizontalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+                        com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.6f),
                         MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
                     )
                 ),
-                shape = RoundedCornerShape(24.dp)
+                shape = com.valora.icebeats.ui.component.BitChordGroupShape
             ),
-        shape = RoundedCornerShape(24.dp),
+        shape = com.valora.icebeats.ui.component.BitChordGroupShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f)
+            containerColor = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)).copy(alpha = 0.25f)
         )
     ) {
         Column(
@@ -883,13 +871,13 @@ private fun CommunitySubmissionBanner(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)),
+                        .background(com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor().copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -897,12 +885,12 @@ private fun CommunitySubmissionBanner(
                     Text(
                         text = stringResource(R.string.ui_sweep_design_an_airbeats_icon),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black)
                     )
                     Text(
                         text = stringResource(R.string.ui_sweep_submit_an_svg_link_to_get_your_theme_included),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                     )
                 }
             }
@@ -910,7 +898,7 @@ private fun CommunitySubmissionBanner(
             Text(
                 text = stringResource(R.string.ui_sweep_anyone_in_the_community_can_contribute_share_your_vector_design_w),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
             )
 
             Button(
@@ -918,7 +906,7 @@ private fun CommunitySubmissionBanner(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
+                    containerColor = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                 )
             ) {
                 Icon(
@@ -943,7 +931,7 @@ private fun CommunitySubmissionBanner(
 private fun SystemNoticeCard() {
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.4f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -954,13 +942,13 @@ private fun SystemNoticeCard() {
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = (if (com.valora.icebeats.ui.component.isBitChordDarkTheme()) Color.White else Color.Black),
                 modifier = Modifier.size(20.dp)
             )
             Text(
                 text = stringResource(R.string.ui_default_icon_community_description),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor(),
                 lineHeight = 18.sp
             )
         }
@@ -1028,7 +1016,7 @@ private fun CommunityIconSubmitDialog(
             Text(
                 text = stringResource(R.string.ui_sweep_provide_a_direct_public_link_to_your_svg_e_g_github_raw_file_or_g),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
             )
 
             OutlinedTextField(
@@ -1067,7 +1055,7 @@ private fun CommunityIconSubmitDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .background(com.valora.icebeats.ui.component.bitChordSettingsCardColor().copy(alpha = 0.4f))
                         .padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1093,7 +1081,7 @@ private fun CommunityIconSubmitDialog(
                         Text(
                             text = stringResource(R.string.ui_text_will_be_loaded_via_url),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
                         )
                     }
                 }

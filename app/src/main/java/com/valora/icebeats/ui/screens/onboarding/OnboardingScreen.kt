@@ -1454,11 +1454,12 @@ private fun WelcomeStep(
                     .border(1.dp, outlineColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.headphones),
-                    contentDescription = null,
-                    tint = primaryTextColor,
-                    modifier = Modifier.size(40.dp)
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.icebeats_logo),
+                    contentDescription = "IceBeats",
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape)
                 )
             }
 

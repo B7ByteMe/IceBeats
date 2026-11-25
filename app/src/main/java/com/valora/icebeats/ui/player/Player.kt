@@ -271,7 +271,7 @@ fun BottomSheetPlayer(
 
     val rawPlayerScreenStyle by rememberEnumPreference<PlayerScreenStyle>(
         PlayerScreenStyleKey,
-        PlayerScreenStyle.BETTER
+        PlayerScreenStyle.IOS_STYLED
     )
     val playerScreenStyle = if (isLiteMode) PlayerScreenStyle.BETTER else rawPlayerScreenStyle
 
@@ -1135,7 +1135,7 @@ fun BottomSheetPlayer(
 
     val navBarStyle by rememberEnumPreference(
         com.valora.icebeats.constants.NavBarStyleKey,
-        defaultValue = com.valora.icebeats.constants.NavBarStyle.NEW_CLASSIC
+        defaultValue = com.valora.icebeats.constants.NavBarStyle.APPLE
     )
     BottomSheet(
         state = state,
@@ -1227,7 +1227,7 @@ fun BottomSheetPlayer(
         collapsedContent = {
             val (navBarStyle, _) = com.valora.icebeats.utils.rememberEnumPreference<com.valora.icebeats.constants.NavBarStyle>(
                 com.valora.icebeats.constants.NavBarStyleKey,
-                defaultValue = com.valora.icebeats.constants.NavBarStyle.NEW_CLASSIC
+                defaultValue = com.valora.icebeats.constants.NavBarStyle.APPLE
             )
             if (navBarStyle == com.valora.icebeats.constants.NavBarStyle.NEW_CLASSIC || navBarStyle == com.valora.icebeats.constants.NavBarStyle.BETTER) {
                 NewClassicMiniPlayer(

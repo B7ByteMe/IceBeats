@@ -78,16 +78,18 @@ constructor(
                 val albums = YouTube.newReleaseAlbums().getOrThrow()
                 val artists: MutableMap<Int, String> = mutableMapOf()
                 val favouriteArtists: MutableMap<Int, String> = mutableMapOf()
-                database.allArtistsByPlayTime().first().let { list ->
-                    var favIndex = 0
-                    for ((artistsIndex, artist) in list.withIndex()) {
-                        artists[artistsIndex] = artist.id
-                        if (artist.artist.bookmarkedAt != null) {
-                            favouriteArtists[favIndex] = artist.id
-                            favIndex++
+                runCatching { database.allArtistsByPlayTime().first() }
+                    .getOrDefault(emptyList())
+                    .let { list ->
+                        var favIndex = 0
+                        for ((artistsIndex, artist) in list.withIndex()) {
+                            artists[artistsIndex] = artist.id
+                            if (artist.artist.bookmarkedAt != null) {
+                                favouriteArtists[favIndex] = artist.id
+                                favIndex++
+                            }
                         }
                     }
-                }
 
                 val sortedAlbums = albums
                     .sortedBy { album ->

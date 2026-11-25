@@ -45,25 +45,24 @@ object AppIconRepository {
 
     val WINTER_ICON = AppIcon(
         id = "icebeats_winters",
-        title = "IceBeats Winters",
-        subtitle = "Winter season frosted cabin & glowing headphones",
-        author = "@Dark",
+        title = "IceBeats Dark",
+        subtitle = "Original green IceBeats icon on pure black",
+        author = "IceBeats Team",
         aliasName = "$PACKAGE_NAME.launcher.AirbeatsWinters",
-        bgColors = listOf(Color(0xFF061838), Color(0xFF0F386E)),
+        bgColors = listOf(Color(0xFF000000), Color(0xFF000000)),
         fgTint = null,
         isDefault = false,
         isCommunity = false,
-        inApp = true,
-        svgUrl = "https://raw.githubusercontent.com/B7ByteMe/IceBeats/main/assets/icons/IceBeats_Winters.png"
+        inApp = true
     )
 
     val MELODY_HEARTS_ICON = AppIcon(
         id = "melody_hearts",
-        title = "Melody Hearts",
-        subtitle = "Romantic anime youth duo glowing under warm crimson sunset melody",
-        author = "@Dark",
+        title = "IceBeats Cyan",
+        subtitle = "Electric cyan IceBeats icon on pure black",
+        author = "IceBeats Team",
         aliasName = "$PACKAGE_NAME.launcher.MelodyHearts",
-        bgColors = listOf(Color(0xFF3B0505), Color(0xFFC62828)),
+        bgColors = listOf(Color(0xFF000000), Color(0xFF000000)),
         fgTint = null,
         isDefault = false,
         isCommunity = false,
@@ -72,11 +71,11 @@ object AppIconRepository {
 
     val GTA6_ICON = AppIcon(
         id = "gta_6",
-        title = "Vice City VI",
-        subtitle = "Neon synthwave Vice City sunset, palm waterfront & retro night drive",
-        author = "@Dark",
+        title = "IceBeats Gold",
+        subtitle = "Vibrant gold IceBeats icon on pure black",
+        author = "IceBeats Team",
         aliasName = "$PACKAGE_NAME.launcher.Gta6",
-        bgColors = listOf(Color(0xFF1A032A), Color(0xFFFF007F)),
+        bgColors = listOf(Color(0xFF000000), Color(0xFF000000)),
         fgTint = null,
         isDefault = false,
         isCommunity = false,
