@@ -225,9 +225,6 @@ fun OnboardingScreen(
             withContext(Dispatchers.IO) {
                 com.valora.icebeats.utils.IceBeatsStatsCloudSync.clearUserSessionStats(context)
                 com.valora.icebeats.ui.component.RankPreferenceManager(context).saveDisplayedRank(null)
-                com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(
-                    com.valora.icebeats.ui.component.MasterBorderStyle.ROYAL_CROWN
-                )
                 database.clearAllLikes()
                 database.clearUserPlaylists()
                 database.clearAllPlaylistSongs()

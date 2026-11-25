@@ -161,6 +161,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.valora.icebeats.viewmodels.RingtoneViewModel
+import com.valora.icebeats.ui.component.RingtoneTrimmerDialog
+import com.valora.icebeats.ui.component.RingtoneProgressDialog
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -971,6 +975,8 @@ class MainActivity : ComponentActivity() {
                             val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
                             val insetBg = if (playerBottomSheetState.progress > 0f) Color.Transparent else baseBg
 
+                            val ringtoneViewModel: RingtoneViewModel = viewModel()
+
                             CompositionLocalProvider(
                                 LocalDatabase provides database,
                                 LocalContentColor provides contentColorFor(MaterialTheme.colorScheme.surface),
@@ -980,6 +986,7 @@ class MainActivity : ComponentActivity() {
                                 LocalShimmerTheme provides ShimmerTheme,
                                 LocalSyncUtils provides syncUtils,
                                 LocalBackdrop provides backdrop,
+                                LocalRingtoneViewModel provides ringtoneViewModel,
                             ) {
                                 var showRealNavBar by remember { mutableStateOf(false) }
                                 var playIntroAnimation by remember { mutableStateOf(true) }
@@ -1621,6 +1628,30 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.align(Alignment.BottomCenter)
                                 )
 
+                                val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
+
+                                RingtoneTrimmerDialog(
+                                    isVisible = ringtoneUiState.showTrimmer,
+                                    songId = ringtoneUiState.targetSongId,
+                                    songTitle = ringtoneUiState.targetSongTitle,
+                                    duration = ringtoneUiState.targetSongDuration,
+                                    onDismiss = { ringtoneViewModel.hideTrimmer() },
+                                    onResolveStreamUrl = { ringtoneViewModel.getStreamUrl(this@MainActivity, it) },
+                                    onConfirm = { start, end -> ringtoneViewModel.setAsRingtone(this@MainActivity, start, end) }
+                                )
+
+                                if (ringtoneUiState.showProgress) {
+                                    RingtoneProgressDialog(
+                                        isVisible = ringtoneUiState.showProgress,
+                                        progress = ringtoneUiState.progress,
+                                        statusMessage = ringtoneUiState.statusMessage,
+                                        isComplete = ringtoneUiState.isComplete,
+                                        isSuccess = ringtoneUiState.isSuccess,
+                                        onDismiss = { ringtoneViewModel.dismissProgress() },
+                                        onOpenSettings = { ringtoneViewModel.openRingtoneSettings(this@MainActivity) }
+                                    )
+                                }
+
                                 sharedSong?.let { song ->
                                     playerConnection?.let {
                                         Dialog(
@@ -1743,6 +1774,7 @@ val LocalPlayerAwareWindowInsets =
     compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
+val LocalRingtoneViewModel = staticCompositionLocalOf<RingtoneViewModel> { error("No RingtoneViewModel provided") }
 
 
 @Composable

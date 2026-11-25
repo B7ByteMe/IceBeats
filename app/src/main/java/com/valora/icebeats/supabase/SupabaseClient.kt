@@ -192,8 +192,6 @@ class SupabaseClient(private val context: Context) {
                     )
                 }
 
-                runCatching { com.valora.icebeats.ui.component.VipSubscriptionManager(context).checkCloudSubscriptionStatus() }
-
                 "Berhasil masuk!"
             }
         }
@@ -265,8 +263,6 @@ class SupabaseClient(private val context: Context) {
                         AvatarSelection.Custom(uri = avatarUrl, cloudUrl = avatarUrl)
                     )
                 }
-
-                runCatching { com.valora.icebeats.ui.component.VipSubscriptionManager(context).checkCloudSubscriptionStatus() }
 
                 "Berhasil masuk dengan akun Google!"
             }
@@ -356,8 +352,6 @@ class SupabaseClient(private val context: Context) {
                     val diceBear = "https://api.dicebear.com/9.x/initials/svg?seed=$encodedSeed&backgroundType=gradientLinear"
                     avatarPref.saveAvatarSelection(AvatarSelection.DiceBear(diceBear))
                 }
-
-                runCatching { com.valora.icebeats.ui.component.VipSubscriptionManager(context).checkCloudSubscriptionStatus() }
 
                 "Berhasil masuk!"
             }
@@ -588,7 +582,6 @@ class SupabaseClient(private val context: Context) {
                 runCatching { httpClient.newCall(request).execute() }
             }
             authManager.clearSession()
-            com.valora.icebeats.ui.component.VipSubscriptionManager(context).resetVipState()
         }
     }
 
@@ -1123,26 +1116,14 @@ class SupabaseClient(private val context: Context) {
                     val syncPrefs = context.getSharedPreferences(com.valora.icebeats.utils.IceBeatsStatsCloudSync.PREFERENCES_NAME, Context.MODE_PRIVATE)
                     val globalPrefs = context.getSharedPreferences("icebeats_global_stats", Context.MODE_PRIVATE)
                     val rankManager = com.valora.icebeats.ui.component.RankPreferenceManager(context)
-                    val bannerManager = com.valora.icebeats.ui.component.BannerPreferenceManager(context)
 
                     if (statsObj != null) {
                         val totalMs = statsObj.optLong("total_listen_ms", 0L)
                         val totalHours = (totalMs / (1000 * 3600)).toInt()
-                        val cloudBannerUrl = statsObj.optString("banner_url").trim().takeIf { it.isNotBlank() && it != "null" }
-                        val cloudBorder = statsObj.optString("border_style").trim().takeIf { it.isNotBlank() && it != "null" }
                         val cloudName = statsObj.optString("name").trim().takeIf { it.isNotBlank() && it != "null" && it != "User" && !it.startsWith("Hai,") }
 
                         syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", totalMs).apply()
                         globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", totalMs).apply()
-
-                        bannerManager.saveBannerForUser(uid, cloudBannerUrl)
-
-                        if (cloudBorder != null) {
-                            val style: String? = null // MasterBorderStyle removed
-                            if (style != null) {
-                                com.valora.icebeats.ui.component.BorderPreferenceManager(context).saveSelectedBorder(style)
-                            }
-                        }
 
                         if (cloudName != null) {
                             val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
@@ -1163,7 +1144,6 @@ class SupabaseClient(private val context: Context) {
                     } else {
                         syncPrefs.edit().putLong("saved_max_total_listen_ms_$uid", 0L).apply()
                         globalPrefs.edit().putLong("saved_max_total_listen_ms_$uid", 0L).apply()
-                        bannerManager.clearBannerForUser(uid)
                         rankManager.resetAll()
                     }
                 }
@@ -1270,8 +1250,6 @@ class SupabaseClient(private val context: Context) {
         runCatching {
             val nameManager = com.valora.icebeats.ui.component.NamePreferenceManager(context)
             val rankManager = com.valora.icebeats.ui.component.RankPreferenceManager(context)
-            val borderManager = com.valora.icebeats.ui.component.BorderPreferenceManager(context)
-            val bannerManager = com.valora.icebeats.ui.component.BannerPreferenceManager(context)
             val userId = com.valora.icebeats.utils.IceBeatsStatsCloudSync.resolveStableUserId(context, nameManager)
             val email = nameManager.accountEmail.first().trim()
 
@@ -1330,15 +1308,6 @@ class SupabaseClient(private val context: Context) {
                 // Hitung dan simpan rank baru dari server sesuai jam akun ini
                 val newRank = if (serverHours >= 1) com.valora.icebeats.ui.component.icebeatsRank.fromHours(serverHours) else null
                 rankManager.saveDisplayedRank(newRank)
-
-                if (serverBorder != null) {
-                    val style: String? = null // MasterBorderStyle removed
-                    borderManager.saveSelectedBorder(style)
-                }
-
-                if (serverBanner != null) {
-                    bannerManager.saveBannerForUser(userId, serverBanner)
-                }
 
                 if (serverName != null) {
                     val currentName = nameManager.userName.first()

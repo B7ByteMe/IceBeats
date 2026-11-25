@@ -941,6 +941,29 @@ interface DatabaseDao {
     @Query("DELETE FROM event")
     fun clearListenHistory()
 
+    @Query("DELETE FROM event")
+    fun clearAllEvents()
+
+    @Transaction
+    @Query("UPDATE song SET liked = 0")
+    fun clearAllLikes()
+
+    @Transaction
+    @Query("DELETE FROM playlist WHERE isEditable = 1")
+    fun clearUserPlaylists()
+
+    @Transaction
+    @Query("DELETE FROM playlist_song_map")
+    fun clearAllPlaylistSongs()
+
+    @Transaction
+    @Query("UPDATE artist SET bookmarkedAt = NULL")
+    fun clearAllArtistBookmarks()
+
+    @Transaction
+    @Query("UPDATE album SET bookmarkedAt = NULL")
+    fun clearAllAlbumBookmarks()
+
     @Transaction
     @Query("DELETE FROM event WHERE timestamp >= :fromTimestamp")
     fun clearHistorySince(fromTimestamp: LocalDateTime)

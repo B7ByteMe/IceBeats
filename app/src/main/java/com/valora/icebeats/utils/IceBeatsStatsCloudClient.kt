@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit
 
 data class GlobalStatsUser(
     val id: String,
+    val user: String? = null,
     val name: String,
     val profileUrl: String?,
     val email: String? = null,
@@ -28,10 +29,12 @@ data class GlobalStatsUser(
 data class GlobalStatsBoard(
     val users: List<GlobalStatsUser> = emptyList(),
     val updatedAt: Long = 0L,
+    val userNumber: String? = null,
 )
 
 data class LocalStatsUpload(
     val userId: String,
+    val user: String? = null,
     val name: String,
     val profileUrl: String?,
     val email: String? = null,

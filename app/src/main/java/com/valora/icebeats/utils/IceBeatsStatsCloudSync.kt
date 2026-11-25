@@ -71,7 +71,6 @@ object icebeatsStatsCloudSync {
         }
         val name = namePreferenceManager.userName.first().ifBlank { android.os.Build.MODEL ?: "icebeats User" }
         val email = namePreferenceManager.accountEmail.first().normalizedEmail()
-        val isVip = com.valora.icebeats.ui.component.VipSubscriptionManager(context).isVip.first()
         val profileUrl =
             when (val avatar = AvatarPreferenceManager(context).getAvatarSelection.first()) {
                 is AvatarSelection.DiceBear -> avatar.url
@@ -79,8 +78,6 @@ object icebeatsStatsCloudSync {
                 is AvatarSelection.Gif -> avatar.url
                 else -> null
             }
-        val borderStyle = com.valora.icebeats.ui.component.BorderPreferenceManager(context).selectedBorder.first().id.takeIf { it.isNotBlank() }
-        val bannerUrl = com.valora.icebeats.ui.component.BannerPreferenceManager(context).bannerUrl.first()?.takeIf { it.isNotBlank() }
         return LocalStatsUpload(
             userId = userId,
             name = name,
@@ -88,8 +85,8 @@ object icebeatsStatsCloudSync {
             email = email,
             totalListenMs = totalListenMs,
             weeklyListenMs = weeklyListenMs,
-            borderStyle = borderStyle,
-            bannerUrl = bannerUrl
+            borderStyle = null,
+            bannerUrl = null
         )
     }
 
@@ -187,8 +184,20 @@ object icebeatsStatsCloudSync {
             ?.lowercase()
             ?.takeIf { it.isNotBlank() && it != "null" }
 
+    fun getUserNumber(context: Context): String? {
+        val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        return preferences.getString(KEY_USER_NUMBER, null)?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    fun persistUserNumber(context: Context, userNumber: String) {
+        if (userNumber.isBlank()) return
+        val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        preferences.edit().putString(KEY_USER_NUMBER, userNumber).apply()
+    }
+
     const val PREFERENCES_NAME = "icebeats_global_stats"
     const val KEY_USER_ID = "global_stats_user_id"
+    const val KEY_USER_NUMBER = "global_stats_user_number"
     const val KEY_DEVICE_ID = "global_stats_device_id"
     const val KEY_LAST_UPLOAD_DAY = "last_global_stats_upload_day"
     const val KEY_LAST_WEEKLY_POPUP = "last_weekly_global_popup"
