@@ -464,285 +464,251 @@ fun AboutScreen(
                     .padding(innerPadding) // This pushes content below the top bar
             ) {
                 com.valora.icebeats.ui.component.BitChordSettingsPageTitle(stringResource(R.string.about))
+
+                val cardColor = com.valora.icebeats.ui.component.bitChordSettingsCardColor()
+                val outlineColor = com.valora.icebeats.ui.component.bitChordSettingsOutlineColor()
+                val secondaryColor = com.valora.icebeats.ui.component.bitChordSettingsSecondaryTextColor()
+                val primaryTextColor = MaterialTheme.colorScheme.onBackground
+
+                val gifImageLoader = remember(context) {
+                    coil.ImageLoader.Builder(context)
+                        .components {
+                            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                                add(coil.decode.ImageDecoderDecoder.Factory())
+                            } else {
+                                add(coil.decode.GifDecoder.Factory())
+                            }
+                        }
+                        .build()
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp), // Add small top padding for spacing
+                        .padding(horizontal = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Logo with shimmer
-                    Box(
-                        modifier = Modifier
-                            .size(90.dp)
-                            .scale(logoScale)
-                            .clip(CircleShape)
-                            .background(
-                                MaterialTheme.colorScheme.surfaceColorAtElevation(
-                                    NavigationBarDefaults.Elevation
-                                )
-                            )
-                    ) {
-                        androidx.compose.foundation.Image(
-                            painter = painterResource(R.drawable.airbeats_monochrome),
-                            contentDescription = null,
-                            colorFilter = ColorFilter.tint(
-                                MaterialTheme.colorScheme.onBackground,
-                                BlendMode.SrcIn
-                            ),
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable {
-                                    logoTapCount++
-                                    if (logoTapCount >= 7) {
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            "Built with ❤️ by IceBeats Team",
-                                            android.widget.Toast.LENGTH_LONG
-                                        ).show()
-                                        logoTapCount = 0
-                                    }
-                                }
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(shimmerBrush)
-                        )
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // App Name
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(
-                                SpanStyle(color = MaterialTheme.colorScheme.primary)
-                            ) {
-                                append("Air")
-                            }
-                            withStyle(
-                                SpanStyle(color = MaterialTheme.colorScheme.secondary)
-                            ) {
-                                append("Beats")
-                            }
-                        },
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // Version badges
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = BuildConfig.VERSION_NAME.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .clickable {
-                                    navController.navigate("settings/app_info")
-                                }
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    shape = CircleShape
-                                )
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-
-                        if (BuildConfig.BUILD_TYPE == "nightly") {
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.ui_text_nightly),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier
-                                    .border(
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        width = 1.dp,
-                                        shape = CircleShape
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-
-                        if (BuildConfig.DEBUG) {
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.ui_text_debug),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier
-                                    .border(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        shape = CircleShape
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = "Dev By DxV STUDIO 亗",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    // Social Icons
-                    SocialIconRow(uriHandler)
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // Contributors Title - LEFT ALIGNED
+                    // 1. App Header Card (matching reference)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 24.dp, bottom = 8.dp),
+                            .clip(com.valora.icebeats.ui.component.BitChordGroupShape)
+                            .background(cardColor)
+                            .clickable {
+                                logoTapCount++
+                                if (logoTapCount >= 7) {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "IceBeats • Valora Project",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                    logoTapCount = 0
+                                }
+                            }
+                            .padding(horizontal = 20.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.group),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.ui_text_founders),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.ui_founders),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    val client = remember { com.valora.icebeats.utils.GitHubApiClient() }
-                    var contributors by remember { mutableStateOf<List<com.valora.icebeats.utils.GitHubContributor>>(emptyList()) }
-                    var founderCommits by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
-                    var isLoadingContributors by remember { mutableStateOf(true) }
-
-                    LaunchedEffect(Unit) {
-                        try {
-                            val fetched = client.getContributors("B7ByteMe", "IceBeats")
-                            founderCommits = fetched.associate { it.login to it.contributions }
-                            contributors = fetched.filter { it.login != "B7ByteMe" && it.login != "drkvenom786" }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        } finally {
-                            isLoadingContributors = false
-                        }
-                    }
-
-                    // Contributors Cards - SIDE-BY-SIDE VERTICAL CARDS
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        UserCard(
-                            imageUrl = "https://avatars.githubusercontent.com/u/218248866",
-                            name = "⏤𝑫ꫝ𝒓𝒌𝒃𝒐𝒚 ꯭𖠌𐎙ꭙ⁷",
-                            role = "Lead Developer",
-                            commits = founderCommits["B7ByteMe"],
-                            githubUrl = "https://github.com/B7ByteMe",
-                            telegramUrl = "https://t.me/songpy",
-                            instagramUrl = "https://instagram.com/dark__336",
-                            websiteUrl = "https://darkboy.pro",
-                            modifier = Modifier.weight(1f),
-                            onClick = { navController.navigate("contributor/B7ByteMe") }
-                        )
-
-                        UserCard(
-                            imageUrl = "https://avatars.githubusercontent.com/u/241423835",
-                            name = "V E N O M",
-                            role = "UI/UX Specialist",
-                            commits = founderCommits["drkvenom786"],
-                            githubUrl = "https://github.com/drkvenom786",
-                            websiteUrl = "https://drkvenom786.github.io/webpage/",
-                            modifier = Modifier.weight(1f),
-                            onClick = { navController.navigate("contributor/drkvenom786") }
-                        )
-                    }
-                    Spacer(Modifier.height(24.dp))
-                    
-                    // Dynamic Contributors Section
-
-                    if (isLoadingContributors) {
-                        Box(
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(R.drawable.icebeats_logo),
+                            contentDescription = "IceBeats",
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            LoadingIndicator()
-                        }
-                    } else if (contributors.isNotEmpty()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(painterResource(R.drawable.github), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
+                                .size(50.dp)
+                                .scale(logoScale)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.ui_text_other_contributors),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                text = "IceBeats",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.4).sp
+                                ),
+                                color = primaryTextColor
                             )
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        contributors.chunked(2).forEach { rowContributors ->
+                            Spacer(modifier = Modifier.height(6.dp))
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                for (contributor in rowContributors) {
-                                    UserCard(
-                                        imageUrl = contributor.avatar_url,
-                                        name = contributor.login,
-                                        role = "Contributor",
-                                        commits = contributor.contributions,
-                                        githubUrl = contributor.html_url,
-                                        modifier = Modifier.weight(1f),
-                                        onClick = { navController.navigate("contributor/${contributor.login}") }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(outlineColor)
+                                        .clickable { navController.navigate("settings/app_info") }
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = BuildConfig.VERSION_NAME,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = primaryTextColor
                                     )
                                 }
-                                if (rowContributors.size == 1) {
-                                    Spacer(modifier = Modifier.weight(1f))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(outlineColor)
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "UNIVERSAL",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = secondaryColor
+                                    )
                                 }
                             }
-                            Spacer(Modifier.height(16.dp))
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 2. Developer Banner + Profile Card (matching reference)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(cardColor)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp)
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data("https://imagepaste.org/i/j5tevf2p.gif")
+                                        .crossfade(true)
+                                        .build(),
+                                    imageLoader = gifImageLoader,
+                                    contentDescription = "Developer Banner",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(110.dp)
+                                        .align(Alignment.BottomCenter)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.Transparent,
+                                                    cardColor.copy(alpha = 0.85f),
+                                                    cardColor
+                                                )
+                                            )
+                                        )
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(52.dp))
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .padding(horizontal = 20.dp, vertical = 18.dp),
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "aprizall_febrian",
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = (-0.5).sp
+                                    ),
+                                    color = primaryTextColor
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "PENGEMBANG",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        letterSpacing = 0.8.sp
+                                    ),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = secondaryColor
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data("https://imagepaste.org/i/sxqwaxdm.jpg")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "aprizall_febrian",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(76.dp)
+                                    .clip(CircleShape)
+                                    .border(3.dp, cardColor, CircleShape)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 3. MEDIA SOSIAL section
+                    Text(
+                        text = "MEDIA SOSIAL",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            letterSpacing = 1.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = secondaryColor
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val socialLinks = listOf(
+                        Triple(R.drawable.telegram, "Telegram · @Riz_BuyX", "https://t.me/Riz_BuyX"),
+                        Triple(R.drawable.resource_public, "Website · valoraproject.my.id", "https://valoraproject.my.id"),
+                        Triple(R.drawable.ic_whatsapp, "Saluran WhatsApp · VALORA PROJECT", "https://whatsapp.com/channel/0029Vb8V2qh8V0tpL0VDky0M")
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        socialLinks.forEach { (iconRes, label, url) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(CircleShape)
+                                    .background(cardColor)
+                                    .border(0.5.dp, outlineColor, CircleShape)
+                                    .clickable { runCatching { uriHandler.openUri(url) } }
+                                    .padding(horizontal = 20.dp, vertical = 15.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(iconRes),
+                                    contentDescription = null,
+                                    tint = primaryTextColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = primaryTextColor
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
@@ -759,4 +725,3 @@ fun AboutScreenPreview() {
         }
     }
 }
-
