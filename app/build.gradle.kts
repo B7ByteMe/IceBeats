@@ -59,6 +59,7 @@ android {
 
     buildTypes {
         release {
+            buildConfigField("boolean", "IS_NIGHTLY", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             isCrunchPngs = true
@@ -69,6 +70,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
+            buildConfigField("boolean", "IS_NIGHTLY", "false")
             // No debug suffix or debug icons, use the release config for testing
         }
     }

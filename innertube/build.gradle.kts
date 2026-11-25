@@ -21,3 +21,4 @@ dependencies {
     implementation(libs.okhttp.dnsoverhttps)
     testImplementation(libs.junit)
 }
+

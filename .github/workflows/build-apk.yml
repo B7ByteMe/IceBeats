@@ -67,13 +67,22 @@ jobs:
       - name: Build Release APK
         run: |
           set -o pipefail
-          ./gradlew assembleRelease --console=plain 2>&1 | tee build.log || {
+          ./gradlew :app:assembleRelease --console=plain --stacktrace 2>&1 | tee build.log || {
             echo "=== GRADLE ERRORS ==="
-            grep -E "^(e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Caused by:)" build.log | head -n 60
+            grep -E "^(e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Caused by:)" build.log | head -n 80
             echo "=== TAIL OF LOG ==="
             tail -n 60 build.log
             exit 1
           }
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Prepare and Name APKs for Release
         run: |

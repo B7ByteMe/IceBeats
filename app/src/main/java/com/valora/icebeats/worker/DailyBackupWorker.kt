@@ -34,8 +34,14 @@ class DailyBackupWorker(
             }
 
             Log.i("DailyBackupWorker", "Starting daily cloud backup for $email")
-            val backupViewModel = BackupRestoreViewModel(com.valora.icebeats.db.InternalDatabase.newInstance(context))
-            val result = backupViewModel.backupToDrive(context, email, name)
+            val database = com.valora.icebeats.db.MusicDatabase.newInstance(context)
+            val backupViewModel = BackupRestoreViewModel(database)
+            val tempFile = java.io.File(context.cacheDir, "daily_backup.zip")
+            tempFile.outputStream().use { out ->
+                backupViewModel.createBackupZip(context, out)
+            }
+            val result = com.valora.icebeats.utils.GoogleAuthManager(context).uploadBackupToDrive(email, tempFile)
+            tempFile.delete()
 
             return if (result is com.valora.icebeats.utils.DriveResult.Success) {
                 Log.i("DailyBackupWorker", "Daily backup successful!")
